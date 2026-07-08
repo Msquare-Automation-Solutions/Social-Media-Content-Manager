@@ -1,0 +1,116 @@
+import crypto from "crypto";
+import { guard } from "@/lib/api-guard";
+import { prisma } from "@/lib/db";
+import { validateSaveAsset } from "@/lib/validation/save-asset";
+import { createAsset } from "@/lib/assets";
+import { storage } from "@/lib/storage";
+import { makeImageThumbnail, generateCover, thumbKey } from "@/lib/thumbnails";
+import { TYPE_LABELS } from "@/lib/library";
+import { slugify } from "@/lib/artifact-view";
+import { parseTags } from "@/lib/json";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+// Save an artifact or upload to the library (EDITOR+). Multipart form:
+//   payload   — JSON (validated by validateSaveAsset)
+//   thumbnail — optional custom cover image (File)
+//   file      — optional uploaded asset file (File; Phase 4 uploads)
+export async function POST(req: Request) {
+  const g = await guard("EDITOR");
+  if (!g.ok) return g.response;
+
+  const form = await req.formData();
+  const rawPayload = form.get("payload");
+  if (typeof rawPayload !== "string") {
+    return new Response("Missing payload", { status: 400 });
+  }
+
+  let payload: unknown;
+  try {
+    const obj = JSON.parse(rawPayload) as Record<string, unknown>;
+    if (typeof obj.tags === "string") obj.tags = parseTags(obj.tags);
+    payload = obj;
+  } catch {
+    return new Response("Invalid payload JSON", { status: 400 });
+  }
+
+  const result = validateSaveAsset(payload);
+  if (!result.ok) {
+    return Response.json({ errors: result.errors }, { status: 422 });
+  }
+  const data = result.data;
+
+  const keyBase = thumbKey(data.title, crypto.randomUUID());
+  const label = TYPE_LABELS[data.type] ?? data.type;
+
+  // Store the uploaded original file, if any.
+  let url: string | null = null;
+  const file = form.get("file");
+  let fileBuffer: Buffer | null = null;
+  if (file instanceof File) {
+    fileBuffer = Buffer.from(await file.arrayBuffer());
+    const ext = extFromName(file.name) || extFromMime(file.type);
+    url = await storage.save(
+      `files/${keyBase}${ext ? "." + ext : ""}`,
+      fileBuffer,
+      file.type || "application/octet-stream",
+    );
+  }
+
+  // Resolve the thumbnail: custom upload → uploaded image → generated cover.
+  let thumbnailUrl: string;
+  const custom = form.get("thumbnail");
+  try {
+    if (custom instanceof File) {
+      thumbnailUrl = await makeImageThumbnail(
+        Buffer.from(await custom.arrayBuffer()),
+        keyBase,
+      );
+    } else if (fileBuffer && (file as File).type.startsWith("image/")) {
+      thumbnailUrl = await makeImageThumbnail(fileBuffer, keyBase);
+    } else {
+      thumbnailUrl = await generateCover(data.title, label, keyBase);
+    }
+  } catch (err) {
+    console.error("thumbnail generation failed, using generated cover", err);
+    thumbnailUrl = await generateCover(data.title, label, keyBase);
+  }
+
+  try {
+    const asset = await createAsset(
+      { ...data, thumbnailUrl, url },
+      { workspaceId: g.user.workspaceId, userId: g.user.id },
+    );
+    // Link the originating chat message (generated artifacts).
+    void slugify;
+    return Response.json(
+      { id: asset.id, type: asset.type, title: asset.title },
+      { status: 201 },
+    );
+  } catch (err) {
+    console.error("createAsset failed", err);
+    return new Response(
+      err instanceof Error ? err.message : "Save failed",
+      { status: 400 },
+    );
+  }
+}
+
+function extFromName(name: string): string {
+  const m = name.match(/\.([a-z0-9]+)$/i);
+  return m ? m[1].toLowerCase() : "";
+}
+
+function extFromMime(mime: string): string {
+  const map: Record<string, string> = {
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+    "image/gif": "gif",
+    "video/mp4": "mp4",
+    "video/quicktime": "mov",
+    "application/pdf": "pdf",
+  };
+  return map[mime] || "";
+}
