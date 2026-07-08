@@ -78,6 +78,38 @@ export async function snapshotAsset(assetId: string, editedById: string) {
   });
 }
 
+/** Apply a stored snapshot back onto the asset (used by version restore). */
+export async function applySnapshot(
+  assetId: string,
+  snapshot: Record<string, unknown>,
+) {
+  const channelIds = Array.isArray(snapshot.channelIds)
+    ? (snapshot.channelIds as string[])
+    : [];
+  await prisma.mediaAsset.update({
+    where: { id: assetId },
+    data: {
+      title: String(snapshot.title ?? ""),
+      type: String(snapshot.type ?? "BLOGPOST"),
+      personId: String(snapshot.personId ?? ""),
+      tags: String(snapshot.tags ?? "[]"),
+      html: (snapshot.html as string | null) ?? null,
+      url: (snapshot.url as string | null) ?? null,
+      thumbnailUrl: (snapshot.thumbnailUrl as string | null) ?? null,
+      filename: (snapshot.filename as string | null) ?? null,
+      mimeType: (snapshot.mimeType as string | null) ?? null,
+      sizeBytes: (snapshot.sizeBytes as number | null) ?? null,
+      source: String(snapshot.source ?? "GENERATED"),
+    },
+  });
+  await prisma.assetChannel.deleteMany({ where: { assetId } });
+  if (channelIds.length) {
+    await prisma.assetChannel.createMany({
+      data: channelIds.map((channelId) => ({ assetId, channelId })),
+    });
+  }
+}
+
 // ── Creation ────────────────────────────────────────────────────────────────
 
 export type CreateAssetArgs = SaveAssetInput & {

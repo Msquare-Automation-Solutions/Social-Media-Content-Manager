@@ -30,6 +30,31 @@ export async function getSkill(workspaceId: string) {
   return prisma.skill.findFirst({ where: { workspaceId } });
 }
 
+export async function getTrashedAssets(workspaceId: string): Promise<AssetListItem[]> {
+  const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // 30 days
+  const rows = await prisma.mediaAsset.findMany({
+    where: { workspaceId, deletedAt: { not: null, gte: cutoff } },
+    orderBy: { deletedAt: "desc" },
+    include: {
+      person: { select: { id: true, name: true, avatarColor: true } },
+      channels: { include: { channel: { select: { id: true, name: true, icon: true, color: true } } } },
+    },
+  });
+  return rows.map((a) => ({
+    id: a.id,
+    title: a.title,
+    type: a.type,
+    source: a.source,
+    thumbnailUrl: a.thumbnailUrl,
+    tags: parseTags(a.tags),
+    createdAt: (a.deletedAt ?? a.createdAt).toISOString(),
+    hasHtml: Boolean(a.html),
+    url: a.url,
+    person: a.person,
+    channels: a.channels.map((c) => c.channel),
+  }));
+}
+
 export async function listMembers(workspaceId: string) {
   const rows = await prisma.membership.findMany({
     where: { workspaceId },

@@ -69,7 +69,10 @@ export function Sidebar({ user, workspaceName, counts, membersCount }: Props) {
       <NavLink href="/trash" active={isActive("/trash")} label="🗑 Trash" />
 
       <div className="mt-auto">
-        <div className="flex items-center gap-2.5 rounded-[12px] bg-bg px-3 py-2.5">
+        <Link
+          href="/account"
+          className="flex items-center gap-2.5 rounded-[12px] bg-bg px-3 py-2.5 hover:ring-1 hover:ring-line"
+        >
           <div
             className="grid h-8 w-8 place-items-center rounded-full text-[13px] font-bold text-white"
             style={{ background: user.avatarColor }}
@@ -82,7 +85,7 @@ export function Sidebar({ user, workspaceName, counts, membersCount }: Props) {
               {user.email} · {roleLabel(user.role)}
             </span>
           </div>
-        </div>
+        </Link>
         <button
           onClick={() => signOut({ callbackUrl: "/login" })}
           className="mt-1.5 flex w-full items-center justify-center gap-2 rounded-[10px] border border-line py-2.5 font-medium text-slate hover:bg-bg hover:text-[#c23b2a]"

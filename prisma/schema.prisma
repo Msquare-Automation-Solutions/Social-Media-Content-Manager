@@ -20,12 +20,14 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  name         String
-  passwordHash String
-  avatarColor  String   @default("#0e9f8f")
-  createdAt    DateTime @default(now())
+  id                String   @id @default(cuid())
+  email             String   @unique
+  name              String
+  passwordHash      String
+  avatarColor       String   @default("#0e9f8f")
+  createdAt         DateTime @default(now())
+  // Bumped on password reset/change to invalidate older JWT sessions.
+  passwordChangedAt DateTime @default(now())
 
   memberships    Membership[]
   person         Person[]

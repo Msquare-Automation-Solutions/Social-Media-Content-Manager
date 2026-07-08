@@ -7,6 +7,7 @@ import { initials } from "@/lib/colors";
 import { AssetPreview } from "@/components/library/asset-card";
 import { BlogEditor } from "@/components/library/blog-editor";
 import { EditAssetDialog } from "@/components/library/edit-asset-dialog";
+import { VersionHistory } from "@/components/library/version-history";
 import { useToast } from "@/components/ui/toast";
 
 type AssetDetail = {
@@ -191,6 +192,16 @@ export function AssetDrawer({
                   onSaved={() => onChanged()}
                 />
               )}
+
+              {/* Version history + restore */}
+              <VersionHistory
+                assetId={asset.id}
+                canRestore={canDoEdit}
+                onRestored={() => {
+                  refetch();
+                  onChanged();
+                }}
+              />
             </div>
 
             {/* Actions */}

@@ -44,7 +44,17 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (session.user && token.uid) {
-        session.user.id = token.uid as string;
+        // Invalidate sessions issued before the user's last password change.
+        const user = await prisma.user.findUnique({
+          where: { id: token.uid as string },
+          select: { passwordChangedAt: true },
+        });
+        const iatMs = typeof token.iat === "number" ? token.iat * 1000 : 0;
+        if (!user || (iatMs && user.passwordChangedAt.getTime() > iatMs)) {
+          session.user.id = "";
+        } else {
+          session.user.id = token.uid as string;
+        }
       }
       return session;
     },
