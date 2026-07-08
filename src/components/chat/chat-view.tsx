@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { Artifact } from "@/lib/ai/tools";
 import { initials } from "@/lib/colors";
 import { ArtifactCard } from "@/components/chat/artifact-card";
+import { useUploadDialog } from "@/components/save/dialog-context";
 
 export type UiMessage = {
   id: string;
@@ -41,6 +42,7 @@ export function ChatView({
   initialMessages,
 }: Props) {
   const router = useRouter();
+  const upload = useUploadDialog();
   const [messages, setMessages] = useState<UiMessage[]>(initialMessages);
   const [sessionId, setSessionId] = useState<string | null>(initialSessionId);
   const [input, setInput] = useState("");
@@ -213,6 +215,13 @@ export function ChatView({
             className="max-h-40 min-h-[44px] w-full resize-none outline-none"
           />
           <div className="mt-1.5 flex items-center gap-2.5">
+            <button
+              onClick={() => upload.open()}
+              title="Attach files"
+              className="text-[16px] text-slate hover:text-teal-dark"
+            >
+              📎
+            </button>
             <span className="text-[11.5px] text-[#9aa7b6]">
               Enter to send · Shift+Enter for a new line
             </span>

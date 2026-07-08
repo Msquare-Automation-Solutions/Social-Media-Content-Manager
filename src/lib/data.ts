@@ -1,5 +1,27 @@
 import { prisma } from "@/lib/db";
-import { LIBRARY_VIEWS, type LibraryViewKey } from "@/lib/library";
+import { LIBRARY_VIEWS, typesForView, type LibraryViewKey } from "@/lib/library";
+import { parseTags } from "@/lib/json";
+
+export type LibraryFilters = {
+  personId?: string;
+  channelId?: string;
+  q?: string;
+  sort?: "newest" | "name";
+};
+
+export type AssetListItem = {
+  id: string;
+  title: string;
+  type: string;
+  source: string;
+  thumbnailUrl: string | null;
+  tags: string[];
+  createdAt: string;
+  hasHtml: boolean;
+  url: string | null;
+  person: { id: string; name: string; avatarColor: string };
+  channels: { id: string; name: string; icon: string; color: string }[];
+};
 
 // Workspace-scoped reads used across the app. Everything here takes a
 // workspaceId so nothing leaks across workspaces.
@@ -40,6 +62,63 @@ export async function getSessionWithMessages(
     where: { id: sessionId, workspaceId },
     include: { messages: { orderBy: { createdAt: "asc" } } },
   });
+}
+
+export async function getLibraryAssets(
+  workspaceId: string,
+  view: LibraryViewKey,
+  filters: LibraryFilters,
+): Promise<AssetListItem[]> {
+  const rows = await prisma.mediaAsset.findMany({
+    where: {
+      workspaceId,
+      deletedAt: null,
+      type: { in: typesForView(view) },
+      ...(filters.personId ? { personId: filters.personId } : {}),
+      ...(filters.channelId
+        ? { channels: { some: { channelId: filters.channelId } } }
+        : {}),
+    },
+    orderBy: { createdAt: "desc" },
+    include: {
+      person: { select: { id: true, name: true, avatarColor: true } },
+      channels: {
+        include: {
+          channel: {
+            select: { id: true, name: true, icon: true, color: true },
+          },
+        },
+      },
+    },
+  });
+
+  let items: AssetListItem[] = rows.map((a) => ({
+    id: a.id,
+    title: a.title,
+    type: a.type,
+    source: a.source,
+    thumbnailUrl: a.thumbnailUrl,
+    tags: parseTags(a.tags),
+    createdAt: a.createdAt.toISOString(),
+    hasHtml: Boolean(a.html),
+    url: a.url,
+    person: a.person,
+    channels: a.channels.map((c) => c.channel),
+  }));
+
+  // Case-insensitive title/tag search + sort, in-memory (workspace is small).
+  const q = filters.q?.trim().toLowerCase();
+  if (q) {
+    items = items.filter(
+      (a) =>
+        a.title.toLowerCase().includes(q) ||
+        a.tags.some((t) => t.toLowerCase().includes(q)),
+    );
+  }
+  if (filters.sort === "name") {
+    items.sort((a, b) => a.title.localeCompare(b.title));
+  }
+  return items;
 }
 
 /**

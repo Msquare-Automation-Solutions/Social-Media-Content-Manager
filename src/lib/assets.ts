@@ -2,6 +2,23 @@ import type { MediaAsset } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { serializeTags, serializeJson } from "@/lib/json";
 import type { SaveAssetInput } from "@/lib/validation/save-asset";
+import { hasRole } from "@/lib/roles";
+import type { Role } from "@/lib/enums";
+
+/**
+ * Who may mutate (edit / delete / restore) an asset:
+ *   ADMIN+ → any asset in the workspace
+ *   EDITOR → only assets they created
+ *   VIEWER → none
+ */
+export function canMutateAsset(
+  actor: { id: string; role: Role },
+  asset: { createdById: string },
+): boolean {
+  if (hasRole(actor.role, "ADMIN")) return true;
+  if (actor.role === "EDITOR") return asset.createdById === actor.id;
+  return false;
+}
 
 // ── Version snapshots ───────────────────────────────────────────────────────
 // A snapshot is written BEFORE every asset edit (spec, non-negotiable).

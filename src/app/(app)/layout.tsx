@@ -37,7 +37,7 @@ export default async function AppLayout({
         />
         <main className="flex h-screen flex-col overflow-hidden">{children}</main>
       </div>
-      <Dialogs />
+      <Dialogs canUpload={user.role !== "VIEWER"} />
     </DialogProvider>
   );
 }

@@ -32,6 +32,7 @@ export type UploadFileDraft = {
 
 type SaveContextValue = {
   target: SaveTarget | null;
+  queueLength: number;
   onSaved?: (result: { type: string }) => void;
   openArtifact: (
     artifact: Artifact,
@@ -39,6 +40,7 @@ type SaveContextValue = {
     onSaved?: (r: { type: string }) => void,
   ) => void;
   openUploadFile: (file: UploadFileDraft) => void;
+  queueUploads: (files: UploadFileDraft[]) => void;
   openEdit: (assetId: string) => void;
   close: () => void;
 };
@@ -62,6 +64,7 @@ export function useUploadDialog() {
 
 export function DialogProvider({ children }: { children: ReactNode }) {
   const [target, setTarget] = useState<SaveTarget | null>(null);
+  const [queue, setQueue] = useState<UploadFileDraft[]>([]);
   const [onSaved, setOnSaved] = useState<
     ((r: { type: string }) => void) | undefined
   >(undefined);
@@ -70,6 +73,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
   const openArtifact = useCallback<SaveContextValue["openArtifact"]>(
     (artifact, messageId, cb) => {
       setOnSaved(() => cb);
+      setQueue([]);
       setTarget({ mode: "artifact", artifact, messageId });
     },
     [],
@@ -77,17 +81,46 @@ export function DialogProvider({ children }: { children: ReactNode }) {
   const openUploadFile = useCallback<SaveContextValue["openUploadFile"]>((file) => {
     setUploadOpen(false);
     setOnSaved(() => undefined);
+    setQueue([]);
     setTarget({ mode: "upload", file });
+  }, []);
+  // Batch upload: tag+save each file in sequence via the same Save dialog.
+  const queueUploads = useCallback<SaveContextValue["queueUploads"]>((files) => {
+    if (files.length === 0) return;
+    setUploadOpen(false);
+    setOnSaved(() => undefined);
+    setTarget({ mode: "upload", file: files[0] });
+    setQueue(files.slice(1));
   }, []);
   const openEdit = useCallback<SaveContextValue["openEdit"]>((assetId) => {
     setOnSaved(() => undefined);
+    setQueue([]);
     setTarget({ mode: "edit", assetId });
   }, []);
-  const close = useCallback(() => setTarget(null), []);
+  // Closing advances to the next queued upload, if any.
+  const close = useCallback(() => {
+    setQueue((q) => {
+      if (q.length > 0) {
+        setTarget({ mode: "upload", file: q[0] });
+        return q.slice(1);
+      }
+      setTarget(null);
+      return q;
+    });
+  }, []);
 
   const saveValue = useMemo<SaveContextValue>(
-    () => ({ target, onSaved, openArtifact, openUploadFile, openEdit, close }),
-    [target, onSaved, openArtifact, openUploadFile, openEdit, close],
+    () => ({
+      target,
+      queueLength: queue.length,
+      onSaved,
+      openArtifact,
+      openUploadFile,
+      queueUploads,
+      openEdit,
+      close,
+    }),
+    [target, queue.length, onSaved, openArtifact, openUploadFile, queueUploads, openEdit, close],
   );
   const uploadValue = useMemo<UploadContextValue>(
     () => ({
