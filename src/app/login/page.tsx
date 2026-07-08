@@ -6,7 +6,7 @@ import { LoginForm } from "./login-form";
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: { reset?: string; joined?: string };
+  searchParams: { reset?: string; joined?: string; error?: string };
 }) {
   const user = await getCurrentUser();
   if (user) redirect("/");
@@ -24,7 +24,7 @@ export default async function LoginPage({
           {notice}
         </div>
       )}
-      <LoginForm />
+      <LoginForm initialError={Boolean(searchParams.error)} />
     </AuthCard>
   );
 }

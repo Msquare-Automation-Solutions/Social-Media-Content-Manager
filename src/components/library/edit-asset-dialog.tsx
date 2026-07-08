@@ -79,6 +79,7 @@ export function EditAssetDialog({
       <div className="flex-1 overflow-y-auto px-6 py-5">
         <label className="mb-1.5 block text-xs font-semibold text-slate">Name</label>
         <input
+          aria-label="Asset name"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           className="mb-4 w-full rounded-[10px] border border-line px-3 py-2.5 outline-none focus:border-teal"

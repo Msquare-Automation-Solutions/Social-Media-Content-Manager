@@ -1,14 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
+import { signIn, getSession } from "next-auth/react";
 
-export function LoginForm() {
-  const router = useRouter();
+export function LoginForm({ initialError = false }: { initialError?: boolean }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState(false);
+  const [error, setError] = useState(initialError);
   const [loading, setLoading] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
@@ -20,13 +18,20 @@ export function LoginForm() {
       password,
       redirect: false,
     });
-    setLoading(false);
     if (res?.error) {
+      setLoading(false);
       setError(true);
       return;
     }
-    router.push("/");
-    router.refresh();
+    // Poll until the session cookie is actually established server-side, then
+    // hard-navigate. This prevents the intermittent race where "/" renders
+    // before the cookie is readable and bounces back to /login.
+    for (let i = 0; i < 25; i++) {
+      const session = await getSession();
+      if (session?.user?.id) break;
+      await new Promise((r) => setTimeout(r, 120));
+    }
+    window.location.assign("/");
   }
 
   return (

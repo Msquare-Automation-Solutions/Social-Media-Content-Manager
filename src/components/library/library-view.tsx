@@ -114,10 +114,9 @@ export function LibraryView({ title, assets, people, channels, filters, canEdit 
           assetId={selectedId}
           canEdit={canEdit}
           onClose={() => setSelectedId(null)}
-          onChanged={() => {
-            setSelectedId(null);
-            router.refresh();
-          }}
+          // Refresh the grid in the background but keep the drawer open, so
+          // edits reveal the new version snapshot rather than dismissing it.
+          onChanged={() => router.refresh()}
         />
       )}
     </div>

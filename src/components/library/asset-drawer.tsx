@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { TYPE_LABELS } from "@/lib/library";
 import { initials } from "@/lib/colors";
 import { AssetPreview } from "@/components/library/asset-card";
@@ -42,9 +42,15 @@ export function AssetDrawer({
   onChanged: () => void;
 }) {
   const { toast } = useToast();
+  const qc = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
   const replaceInput = useRef<HTMLInputElement>(null);
+
+  // After any mutation that writes a snapshot, the separate version-history
+  // query must be invalidated so the new snapshot appears immediately.
+  const refreshVersions = () =>
+    qc.invalidateQueries({ queryKey: ["versions", assetId] });
 
   const { data: asset, refetch, isLoading } = useQuery<AssetDetail>({
     queryKey: ["asset", assetId],
@@ -71,6 +77,7 @@ export function AssetDrawer({
     if (r.ok) {
       toast("Moved to Trash 🗑");
       onChanged();
+      onClose();
     } else {
       toast("Couldn't delete.");
     }
@@ -87,6 +94,7 @@ export function AssetDrawer({
     if (r.ok) {
       toast("File replaced · previous kept as a version ✓");
       refetch();
+      refreshVersions();
       onChanged();
     } else {
       toast("Replace failed.");
@@ -111,6 +119,7 @@ export function AssetDrawer({
             onSaved={() => {
               setEditing(false);
               refetch();
+              refreshVersions();
               onChanged();
             }}
           />

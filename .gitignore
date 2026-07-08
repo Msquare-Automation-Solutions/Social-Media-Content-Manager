@@ -22,6 +22,11 @@ prisma/dev.db-journal
 /uploads/
 /public/uploads/
 
+# Test output
+/test-results/
+/playwright-report/
+/playwright/.cache/
+
 # Testing
 /coverage/
 

@@ -11,7 +11,8 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const bodySchema = z.object({
-  sessionId: z.string().optional(),
+  // Client sends null for a brand-new chat; accept null and undefined.
+  sessionId: z.string().nullish(),
   message: z.string().min(1).max(8000),
 });
 
