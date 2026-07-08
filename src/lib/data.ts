@@ -30,6 +30,30 @@ export async function getSkill(workspaceId: string) {
   return prisma.skill.findFirst({ where: { workspaceId } });
 }
 
+export async function listMembers(workspaceId: string) {
+  const rows = await prisma.membership.findMany({
+    where: { workspaceId },
+    orderBy: { createdAt: "asc" },
+    include: { user: { select: { id: true, name: true, email: true, avatarColor: true } } },
+  });
+  return rows.map((m) => ({
+    membershipId: m.id,
+    userId: m.user.id,
+    name: m.user.name,
+    email: m.user.email,
+    avatarColor: m.user.avatarColor,
+    role: m.role,
+  }));
+}
+
+export async function listPendingInvites(workspaceId: string) {
+  return prisma.invite.findMany({
+    where: { workspaceId, acceptedAt: null },
+    orderBy: { expiresAt: "desc" },
+    select: { id: true, email: true, role: true, expiresAt: true },
+  });
+}
+
 export async function getAssetCounts(
   workspaceId: string,
 ): Promise<Record<LibraryViewKey, number>> {
