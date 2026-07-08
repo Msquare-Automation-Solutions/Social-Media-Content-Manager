@@ -1,0 +1,204 @@
+// MediaChat — Prisma schema (see CLAUDE.md "Prisma model")
+//
+// Dev uses SQLite, which has NO native enums and NO scalar-list (String[])
+// columns. To keep ONE schema that also runs on PostgreSQL later:
+//   - enum-like fields (role, asset type, source, chat role) are stored as
+//     String and validated in application code (see src/lib/enums.ts).
+//   - JSON-ish fields (tags, attachments, snapshots, artifacts) are stored as
+//     String holding JSON — SQLite's Prisma connector has no Json type. Use the
+//     helpers in src/lib/json.ts to (de)serialize.
+//   - the asset<->channel many-to-many uses the explicit AssetChannel join
+//     table (already required by the spec) instead of an array column.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  avatarColor  String   @default("#0e9f8f")
+  createdAt    DateTime @default(now())
+
+  memberships    Membership[]
+  person         Person[]
+  createdAssets  MediaAsset[]        @relation("AssetCreatedBy")
+  assetVersions  AssetVersion[]
+  chatSessions   ChatSession[]
+  skillUpdates   Skill[]
+  resetTokens    PasswordResetToken[]
+}
+
+model Workspace {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+
+  memberships Membership[]
+  skills      Skill[]
+  people      Person[]
+  channels    SocialChannel[]
+  assets      MediaAsset[]
+  sessions    ChatSession[]
+  invites     Invite[]
+}
+
+// role: OWNER | ADMIN | EDITOR | VIEWER  (validated in app)
+model Membership {
+  id          String   @id @default(cuid())
+  userId      String
+  workspaceId String
+  role        String
+  createdAt   DateTime @default(now())
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, workspaceId])
+}
+
+model Skill {
+  id           String   @id @default(cuid())
+  workspaceId  String
+  name         String
+  systemPrompt String
+  updatedById  String?
+  updatedAt    DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  updatedBy User?     @relation(fields: [updatedById], references: [id])
+}
+
+// A creator/company person. May link to a login User, or stand alone.
+model Person {
+  id          String   @id @default(cuid())
+  workspaceId String
+  name        String
+  email       String?
+  label       String?
+  userId      String?
+  avatarColor String   @default("#0e9f8f")
+  createdAt   DateTime @default(now())
+
+  workspace Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User?        @relation(fields: [userId], references: [id])
+  assets    MediaAsset[]
+}
+
+model SocialChannel {
+  id          String   @id @default(cuid())
+  workspaceId String
+  name        String
+  icon        String
+  color       String   @default("#0e9f8f")
+  createdAt   DateTime @default(now())
+
+  workspace Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  assets    AssetChannel[]
+}
+
+// type: IMAGE | THUMBNAIL | VIDEO | BLOGPOST | VIDEO_SCRIPT
+// source: UPLOAD | GENERATED
+model MediaAsset {
+  id            String    @id @default(cuid())
+  workspaceId   String
+  personId      String
+  createdById   String
+  type          String
+  title         String
+  filename      String?
+  url           String?
+  thumbnailUrl  String?
+  mimeType      String?
+  sizeBytes     Int?
+  html          String?
+  tags          String    @default("[]") // JSON string[]
+  source        String
+  chatMessageId String?
+  createdAt     DateTime  @default(now())
+  deletedAt     DateTime?
+
+  workspace Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  person    Person         @relation(fields: [personId], references: [id])
+  createdBy User           @relation("AssetCreatedBy", fields: [createdById], references: [id])
+  message   ChatMessage?   @relation(fields: [chatMessageId], references: [id])
+  channels  AssetChannel[]
+  versions  AssetVersion[]
+}
+
+model AssetChannel {
+  assetId   String
+  channelId String
+
+  asset   MediaAsset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  channel SocialChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@id([assetId, channelId])
+}
+
+model AssetVersion {
+  id           String   @id @default(cuid())
+  assetId      String
+  snapshotJson String // JSON snapshot of the asset before an edit
+  editedById   String
+  createdAt    DateTime @default(now())
+
+  asset    MediaAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  editedBy User       @relation(fields: [editedById], references: [id])
+}
+
+model ChatSession {
+  id          String    @id @default(cuid())
+  workspaceId String
+  userId      String
+  title       String
+  createdAt   DateTime  @default(now())
+  archivedAt  DateTime?
+
+  workspace Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  ChatMessage[]
+}
+
+// role: user | assistant  (validated in app)
+model ChatMessage {
+  id           String   @id @default(cuid())
+  sessionId    String
+  role         String
+  content      String
+  attachments  String   @default("[]") // JSON string[]
+  artifactJson String? // JSON artifact payload
+  createdAt    DateTime @default(now())
+
+  session ChatSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  assets  MediaAsset[]
+}
+
+model Invite {
+  id          String    @id @default(cuid())
+  workspaceId String
+  email       String
+  role        String
+  token       String    @unique
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String
+  expiresAt DateTime
+  usedAt    DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
