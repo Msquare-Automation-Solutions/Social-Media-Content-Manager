@@ -36,10 +36,16 @@ export function isAiConfigured(): boolean {
   return Boolean(process.env.ANTHROPIC_API_KEY);
 }
 
+// Use the canned mock stream when there's no API key, or when MOCK_AI is set
+// (E2E tests force this so they never depend on the live API or credit balance).
+function shouldUseMock(): boolean {
+  return !isAiConfigured() || process.env.MOCK_AI === "1";
+}
+
 export async function* streamChat(
   params: GenerateParams,
 ): AsyncGenerator<StreamEvent> {
-  if (!isAiConfigured()) {
+  if (shouldUseMock()) {
     yield* mockStream(params);
     return;
   }

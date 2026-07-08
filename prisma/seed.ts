@@ -7,8 +7,8 @@ import {
 
 const prisma = new PrismaClient();
 
-// Shared dev password for every seeded member (min 8 chars, bcrypt cost 12).
-const DEV_PASSWORD = "mediachat123";
+// Shared office login password (min 8 chars, bcrypt cost 12).
+const DEV_PASSWORD = "msquare2026";
 
 async function main() {
   console.log("🌱 Seeding MediaChat…");
@@ -35,29 +35,26 @@ async function main() {
     data: { name: "MSquare Studio" },
   });
 
-  // ---- Users + Memberships (the 4 login members from the prototype) ----
-  const memberDefs = [
-    { name: "Fahila", email: "fahila@msquare.pro", role: "OWNER", color: "#e5533d" },
-    { name: "Mira", email: "mira@msquare.pro", role: "ADMIN", color: "#0e9f8f" },
-    { name: "Aron", email: "aron@msquare.pro", role: "EDITOR", color: "#7a4fc9" },
-    { name: "Jules", email: "jules@client.co", role: "VIEWER", color: "#2a6fb8" },
-  ];
-
-  const users: Record<string, { id: string }> = {};
-  for (const m of memberDefs) {
-    const user = await prisma.user.create({
-      data: {
-        name: m.name,
-        email: m.email,
-        passwordHash,
-        avatarColor: m.color,
-        memberships: {
-          create: { workspaceId: workspace.id, role: m.role },
-        },
+  // ---- Single shared office login (full-access Owner) ----
+  // One account the whole team signs in with. Person/creator records below are
+  // separate from this login (they're just who content is tagged to).
+  const sharedUser = await prisma.user.create({
+    data: {
+      name: "MSquare Team",
+      email: "team@msquare.pro",
+      passwordHash,
+      avatarColor: "#0e9f8f",
+      memberships: {
+        create: { workspaceId: workspace.id, role: "OWNER" },
       },
-    });
-    users[m.name] = { id: user.id };
-  }
+    },
+  });
+
+  // All authorship/ownership references in the seed resolve to the shared user.
+  const users: Record<string, { id: string }> = new Proxy(
+    {},
+    { get: () => ({ id: sharedUser.id }) },
+  );
 
   // ---- Skill (v1 Route A: instructions baked into systemPrompt) ----
   await prisma.skill.create({
@@ -319,17 +316,15 @@ async function main() {
 
   console.log(`✅ Seed complete.
   Workspace : ${workspace.name}
-  Members   : ${memberDefs.length} (login users)
+  Members   : 1 (shared office login)
   People    : ${personDefs.length} (creators)
   Channels  : ${channelDefs.length}
   Assets    : ${assetSeeds.length}
   Skill     : ${DEFAULT_SKILL_NAME}
 
-  Dev login → password for every member is: ${DEV_PASSWORD}
-    OWNER  fahila@msquare.pro
-    ADMIN  mira@msquare.pro
-    EDITOR aron@msquare.pro
-    VIEWER jules@client.co`);
+  Shared login (Owner — full access):
+    email    : team@msquare.pro
+    password : ${DEV_PASSWORD}`);
 }
 
 main()
