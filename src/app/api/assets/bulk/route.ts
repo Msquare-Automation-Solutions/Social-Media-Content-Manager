@@ -3,16 +3,26 @@ import { guard } from "@/lib/api-guard";
 import { prisma } from "@/lib/db";
 import { snapshotAsset, canMutateAsset } from "@/lib/assets";
 import { serializeTags, parseTags } from "@/lib/json";
+import { storage, keyFromUrl } from "@/lib/storage";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Bulk library operations (EDITOR+). Each affected asset is permission-checked
-// individually (EDITOR → own, ADMIN+ → all) and, for edits, snapshotted before
-// mutating. Returns how many were applied vs skipped (no permission).
+// Bulk library + trash operations (EDITOR+). Each affected asset is
+// permission-checked individually (EDITOR → own, ADMIN+ → all) and, for edits,
+// snapshotted before mutating. Returns how many were applied vs skipped.
+//   Library: delete (soft) | setPerson | addTags | setTags   (live assets)
+//   Trash:   restore | purge (permanent)                     (deleted assets)
 const schema = z.object({
   ids: z.array(z.string().min(1)).min(1).max(200),
-  action: z.enum(["delete", "setPerson", "addTags", "setTags"]),
+  action: z.enum([
+    "delete",
+    "setPerson",
+    "addTags",
+    "setTags",
+    "restore",
+    "purge",
+  ]),
   personId: z.string().min(1).optional(),
   tags: z.array(z.string().trim().min(1)).max(30).optional(),
 });
@@ -38,8 +48,14 @@ export async function POST(req: Request) {
     return new Response("tags required", { status: 400 });
   }
 
+  // Trash actions target soft-deleted assets; everything else targets live ones.
+  const isTrashAction = action === "restore" || action === "purge";
   const assets = await prisma.mediaAsset.findMany({
-    where: { id: { in: ids }, workspaceId: g.user.workspaceId, deletedAt: null },
+    where: {
+      id: { in: ids },
+      workspaceId: g.user.workspaceId,
+      deletedAt: isTrashAction ? { not: null } : null,
+    },
   });
 
   let applied = 0;
@@ -56,6 +72,31 @@ export async function POST(req: Request) {
         where: { id: asset.id },
         data: { deletedAt: new Date() },
       });
+      applied++;
+      continue;
+    }
+
+    if (action === "restore") {
+      await prisma.mediaAsset.update({
+        where: { id: asset.id },
+        data: { deletedAt: null },
+      });
+      applied++;
+      continue;
+    }
+
+    if (action === "purge") {
+      // Permanent: cascade removes AssetChannel + AssetVersion; also drop files.
+      await prisma.mediaAsset.delete({ where: { id: asset.id } });
+      for (const url of [asset.thumbnailUrl, asset.url]) {
+        if (url?.startsWith("/uploads/")) {
+          try {
+            await storage.delete(keyFromUrl(url));
+          } catch {
+            // best-effort file cleanup
+          }
+        }
+      }
       applied++;
       continue;
     }

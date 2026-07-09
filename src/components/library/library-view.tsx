@@ -7,6 +7,7 @@ import type { AssetListItem } from "@/lib/data";
 import { AssetCard } from "@/components/library/asset-card";
 import { AssetDrawer } from "@/components/library/asset-drawer";
 import { BulkBar } from "@/components/library/bulk-bar";
+import { SelectAllBar } from "@/components/library/select-all";
 
 type Props = {
   title: string;
@@ -107,6 +108,15 @@ export function LibraryView({ title, assets, people, channels, filters, canEdit 
           </button>
         )}
       </div>
+
+      {canEdit && assets.length > 0 && (
+        <SelectAllBar
+          total={assets.length}
+          selectedCount={selected.size}
+          onSelectAll={() => setSelected(new Set(assets.map((a) => a.id)))}
+          onClear={() => setSelected(new Set())}
+        />
+      )}
 
       {assets.length === 0 ? (
         <div className="grid place-items-center py-20 text-center text-slate">
