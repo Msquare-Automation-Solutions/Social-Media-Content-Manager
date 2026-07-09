@@ -3,6 +3,8 @@ import { guard } from "@/lib/api-guard";
 import { prisma } from "@/lib/db";
 import { hashPassword, passwordSchema } from "@/lib/password";
 import { colorFor } from "@/lib/colors";
+import { logActivity } from "@/lib/activity";
+import { roleLabel } from "@/lib/roles";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -46,6 +48,13 @@ export async function POST(req: Request) {
       },
     },
     include: { memberships: { where: { workspaceId: g.user.workspaceId } } },
+  });
+
+  await logActivity(g.user, {
+    action: "account.created",
+    targetId: user.id,
+    targetLabel: user.name,
+    metadata: { email: user.email, role: roleLabel(parsed.data.role) },
   });
 
   return Response.json(

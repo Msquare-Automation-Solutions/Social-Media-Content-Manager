@@ -26,6 +26,7 @@ export function Sidebar({ user, workspaceName, counts, membersCount }: Props) {
   const pathname = usePathname();
   const upload = useUploadDialog();
   const canUpload = user.role !== "VIEWER";
+  const isAdmin = user.role === "ADMIN" || user.role === "OWNER";
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -76,6 +77,14 @@ export function Sidebar({ user, workspaceName, counts, membersCount }: Props) {
         icon="members"
         count={membersCount}
       />
+      {isAdmin && (
+        <NavLink
+          href="/activity"
+          active={isActive("/activity")}
+          label="Activity"
+          icon="activity"
+        />
+      )}
       <NavLink href="/trash" active={isActive("/trash")} label="Trash" icon="trash" />
 
       <div className="mt-auto">

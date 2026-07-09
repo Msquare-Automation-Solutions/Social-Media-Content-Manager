@@ -15,9 +15,14 @@ const asset = {
   source: "GENERATED",
 };
 
+const chans = [
+  { channelId: "c1", scheduledFor: "2026-07-20T00:00:00.000Z" },
+  { channelId: "c2", scheduledFor: null },
+];
+
 describe("assetSnapshot (version snapshots)", () => {
-  it("captures every versioned field plus channel ids", () => {
-    const snap = assetSnapshot(asset, ["c1", "c2"]);
+  it("captures every versioned field plus channels with post dates", () => {
+    const snap = assetSnapshot(asset, chans);
     expect(snap).toMatchObject({
       title: "Post",
       type: "BLOGPOST",
@@ -26,19 +31,19 @@ describe("assetSnapshot (version snapshots)", () => {
       html: "<p>hi</p>",
       thumbnailUrl: "/uploads/thumbs/a.png",
       source: "GENERATED",
-      channelIds: ["c1", "c2"],
+      channels: chans,
     });
   });
 
   it("is JSON-serializable (stored as snapshotJson string)", () => {
-    const snap = assetSnapshot(asset, ["c1"]);
+    const snap = assetSnapshot(asset, chans);
     const roundtrip = JSON.parse(JSON.stringify(snap));
-    expect(roundtrip.channelIds).toEqual(["c1"]);
+    expect(roundtrip.channels).toEqual(chans);
     expect(roundtrip.title).toBe("Post");
   });
 
   it("preserves empty channel list", () => {
-    expect(assetSnapshot(asset, []).channelIds).toEqual([]);
+    expect(assetSnapshot(asset, []).channels).toEqual([]);
   });
 });
 

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { snapshotAsset, canMutateAsset } from "@/lib/assets";
 import { serializeTags, parseTags } from "@/lib/json";
 import { storage, keyFromUrl } from "@/lib/storage";
+import { logActivity, type ActionKey } from "@/lib/activity";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -36,13 +37,15 @@ export async function POST(req: Request) {
   const { ids, action, personId, tags } = parsed.data;
 
   // Validate the target person up front for setPerson.
+  let targetPersonName: string | undefined;
   if (action === "setPerson") {
     if (!personId) return new Response("personId required", { status: 400 });
     const person = await prisma.person.findFirst({
       where: { id: personId, workspaceId: g.user.workspaceId },
-      select: { id: true },
+      select: { id: true, name: true },
     });
     if (!person) return new Response("Person not in workspace", { status: 400 });
+    targetPersonName = person.name;
   }
   if ((action === "addTags" || action === "setTags") && !tags) {
     return new Response("tags required", { status: 400 });
@@ -125,5 +128,17 @@ export async function POST(req: Request) {
     applied++;
   }
 
+  if (applied > 0) {
+    await logActivity(g.user, {
+      action: `asset.bulk_${action}` as ActionKey,
+      targetLabel: `${applied} item${applied === 1 ? "" : "s"}`,
+      metadata: {
+        applied,
+        skipped,
+        ...(targetPersonName ? { to: targetPersonName } : {}),
+        ...(tags ? { tags } : {}),
+      },
+    });
+  }
   return Response.json({ applied, skipped });
 }

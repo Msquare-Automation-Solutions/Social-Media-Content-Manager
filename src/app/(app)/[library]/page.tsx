@@ -31,7 +31,7 @@ export default async function LibraryPage({
     personId: sp.person || undefined,
     channelId: sp.channel || undefined,
     q: sp.q || undefined,
-    sort: (sp.sort as "newest" | "name") || "newest",
+    sort: (sp.sort as "newest" | "name" | "postdate") || "newest",
   };
 
   const [assets, people, channels] = await Promise.all([

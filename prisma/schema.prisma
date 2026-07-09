@@ -51,6 +51,28 @@ model Workspace {
   assets      MediaAsset[]
   sessions    ChatSession[]
   invites     Invite[]
+  activity    ActivityLog[]
+}
+
+// Immutable audit trail of who did what. Actor fields are denormalized so an
+// entry stays readable even after the actor/target is deleted (no FK).
+model ActivityLog {
+  id               String   @id @default(cuid())
+  workspaceId      String
+  actorId          String
+  actorName        String
+  actorAvatarColor String
+  action           String // e.g. "asset.created" (validated in src/lib/activity.ts)
+  category         String // content | account | creator | platform
+  targetType       String?
+  targetId         String?
+  targetLabel      String?
+  metadata         String? // JSON
+  createdAt        DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, createdAt])
 }
 
 // role: OWNER | ADMIN | EDITOR | VIEWER  (validated in app)
@@ -126,6 +148,7 @@ model MediaAsset {
   source        String
   chatMessageId String?
   createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @default(now()) @updatedAt
   deletedAt     DateTime?
 
   workspace Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
@@ -137,8 +160,9 @@ model MediaAsset {
 }
 
 model AssetChannel {
-  assetId   String
-  channelId String
+  assetId      String
+  channelId    String
+  scheduledFor DateTime? // planned post date for this asset on this platform
 
   asset   MediaAsset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
   channel SocialChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)

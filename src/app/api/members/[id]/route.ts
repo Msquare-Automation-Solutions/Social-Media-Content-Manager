@@ -2,6 +2,9 @@ import { z } from "zod";
 import { guard } from "@/lib/api-guard";
 import { prisma } from "@/lib/db";
 import { ROLES } from "@/lib/enums";
+import { logActivity } from "@/lib/activity";
+import { roleLabel } from "@/lib/roles";
+import type { Role } from "@/lib/enums";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,16 +26,27 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   const membership = await prisma.membership.findFirst({
     where: { id: (await params).id, workspaceId: g.user.workspaceId },
+    include: { user: { select: { name: true } } },
   });
   if (!membership) return new Response("Not found", { status: 404 });
   if (membership.role === "OWNER") {
     return new Response("Cannot modify an owner", { status: 403 });
   }
+  const targetName = membership.user.name;
 
   if (parsed.data.role !== undefined) {
     await prisma.membership.update({
       where: { id: membership.id },
       data: { role: parsed.data.role },
+    });
+    await logActivity(g.user, {
+      action: "account.role_changed",
+      targetId: membership.userId,
+      targetLabel: targetName,
+      metadata: {
+        from: roleLabel(membership.role as Role),
+        to: roleLabel(parsed.data.role as Role),
+      },
     });
   }
 
@@ -43,6 +57,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     await prisma.user.update({
       where: { id: membership.userId },
       data: { disabledAt: parsed.data.disabled ? new Date() : null },
+    });
+    await logActivity(g.user, {
+      action: parsed.data.disabled ? "account.deactivated" : "account.reactivated",
+      targetId: membership.userId,
+      targetLabel: targetName,
     });
   }
 
@@ -65,6 +84,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
 
   const membership = await prisma.membership.findFirst({
     where: { id: (await params).id, workspaceId: g.user.workspaceId },
+    include: { user: { select: { name: true } } },
   });
   if (!membership) return new Response("Not found", { status: 404 });
   if (membership.role === "OWNER") {
@@ -77,7 +97,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   // The reassign target must be a different, real member of this workspace.
   const target = await prisma.membership.findFirst({
     where: { workspaceId: g.user.workspaceId, userId: parsed.data.reassignToUserId },
-    select: { userId: true },
+    include: { user: { select: { name: true } } },
   });
   if (!target || target.userId === membership.userId) {
     return new Response("Invalid reassign target", { status: 400 });
@@ -111,5 +131,11 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     prisma.user.delete({ where: { id: deletedUserId } }),
   ]);
 
+  await logActivity(g.user, {
+    action: "account.deleted",
+    targetId: deletedUserId,
+    targetLabel: membership.user.name,
+    metadata: { reassignTo: target.user.name },
+  });
   return Response.json({ ok: true });
 }

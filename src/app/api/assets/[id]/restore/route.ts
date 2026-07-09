@@ -1,6 +1,7 @@
 import { guard } from "@/lib/api-guard";
 import { prisma } from "@/lib/db";
 import { canMutateAsset } from "@/lib/assets";
+import { logActivity } from "@/lib/activity";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,6 +20,11 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   await prisma.mediaAsset.update({
     where: { id: asset.id },
     data: { deletedAt: null },
+  });
+  await logActivity(g.user, {
+    action: "asset.restored",
+    targetId: asset.id,
+    targetLabel: asset.title,
   });
   return Response.json({ ok: true });
 }

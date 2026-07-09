@@ -109,6 +109,8 @@ function SaveDialogInner({
   const [personId, setPersonId] = useState<string>("");
   const [category, setCategory] = useState(draft.category);
   const [channels, setChannels] = useState<Set<string>>(new Set());
+  // channelId → post date (yyyy-mm-dd), optional per platform.
+  const [postDates, setPostDates] = useState<Record<string, string>>({});
   const [tags, setTags] = useState(draft.tags.join(", "));
   const [customThumb, setCustomThumb] = useState<File | null>(null);
   const [customThumbUrl, setCustomThumbUrl] = useState<string | null>(null);
@@ -202,7 +204,12 @@ function SaveDialogInner({
       type: category,
       source: draft.source,
       personId: effectivePersonId,
-      channelIds: [...channels],
+      channels: [...channels].map((id) => ({
+        channelId: id,
+        scheduledFor: postDates[id]
+          ? new Date(postDates[id]).toISOString()
+          : null,
+      })),
       tags: tags
         .split(",")
         .map((t) => t.trim())
@@ -387,7 +394,7 @@ function SaveDialogInner({
       </Field>
 
       {/* Platforms */}
-      <Field label="Social platform(s)" error={errors.channelIds}>
+      <Field label="Social platform(s)" error={errors.channels}>
         <div className="flex flex-wrap gap-2">
           {(options?.channels ?? []).map((c) => {
             const on = channels.has(c.id);
@@ -436,6 +443,44 @@ function SaveDialogInner({
             >
               Add
             </button>
+          </div>
+        )}
+        {channels.size > 0 && (
+          <div className="mt-3 space-y-1.5 rounded-[11px] bg-bg p-3">
+            <div className="text-[11px] font-semibold text-slate">
+              Post date per platform (optional)
+            </div>
+            {(options?.channels ?? [])
+              .filter((c) => channels.has(c.id))
+              .map((c) => (
+                <div key={c.id} className="flex items-center gap-2 text-[12.5px]">
+                  <span className="w-28 shrink-0 truncate">
+                    {c.icon} {c.name}
+                  </span>
+                  <input
+                    type="date"
+                    value={postDates[c.id] ?? ""}
+                    onChange={(e) =>
+                      setPostDates((p) => ({ ...p, [c.id]: e.target.value }))
+                    }
+                    className="rounded-[9px] border border-line bg-card px-2.5 py-1.5 outline-none focus:border-teal"
+                  />
+                  {postDates[c.id] && (
+                    <button
+                      onClick={() =>
+                        setPostDates((p) => {
+                          const n = { ...p };
+                          delete n[c.id];
+                          return n;
+                        })
+                      }
+                      className="text-[11px] font-semibold text-slate hover:text-ink"
+                    >
+                      clear
+                    </button>
+                  )}
+                </div>
+              ))}
           </div>
         )}
       </Field>

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { guard } from "@/lib/api-guard";
 import { prisma } from "@/lib/db";
+import { logActivity } from "@/lib/activity";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,6 +31,11 @@ export async function POST(req: Request) {
       color: parsed.data.color || "#0e9f8f",
     },
     select: { id: true, name: true, icon: true, color: true },
+  });
+  await logActivity(g.user, {
+    action: "platform.created",
+    targetId: channel.id,
+    targetLabel: channel.name,
   });
   return Response.json(channel, { status: 201 });
 }

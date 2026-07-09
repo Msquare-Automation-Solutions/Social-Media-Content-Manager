@@ -2,6 +2,7 @@ import { z } from "zod";
 import { guard } from "@/lib/api-guard";
 import { prisma } from "@/lib/db";
 import { colorFor } from "@/lib/colors";
+import { logActivity } from "@/lib/activity";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,6 +31,11 @@ export async function POST(req: Request) {
       avatarColor: colorFor(parsed.data.name),
     },
     select: { id: true, name: true, label: true, avatarColor: true },
+  });
+  await logActivity(g.user, {
+    action: "creator.created",
+    targetId: person.id,
+    targetLabel: person.name,
   });
   return Response.json(person, { status: 201 });
 }

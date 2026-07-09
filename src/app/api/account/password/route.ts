@@ -2,6 +2,7 @@ import { z } from "zod";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { guard } from "@/lib/api-guard";
 import { prisma } from "@/lib/db";
+import { logActivity } from "@/lib/activity";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -38,5 +39,6 @@ export async function POST(req: Request) {
     data: { passwordHash, passwordChangedAt: new Date() },
   });
 
+  await logActivity(g.user, { action: "account.password_changed" });
   return Response.json({ ok: true });
 }

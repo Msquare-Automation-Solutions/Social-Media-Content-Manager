@@ -2,6 +2,7 @@ import { guard } from "@/lib/api-guard";
 import { prisma } from "@/lib/db";
 import { snapshotAsset, applySnapshot, canMutateAsset } from "@/lib/assets";
 import { parseJson } from "@/lib/json";
+import { logActivity } from "@/lib/activity";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,5 +31,10 @@ export async function POST(
   const snapshot = parseJson<Record<string, unknown>>(version.snapshotJson, {});
   await applySnapshot(asset.id, snapshot);
 
+  await logActivity(g.user, {
+    action: "asset.version_restored",
+    targetId: asset.id,
+    targetLabel: asset.title,
+  });
   return Response.json({ ok: true });
 }

@@ -6,18 +6,30 @@ const valid = {
   type: "BLOGPOST",
   source: "GENERATED",
   personId: "person_1",
-  channelIds: ["chan_1"],
+  channels: [
+    { channelId: "chan_1", scheduledFor: "2026-07-20T00:00:00.000Z" },
+    { channelId: "chan_2", scheduledFor: null },
+  ],
   tags: ["a", "b"],
 };
 
 describe("validateSaveAsset (Save-dialog server validation)", () => {
-  it("accepts a well-formed payload", () => {
+  it("accepts a well-formed payload with per-platform dates", () => {
     const r = validateSaveAsset(valid);
     expect(r.ok).toBe(true);
     if (r.ok) {
       expect(r.data.title).toBe("My Post");
-      expect(r.data.channelIds).toEqual(["chan_1"]);
+      expect(r.data.channels[0].channelId).toBe("chan_1");
+      expect(r.data.channels[0].scheduledFor).toBe("2026-07-20T00:00:00.000Z");
     }
+  });
+
+  it("rejects a non-ISO post date", () => {
+    const r = validateSaveAsset({
+      ...valid,
+      channels: [{ channelId: "chan_1", scheduledFor: "not-a-date" }],
+    });
+    expect(r.ok).toBe(false);
   });
 
   it("requires a non-empty name", () => {
@@ -33,9 +45,9 @@ describe("validateSaveAsset (Save-dialog server validation)", () => {
   });
 
   it("requires at least one platform", () => {
-    const r = validateSaveAsset({ ...valid, channelIds: [] });
+    const r = validateSaveAsset({ ...valid, channels: [] });
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.errors.channelIds).toBeTruthy();
+    if (!r.ok) expect(r.errors.channels).toBeTruthy();
   });
 
   it("rejects an invalid category", () => {

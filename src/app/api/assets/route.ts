@@ -7,6 +7,7 @@ import { makeImageThumbnail, generateCover, thumbKey } from "@/lib/thumbnails";
 import { TYPE_LABELS } from "@/lib/library";
 import { slugify } from "@/lib/artifact-view";
 import { parseTags } from "@/lib/json";
+import { logActivity } from "@/lib/activity";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -83,6 +84,12 @@ export async function POST(req: Request) {
     );
     // Link the originating chat message (generated artifacts).
     void slugify;
+    await logActivity(g.user, {
+      action: "asset.created",
+      targetType: (TYPE_LABELS[data.type] ?? data.type).toLowerCase(),
+      targetId: asset.id,
+      targetLabel: asset.title,
+    });
     return Response.json(
       { id: asset.id, type: asset.type, title: asset.title },
       { status: 201 },

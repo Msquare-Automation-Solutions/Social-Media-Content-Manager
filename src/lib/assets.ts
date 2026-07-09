@@ -39,7 +39,7 @@ export function assetSnapshot(
     | "sizeBytes"
     | "source"
   >,
-  channelIds: string[],
+  channels: { channelId: string; scheduledFor: string | null }[],
 ): Record<string, unknown> {
   return {
     title: asset.title,
@@ -53,7 +53,7 @@ export function assetSnapshot(
     mimeType: asset.mimeType,
     sizeBytes: asset.sizeBytes,
     source: asset.source,
-    channelIds,
+    channels,
   };
 }
 
@@ -71,7 +71,10 @@ export async function snapshotAsset(assetId: string, editedById: string) {
       snapshotJson: serializeJson(
         assetSnapshot(
           asset,
-          asset.channels.map((c) => c.channelId),
+          asset.channels.map((c) => ({
+            channelId: c.channelId,
+            scheduledFor: c.scheduledFor ? c.scheduledFor.toISOString() : null,
+          })),
         ),
       ),
     },
@@ -83,9 +86,17 @@ export async function applySnapshot(
   assetId: string,
   snapshot: Record<string, unknown>,
 ) {
-  const channelIds = Array.isArray(snapshot.channelIds)
-    ? (snapshot.channelIds as string[])
-    : [];
+  // New snapshots store `channels: [{channelId, scheduledFor}]`; older ones used
+  // a plain `channelIds: string[]`.
+  const channels: { channelId: string; scheduledFor: string | null }[] =
+    Array.isArray(snapshot.channels)
+      ? (snapshot.channels as { channelId: string; scheduledFor: string | null }[])
+      : Array.isArray(snapshot.channelIds)
+        ? (snapshot.channelIds as string[]).map((channelId) => ({
+            channelId,
+            scheduledFor: null,
+          }))
+        : [];
   await prisma.mediaAsset.update({
     where: { id: assetId },
     data: {
@@ -103,9 +114,13 @@ export async function applySnapshot(
     },
   });
   await prisma.assetChannel.deleteMany({ where: { assetId } });
-  if (channelIds.length) {
+  if (channels.length) {
     await prisma.assetChannel.createMany({
-      data: channelIds.map((channelId) => ({ assetId, channelId })),
+      data: channels.map((c) => ({
+        assetId,
+        channelId: c.channelId,
+        scheduledFor: c.scheduledFor ? new Date(c.scheduledFor) : null,
+      })),
     });
   }
 }
@@ -131,11 +146,12 @@ export async function createAsset(
   });
   if (!person) throw new Error("Person not in workspace");
 
-  const channels = await prisma.socialChannel.findMany({
-    where: { id: { in: args.channelIds }, workspaceId: ctx.workspaceId },
+  const ids = args.channels.map((c) => c.channelId);
+  const valid = await prisma.socialChannel.findMany({
+    where: { id: { in: ids }, workspaceId: ctx.workspaceId },
     select: { id: true },
   });
-  if (channels.length !== args.channelIds.length) {
+  if (valid.length !== ids.length) {
     throw new Error("One or more platforms not in workspace");
   }
 
@@ -156,7 +172,10 @@ export async function createAsset(
       sizeBytes: args.sizeBytes ?? null,
       chatMessageId: args.chatMessageId ?? null,
       channels: {
-        create: channels.map((c) => ({ channelId: c.id })),
+        create: args.channels.map((c) => ({
+          channelId: c.channelId,
+          scheduledFor: c.scheduledFor ? new Date(c.scheduledFor) : null,
+        })),
       },
     },
     select: { id: true, type: true, title: true },

@@ -23,8 +23,15 @@ type AssetDetail = {
   sizeBytes: number | null;
   tags: string[];
   createdAt: string;
+  updatedAt: string;
   person: { id: string; name: string; avatarColor: string };
-  channels: { id: string; name: string; icon: string; color: string }[];
+  channels: {
+    id: string;
+    name: string;
+    icon: string;
+    color: string;
+    scheduledFor: string | null;
+  }[];
   channelIds: string[];
   versionCount: number;
   canEdit: boolean;
@@ -167,8 +174,16 @@ export function AssetDrawer({
                 <Row label="Platforms">
                   <div className="flex flex-wrap gap-1.5">
                     {asset.channels.map((c) => (
-                      <span key={c.id} className="rounded-full bg-bg px-2 py-0.5 text-[11px] font-semibold">
+                      <span
+                        key={c.id}
+                        className="flex items-center gap-1 rounded-full bg-bg px-2 py-0.5 text-[11px] font-semibold"
+                      >
                         {c.icon} {c.name}
+                        {c.scheduledFor && (
+                          <span className="font-normal text-teal-dark">
+                            · 📅 {new Date(c.scheduledFor).toLocaleDateString()}
+                          </span>
+                        )}
                       </span>
                     ))}
                   </div>
@@ -187,7 +202,17 @@ export function AssetDrawer({
                     </div>
                   </Row>
                 )}
-                <Row label="Saved">{new Date(asset.createdAt).toLocaleDateString()}</Row>
+                <Row label="Created">
+                  {new Date(asset.createdAt).toLocaleString()}
+                </Row>
+                {asset.updatedAt &&
+                  new Date(asset.updatedAt).getTime() -
+                    new Date(asset.createdAt).getTime() >
+                    1000 && (
+                    <Row label="Updated">
+                      {new Date(asset.updatedAt).toLocaleString()}
+                    </Row>
+                  )}
                 {asset.versionCount > 0 && (
                   <Row label="Versions">{asset.versionCount} snapshot(s)</Row>
                 )}

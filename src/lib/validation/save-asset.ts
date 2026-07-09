@@ -8,13 +8,20 @@ import { ASSET_TYPES, ASSET_SOURCES } from "@/lib/enums";
 //   - at least one Social platform is required
 //   - category (type) and source must be valid enum values
 
+// A selected platform + its optional planned post date (ISO yyyy-mm-dd or full
+// ISO). Multiple platforms per asset, each independently schedulable.
+export const channelSelectionSchema = z.object({
+  channelId: z.string().min(1),
+  scheduledFor: z.string().datetime().nullish().or(z.literal("")),
+});
+
 export const saveAssetSchema = z.object({
   title: z.string().trim().min(1, "Name is required").max(200),
   type: z.enum(ASSET_TYPES),
   source: z.enum(ASSET_SOURCES),
   personId: z.string().min(1, "Person is required"),
-  channelIds: z
-    .array(z.string().min(1))
+  channels: z
+    .array(channelSelectionSchema)
     .min(1, "Pick at least one social platform"),
   tags: z.array(z.string().trim().min(1)).max(30).default([]),
   html: z.string().optional(),

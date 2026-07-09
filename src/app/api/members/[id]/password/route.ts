@@ -2,6 +2,7 @@ import { z } from "zod";
 import { guard } from "@/lib/api-guard";
 import { prisma } from "@/lib/db";
 import { hashPassword, passwordSchema } from "@/lib/password";
+import { logActivity } from "@/lib/activity";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,6 +23,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   const membership = await prisma.membership.findFirst({
     where: { id: (await params).id, workspaceId: g.user.workspaceId },
+    include: { user: { select: { name: true } } },
   });
   if (!membership) return new Response("Not found", { status: 404 });
   if (membership.userId === g.user.id) {
@@ -32,6 +34,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   await prisma.user.update({
     where: { id: membership.userId },
     data: { passwordHash, passwordChangedAt: new Date() },
+  });
+  await logActivity(g.user, {
+    action: "account.password_reset",
+    targetId: membership.userId,
+    targetLabel: membership.user.name,
   });
   return Response.json({ ok: true });
 }

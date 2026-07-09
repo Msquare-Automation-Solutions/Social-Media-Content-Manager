@@ -97,6 +97,7 @@ export function LibraryView({ title, assets, people, channels, filters, canEdit 
           options={[
             { value: "newest", label: "Newest" },
             { value: "name", label: "Name (A–Z)" },
+            { value: "postdate", label: "Post date" },
           ]}
         />
         {hasFilters && (

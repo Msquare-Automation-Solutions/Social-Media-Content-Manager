@@ -7,6 +7,8 @@ import { serializeTags, parseTags } from "@/lib/json";
 import { storage, keyFromUrl } from "@/lib/storage";
 import { makeImageThumbnail, thumbKey } from "@/lib/thumbnails";
 import { ASSET_TYPES } from "@/lib/enums";
+import { TYPE_LABELS } from "@/lib/library";
+import { logActivity } from "@/lib/activity";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -43,8 +45,12 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     sizeBytes: a.sizeBytes,
     tags: parseTags(a.tags),
     createdAt: a.createdAt.toISOString(),
+    updatedAt: a.updatedAt.toISOString(),
     person: a.person,
-    channels: a.channels.map((c) => c.channel),
+    channels: a.channels.map((c) => ({
+      ...c.channel,
+      scheduledFor: c.scheduledFor ? c.scheduledFor.toISOString() : null,
+    })),
     channelIds: a.channels.map((c) => c.channelId),
     versionCount: a._count.versions,
     canEdit: canMutateAsset(g.user, a),
@@ -56,7 +62,15 @@ const patchSchema = z.object({
   title: z.string().trim().min(1).max(200).optional(),
   type: z.enum(ASSET_TYPES).optional(),
   personId: z.string().min(1).optional(),
-  channelIds: z.array(z.string().min(1)).min(1).optional(),
+  channels: z
+    .array(
+      z.object({
+        channelId: z.string().min(1),
+        scheduledFor: z.string().datetime().nullish().or(z.literal("")),
+      }),
+    )
+    .min(1)
+    .optional(),
   tags: z.array(z.string().trim().min(1)).max(30).optional(),
   html: z.string().optional(),
 });
@@ -126,18 +140,32 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     data,
   });
 
-  // Update channel links if provided.
-  if (parsedBody.channelIds) {
-    const channels = await prisma.socialChannel.findMany({
-      where: { id: { in: parsedBody.channelIds }, workspaceId: g.user.workspaceId },
+  // Update channel links (+ per-platform post dates) if provided.
+  if (parsedBody.channels) {
+    const ids = parsedBody.channels.map((c) => c.channelId);
+    const valid = await prisma.socialChannel.findMany({
+      where: { id: { in: ids }, workspaceId: g.user.workspaceId },
       select: { id: true },
     });
+    const validIds = new Set(valid.map((c) => c.id));
     await prisma.assetChannel.deleteMany({ where: { assetId: asset.id } });
     await prisma.assetChannel.createMany({
-      data: channels.map((c) => ({ assetId: asset.id, channelId: c.id })),
+      data: parsedBody.channels
+        .filter((c) => validIds.has(c.channelId))
+        .map((c) => ({
+          assetId: asset.id,
+          channelId: c.channelId,
+          scheduledFor: c.scheduledFor ? new Date(c.scheduledFor) : null,
+        })),
     });
   }
 
+  await logActivity(g.user, {
+    action: "asset.updated",
+    targetType: (TYPE_LABELS[updated.type] ?? updated.type).toLowerCase(),
+    targetId: updated.id,
+    targetLabel: updated.title,
+  });
   return Response.json({ id: updated.id, type: updated.type, title: updated.title });
 }
 
@@ -157,5 +185,11 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     data: { deletedAt: new Date() },
   });
   void keyFromUrl; // storage cleanup happens on permanent trash purge (Phase 6)
+  await logActivity(g.user, {
+    action: "asset.deleted",
+    targetType: (TYPE_LABELS[asset.type] ?? asset.type).toLowerCase(),
+    targetId: asset.id,
+    targetLabel: asset.title,
+  });
   return Response.json({ ok: true });
 }

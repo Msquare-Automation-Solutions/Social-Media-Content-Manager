@@ -51,7 +51,21 @@ export function AssetCard({
         </div>
       </div>
       <div className="p-3">
-        <div className="truncate text-[12.5px] font-semibold">{asset.title}</div>
+        <div className="flex items-center gap-1.5">
+          <div className="flex-1 truncate text-[12.5px] font-semibold">{asset.title}</div>
+          {asset.nextPostDate && (
+            <span
+              className="shrink-0 rounded-full bg-teal-soft px-1.5 py-0.5 text-[10px] font-semibold text-teal-dark"
+              title={`Post date: ${new Date(asset.nextPostDate).toLocaleDateString()}`}
+            >
+              📅{" "}
+              {new Date(asset.nextPostDate).toLocaleDateString(undefined, {
+                month: "short",
+                day: "numeric",
+              })}
+            </span>
+          )}
+        </div>
         <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] text-slate">
           <span
             className="grid h-[18px] w-[18px] place-items-center rounded-full text-[9px] font-bold text-white"

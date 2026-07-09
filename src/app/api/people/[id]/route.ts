@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { guard } from "@/lib/api-guard";
 import { prisma } from "@/lib/db";
+import { logActivity } from "@/lib/activity";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -49,6 +50,11 @@ export async function PATCH(
     },
     select: { id: true, name: true, label: true, avatarColor: true },
   });
+  await logActivity(g.user, {
+    action: "creator.updated",
+    targetId: updated.id,
+    targetLabel: updated.name,
+  });
   return Response.json(updated);
 }
 
@@ -64,7 +70,7 @@ export async function DELETE(
 
   const person = await prisma.person.findFirst({
     where: { id, workspaceId: g.user.workspaceId },
-    select: { id: true },
+    select: { id: true, name: true },
   });
   if (!person) return new Response("Not found", { status: 404 });
 
@@ -81,5 +87,10 @@ export async function DELETE(
   }
 
   await prisma.person.delete({ where: { id } });
+  await logActivity(g.user, {
+    action: "creator.deleted",
+    targetId: id,
+    targetLabel: person.name,
+  });
   return Response.json({ ok: true });
 }

@@ -1,12 +1,13 @@
 import { prisma } from "@/lib/db";
 import { LIBRARY_VIEWS, typesForView, type LibraryViewKey } from "@/lib/library";
-import { parseTags } from "@/lib/json";
+import { parseTags, parseJson } from "@/lib/json";
+import { describeActivity } from "@/lib/activity-format";
 
 export type LibraryFilters = {
   personId?: string;
   channelId?: string;
   q?: string;
-  sort?: "newest" | "name";
+  sort?: "newest" | "name" | "postdate";
 };
 
 export type AssetListItem = {
@@ -17,10 +18,18 @@ export type AssetListItem = {
   thumbnailUrl: string | null;
   tags: string[];
   createdAt: string;
+  updatedAt: string;
   hasHtml: boolean;
   url: string | null;
+  nextPostDate: string | null; // earliest platform post date, if any
   person: { id: string; name: string; avatarColor: string };
-  channels: { id: string; name: string; icon: string; color: string }[];
+  channels: {
+    id: string;
+    name: string;
+    icon: string;
+    color: string;
+    scheduledFor: string | null;
+  }[];
 };
 
 // Workspace-scoped reads used across the app. Everything here takes a
@@ -48,10 +57,15 @@ export async function getTrashedAssets(workspaceId: string): Promise<AssetListIt
     thumbnailUrl: a.thumbnailUrl,
     tags: parseTags(a.tags),
     createdAt: (a.deletedAt ?? a.createdAt).toISOString(),
+    updatedAt: a.updatedAt.toISOString(),
     hasHtml: Boolean(a.html),
     url: a.url,
+    nextPostDate: null,
     person: a.person,
-    channels: a.channels.map((c) => c.channel),
+    channels: a.channels.map((c) => ({
+      ...c.channel,
+      scheduledFor: c.scheduledFor ? c.scheduledFor.toISOString() : null,
+    })),
   }));
 }
 
@@ -91,6 +105,47 @@ export async function listPendingInvites(workspaceId: string) {
     orderBy: { expiresAt: "desc" },
     select: { id: true, email: true, role: true, expiresAt: true },
   });
+}
+
+export type ActivityRow = {
+  id: string;
+  actorName: string;
+  actorAvatarColor: string;
+  action: string;
+  category: string;
+  description: string;
+  createdAt: string;
+};
+
+/** Recent activity for the admin audit panel (workspace-scoped, newest first). */
+export async function listActivity(
+  workspaceId: string,
+  opts: { actorId?: string; category?: string; cursor?: string; take?: number } = {},
+): Promise<ActivityRow[]> {
+  const rows = await prisma.activityLog.findMany({
+    where: {
+      workspaceId,
+      ...(opts.actorId ? { actorId: opts.actorId } : {}),
+      ...(opts.category ? { category: opts.category } : {}),
+      ...(opts.cursor ? { createdAt: { lt: new Date(opts.cursor) } } : {}),
+    },
+    orderBy: { createdAt: "desc" },
+    take: opts.take ?? 50,
+  });
+  return rows.map((r) => ({
+    id: r.id,
+    actorName: r.actorName,
+    actorAvatarColor: r.actorAvatarColor,
+    action: r.action,
+    category: r.category,
+    description: describeActivity({
+      action: r.action,
+      targetType: r.targetType,
+      targetLabel: r.targetLabel,
+      metadata: r.metadata ? parseJson<Record<string, unknown>>(r.metadata, {}) : null,
+    }),
+    createdAt: r.createdAt.toISOString(),
+  }));
 }
 
 export type CreatorRow = {
@@ -185,19 +240,31 @@ export async function getLibraryAssets(
     },
   });
 
-  let items: AssetListItem[] = rows.map((a) => ({
-    id: a.id,
-    title: a.title,
-    type: a.type,
-    source: a.source,
-    thumbnailUrl: a.thumbnailUrl,
-    tags: parseTags(a.tags),
-    createdAt: a.createdAt.toISOString(),
-    hasHtml: Boolean(a.html),
-    url: a.url,
-    person: a.person,
-    channels: a.channels.map((c) => c.channel),
-  }));
+  let items: AssetListItem[] = rows.map((a) => {
+    const channels = a.channels.map((c) => ({
+      ...c.channel,
+      scheduledFor: c.scheduledFor ? c.scheduledFor.toISOString() : null,
+    }));
+    const dates = channels
+      .map((c) => c.scheduledFor)
+      .filter((d): d is string => Boolean(d))
+      .sort();
+    return {
+      id: a.id,
+      title: a.title,
+      type: a.type,
+      source: a.source,
+      thumbnailUrl: a.thumbnailUrl,
+      tags: parseTags(a.tags),
+      createdAt: a.createdAt.toISOString(),
+      updatedAt: a.updatedAt.toISOString(),
+      hasHtml: Boolean(a.html),
+      url: a.url,
+      nextPostDate: dates[0] ?? null,
+      person: a.person,
+      channels,
+    };
+  });
 
   // Case-insensitive title/tag search + sort, in-memory (workspace is small).
   const q = filters.q?.trim().toLowerCase();
@@ -210,6 +277,14 @@ export async function getLibraryAssets(
   }
   if (filters.sort === "name") {
     items.sort((a, b) => a.title.localeCompare(b.title));
+  } else if (filters.sort === "postdate") {
+    // Assets with a post date first (soonest → latest); undated last.
+    items.sort((a, b) => {
+      if (!a.nextPostDate && !b.nextPostDate) return 0;
+      if (!a.nextPostDate) return 1;
+      if (!b.nextPostDate) return -1;
+      return a.nextPostDate.localeCompare(b.nextPostDate);
+    });
   }
   return items;
 }
