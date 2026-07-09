@@ -15,9 +15,12 @@ export type IconName =
   | "signout"
   | "activity"
   | "dashboard"
-  | "review";
+  | "review"
+  | "approved";
 
 const PATHS: Record<IconName, string> = {
+  approved:
+    "M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z",
   review:
     "M8 6h11M8 12h11M8 18h11M3.5 6h.01M3.5 12h.01M3.5 18h.01",
   dashboard:

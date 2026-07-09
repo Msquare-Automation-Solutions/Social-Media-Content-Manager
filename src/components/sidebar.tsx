@@ -21,9 +21,17 @@ type Props = {
   counts: Record<LibraryViewKey, number>;
   membersCount: number;
   queueCount: number;
+  approvedCount: number;
 };
 
-export function Sidebar({ user, workspaceName, counts, membersCount, queueCount }: Props) {
+export function Sidebar({
+  user,
+  workspaceName,
+  counts,
+  membersCount,
+  queueCount,
+  approvedCount,
+}: Props) {
   const pathname = usePathname();
   const upload = useUploadDialog();
   const canUpload = user.role !== "VIEWER";
@@ -64,6 +72,13 @@ export function Sidebar({ user, workspaceName, counts, membersCount, queueCount 
         icon="review"
         count={queueCount || undefined}
         hot={queueCount > 0}
+      />
+      <NavLink
+        href="/approved"
+        active={isActive("/approved")}
+        label="Approved"
+        icon="approved"
+        count={approvedCount || undefined}
       />
 
       <div className="px-3 pb-1.5 pt-3.5 text-[11px] font-bold uppercase tracking-[0.06em] text-[#9aa7b6]">

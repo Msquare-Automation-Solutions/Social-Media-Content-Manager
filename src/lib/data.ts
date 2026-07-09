@@ -7,9 +7,92 @@ export type LibraryFilters = {
   personId?: string;
   channelId?: string;
   status?: string;
+  type?: string; // LibraryViewKey — narrow to one category (Approved page)
   q?: string;
   sort?: "newest" | "name" | "postdate";
 };
+
+// Shared shape + mappers for asset grids (library + approved). The include is
+// declared once so every grid query returns the same row shape.
+const ASSET_LIST_INCLUDE = {
+  person: { select: { id: true, name: true, avatarColor: true } },
+  channels: {
+    include: { channel: { select: { id: true, name: true, icon: true, color: true } } },
+  },
+} as const;
+
+type AssetRow = {
+  id: string;
+  title: string;
+  type: string;
+  source: string;
+  status: string;
+  reviewNote: string | null;
+  thumbnailUrl: string | null;
+  tags: string;
+  createdAt: Date;
+  updatedAt: Date;
+  html: string | null;
+  url: string | null;
+  person: { id: string; name: string; avatarColor: string };
+  channels: {
+    scheduledFor: Date | null;
+    channel: { id: string; name: string; icon: string; color: string };
+  }[];
+};
+
+function mapAssetRow(a: AssetRow): AssetListItem {
+  const channels = a.channels.map((c) => ({
+    ...c.channel,
+    scheduledFor: c.scheduledFor ? c.scheduledFor.toISOString() : null,
+  }));
+  const dates = channels
+    .map((c) => c.scheduledFor)
+    .filter((d): d is string => Boolean(d))
+    .sort();
+  return {
+    id: a.id,
+    title: a.title,
+    type: a.type,
+    source: a.source,
+    status: a.status,
+    reviewNote: a.reviewNote,
+    thumbnailUrl: a.thumbnailUrl,
+    tags: parseTags(a.tags),
+    createdAt: a.createdAt.toISOString(),
+    updatedAt: a.updatedAt.toISOString(),
+    hasHtml: Boolean(a.html),
+    url: a.url,
+    nextPostDate: dates[0] ?? null,
+    person: a.person,
+    channels,
+  };
+}
+
+// Case-insensitive title/tag search + sort, in-memory (workspace is small).
+function filterAndSortAssets(items: AssetListItem[], filters: LibraryFilters): AssetListItem[] {
+  let out = items;
+  const q = filters.q?.trim().toLowerCase();
+  if (q) {
+    out = out.filter(
+      (a) =>
+        a.title.toLowerCase().includes(q) ||
+        a.tags.some((t) => t.toLowerCase().includes(q)),
+    );
+  }
+  if (filters.sort === "name") {
+    out = [...out].sort((a, b) => a.title.localeCompare(b.title));
+  } else if (filters.sort === "postdate") {
+    // Assets with a post date first (soonest → latest); undated last.
+    out = [...out].sort((a, b) => {
+      if (!a.nextPostDate && !b.nextPostDate) return 0;
+      if (!a.nextPostDate) return 1;
+      if (!b.nextPostDate) return -1;
+      return a.nextPostDate.localeCompare(b.nextPostDate);
+    });
+  }
+  return out;
+}
 
 export type AssetListItem = {
   id: string;
@@ -560,67 +643,36 @@ export async function getLibraryAssets(
         : {}),
     },
     orderBy: { createdAt: "desc" },
-    include: {
-      person: { select: { id: true, name: true, avatarColor: true } },
-      channels: {
-        include: {
-          channel: {
-            select: { id: true, name: true, icon: true, color: true },
-          },
-        },
-      },
+    include: ASSET_LIST_INCLUDE,
+  });
+
+  return filterAndSortAssets(rows.map(mapAssetRow), filters);
+}
+
+/**
+ * Every APPROVED asset across all types as grid cards (workspace-scoped) — the
+ * payoff view: a browsable gallery of published/ready content. Same person /
+ * platform / search / sort filters as the library, plus an optional category
+ * (type) narrow.
+ */
+export async function getApprovedAssets(
+  workspaceId: string,
+  filters: LibraryFilters,
+): Promise<AssetListItem[]> {
+  const rows = await prisma.mediaAsset.findMany({
+    where: {
+      workspaceId,
+      deletedAt: null,
+      status: "APPROVED",
+      ...(filters.type ? { type: { in: typesForView(filters.type as LibraryViewKey) } } : {}),
+      ...(filters.personId ? { personId: filters.personId } : {}),
+      ...(filters.channelId ? { channels: { some: { channelId: filters.channelId } } } : {}),
     },
+    orderBy: { createdAt: "desc" },
+    include: ASSET_LIST_INCLUDE,
   });
 
-  let items: AssetListItem[] = rows.map((a) => {
-    const channels = a.channels.map((c) => ({
-      ...c.channel,
-      scheduledFor: c.scheduledFor ? c.scheduledFor.toISOString() : null,
-    }));
-    const dates = channels
-      .map((c) => c.scheduledFor)
-      .filter((d): d is string => Boolean(d))
-      .sort();
-    return {
-      id: a.id,
-      title: a.title,
-      type: a.type,
-      source: a.source,
-      status: a.status,
-      reviewNote: a.reviewNote,
-      thumbnailUrl: a.thumbnailUrl,
-      tags: parseTags(a.tags),
-      createdAt: a.createdAt.toISOString(),
-      updatedAt: a.updatedAt.toISOString(),
-      hasHtml: Boolean(a.html),
-      url: a.url,
-      nextPostDate: dates[0] ?? null,
-      person: a.person,
-      channels,
-    };
-  });
-
-  // Case-insensitive title/tag search + sort, in-memory (workspace is small).
-  const q = filters.q?.trim().toLowerCase();
-  if (q) {
-    items = items.filter(
-      (a) =>
-        a.title.toLowerCase().includes(q) ||
-        a.tags.some((t) => t.toLowerCase().includes(q)),
-    );
-  }
-  if (filters.sort === "name") {
-    items.sort((a, b) => a.title.localeCompare(b.title));
-  } else if (filters.sort === "postdate") {
-    // Assets with a post date first (soonest → latest); undated last.
-    items.sort((a, b) => {
-      if (!a.nextPostDate && !b.nextPostDate) return 0;
-      if (!a.nextPostDate) return 1;
-      if (!b.nextPostDate) return -1;
-      return a.nextPostDate.localeCompare(b.nextPostDate);
-    });
-  }
-  return items;
+  return filterAndSortAssets(rows.map(mapAssetRow), filters);
 }
 
 /**
