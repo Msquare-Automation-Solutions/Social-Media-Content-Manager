@@ -18,7 +18,7 @@ export default async function TrashPage() {
         <Link href="/" className="text-[13px] font-semibold text-teal-dark">
           ← Back to chat
         </Link>
-        <h2 className="font-display text-[19px]">🗑 Trash</h2>
+        <h2 className="font-display text-[19px]">Trash</h2>
       </div>
       <p className="mb-4 text-[12.5px] text-slate">
         Deleted items are kept for 30 days, then permanently removed.

@@ -79,6 +79,36 @@ export async function listPendingInvites(workspaceId: string) {
   });
 }
 
+export type CreatorRow = {
+  id: string;
+  name: string;
+  label: string | null;
+  email: string | null;
+  avatarColor: string;
+  linkedToLogin: boolean;
+  assetCount: number;
+};
+
+/** All Person/creator records with how many (live) assets are attributed. */
+export async function listCreators(workspaceId: string): Promise<CreatorRow[]> {
+  const people = await prisma.person.findMany({
+    where: { workspaceId },
+    orderBy: { createdAt: "asc" },
+    include: {
+      _count: { select: { assets: { where: { deletedAt: null } } } },
+    },
+  });
+  return people.map((p) => ({
+    id: p.id,
+    name: p.name,
+    label: p.label,
+    email: p.email,
+    avatarColor: p.avatarColor,
+    linkedToLogin: Boolean(p.userId),
+    assetCount: p._count.assets,
+  }));
+}
+
 export async function getAssetCounts(
   workspaceId: string,
 ): Promise<Record<LibraryViewKey, number>> {

@@ -100,7 +100,9 @@ async function main() {
         name: p.name,
         label: p.label,
         avatarColor: p.color,
-        userId: p.userName ? users[p.userName].id : null,
+        // Single shared login → all creators are standalone attribution
+        // records (not tied to an individual account).
+        userId: null,
       },
     });
     people[p.name] = { id: person.id };

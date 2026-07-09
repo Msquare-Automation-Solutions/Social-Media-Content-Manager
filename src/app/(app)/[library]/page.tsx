@@ -52,7 +52,7 @@ export default async function LibraryPage({
 
   return (
     <LibraryView
-      title={`${meta.icon} ${meta.label}`}
+      title={meta.label}
       assets={assets}
       people={people}
       channels={channels}

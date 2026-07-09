@@ -154,7 +154,7 @@ export function ChatView({
       <div className="flex items-center gap-3 border-b border-line bg-card px-6 py-3.5">
         <h2 className="font-display text-[15px] font-semibold">Content Studio</h2>
         <span className="rounded-full bg-teal-soft px-3 py-1 text-[11.5px] font-semibold text-teal-dark">
-          ✨ Skill: {skillName}
+          Skill: {skillName}
         </span>
         {sessions.length > 0 && (
           <select
