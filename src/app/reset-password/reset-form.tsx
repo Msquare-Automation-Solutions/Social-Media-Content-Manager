@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { PasswordInput } from "@/components/ui/password-input";
 
 export function ResetForm({ token }: { token: string }) {
   const router = useRouter();
@@ -38,23 +39,23 @@ export function ResetForm({ token }: { token: string }) {
         </div>
       )}
       <label className="mb-1.5 block text-xs font-semibold text-slate">New password</label>
-      <input
-        type="password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        placeholder="••••••••"
-        className="mb-3 w-full rounded-[10px] border border-line px-3 py-2.5 outline-none focus:border-teal"
-      />
+      <div className="mb-3">
+        <PasswordInput
+          value={password}
+          onChange={setPassword}
+          autoComplete="new-password"
+        />
+      </div>
       <label className="mb-1.5 block text-xs font-semibold text-slate">
         Confirm new password
       </label>
-      <input
-        type="password"
-        value={confirm}
-        onChange={(e) => setConfirm(e.target.value)}
-        placeholder="••••••••"
-        className="mb-3 w-full rounded-[10px] border border-line px-3 py-2.5 outline-none focus:border-teal"
-      />
+      <div className="mb-3">
+        <PasswordInput
+          value={confirm}
+          onChange={setConfirm}
+          autoComplete="new-password"
+        />
+      </div>
       <button
         disabled={busy}
         className="w-full rounded-[12px] bg-teal py-3 font-semibold text-white hover:bg-teal-dark disabled:opacity-50"

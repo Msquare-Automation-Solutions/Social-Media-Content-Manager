@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { signIn, getSession } from "next-auth/react";
+import { PasswordInput } from "@/components/ui/password-input";
 
 export function LoginForm({ initialError = false }: { initialError?: boolean }) {
   const [email, setEmail] = useState("");
@@ -59,14 +60,7 @@ export function LoginForm({ initialError = false }: { initialError?: boolean }) 
         <label className="mb-1.5 block text-xs font-semibold text-slate">
           Password
         </label>
-        <input
-          type="password"
-          autoComplete="current-password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="••••••••"
-          className="w-full rounded-[10px] border border-line px-3 py-2.5 outline-none focus:border-teal"
-        />
+        <PasswordInput value={password} onChange={setPassword} />
       </div>
       <button
         type="submit"

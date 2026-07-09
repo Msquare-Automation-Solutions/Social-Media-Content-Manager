@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { signOut } from "next-auth/react";
 import { useToast } from "@/components/ui/toast";
+import { PasswordInput } from "@/components/ui/password-input";
 
 export function ChangePasswordForm() {
   const { toast } = useToast();
@@ -66,12 +67,7 @@ function Input({
   return (
     <div className="mb-3">
       <label className="mb-1.5 block text-xs font-semibold text-slate">{label}</label>
-      <input
-        type="password"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-[10px] border border-line px-3 py-2.5 outline-none focus:border-teal"
-      />
+      <PasswordInput value={value} onChange={onChange} autoComplete="off" />
     </div>
   );
 }

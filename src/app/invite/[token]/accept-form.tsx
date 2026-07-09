@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { PasswordInput } from "@/components/ui/password-input";
 
 export function AcceptInviteForm({ token }: { token: string }) {
   const router = useRouter();
@@ -65,12 +66,16 @@ function Input({
   return (
     <div className="mb-3">
       <label className="mb-1.5 block text-xs font-semibold text-slate">{label}</label>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-[10px] border border-line px-3 py-2.5 outline-none focus:border-teal"
-      />
+      {type === "password" ? (
+        <PasswordInput value={value} onChange={onChange} autoComplete="new-password" />
+      ) : (
+        <input
+          type={type}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full rounded-[10px] border border-line px-3 py-2.5 outline-none focus:border-teal"
+        />
+      )}
     </div>
   );
 }
