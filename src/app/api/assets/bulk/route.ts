@@ -86,10 +86,11 @@ export async function POST(req: Request) {
     }
 
     if (action === "purge") {
-      // Permanent: cascade removes AssetChannel + AssetVersion; also drop files.
+      // Permanent: cascade removes AssetChannel + AssetVersion; also drop files
+      // from whichever storage backend is active (local or S3/R2).
       await prisma.mediaAsset.delete({ where: { id: asset.id } });
       for (const url of [asset.thumbnailUrl, asset.url]) {
-        if (url?.startsWith("/uploads/")) {
+        if (url) {
           try {
             await storage.delete(keyFromUrl(url));
           } catch {
