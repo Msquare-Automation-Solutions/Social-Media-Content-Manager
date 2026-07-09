@@ -120,14 +120,28 @@ export type ActivityRow = {
 /** Recent activity for the admin audit panel (workspace-scoped, newest first). */
 export async function listActivity(
   workspaceId: string,
-  opts: { actorId?: string; category?: string; cursor?: string; take?: number } = {},
+  opts: {
+    actorId?: string;
+    category?: string;
+    from?: string; // yyyy-mm-dd, inclusive
+    to?: string; // yyyy-mm-dd, inclusive (whole day)
+    cursor?: string;
+    take?: number;
+  } = {},
 ): Promise<ActivityRow[]> {
+  // createdAt bounds: from (start of day) .. to (end of day); cursor paginates
+  // older-than within that window.
+  const createdAt: { gte?: Date; lte?: Date; lt?: Date } = {};
+  if (opts.from) createdAt.gte = new Date(`${opts.from}T00:00:00.000`);
+  if (opts.cursor) createdAt.lt = new Date(opts.cursor);
+  else if (opts.to) createdAt.lte = new Date(`${opts.to}T23:59:59.999`);
+
   const rows = await prisma.activityLog.findMany({
     where: {
       workspaceId,
       ...(opts.actorId ? { actorId: opts.actorId } : {}),
       ...(opts.category ? { category: opts.category } : {}),
-      ...(opts.cursor ? { createdAt: { lt: new Date(opts.cursor) } } : {}),
+      ...(Object.keys(createdAt).length ? { createdAt } : {}),
     },
     orderBy: { createdAt: "desc" },
     take: opts.take ?? 50,

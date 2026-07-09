@@ -13,6 +13,8 @@ export async function GET(req: Request) {
   const rows = await listActivity(g.user.workspaceId, {
     actorId: url.searchParams.get("actor") || undefined,
     category: url.searchParams.get("category") || undefined,
+    from: url.searchParams.get("from") || undefined,
+    to: url.searchParams.get("to") || undefined,
     cursor: url.searchParams.get("cursor") || undefined,
   });
   return Response.json({ rows });

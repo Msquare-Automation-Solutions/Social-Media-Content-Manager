@@ -10,7 +10,12 @@ export const dynamic = "force-dynamic";
 export default async function ActivityPage({
   searchParams,
 }: {
-  searchParams: Promise<{ actor?: string; category?: string }>;
+  searchParams: Promise<{
+    actor?: string;
+    category?: string;
+    from?: string;
+    to?: string;
+  }>;
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
@@ -22,6 +27,8 @@ export default async function ActivityPage({
     listActivity(user.workspaceId, {
       actorId: sp.actor || undefined,
       category: sp.category || undefined,
+      from: sp.from || undefined,
+      to: sp.to || undefined,
     }),
     listMembers(user.workspaceId),
   ]);
@@ -38,10 +45,15 @@ export default async function ActivityPage({
         Who did what across the workspace — visible to admins only.
       </p>
       <ActivityPanel
-        key={`${sp.actor ?? ""}-${sp.category ?? ""}`}
+        key={`${sp.actor ?? ""}-${sp.category ?? ""}-${sp.from ?? ""}-${sp.to ?? ""}`}
         initial={activity}
         actors={members.map((m) => ({ id: m.userId, name: m.name }))}
-        filters={{ actor: sp.actor ?? "", category: sp.category ?? "" }}
+        filters={{
+          actor: sp.actor ?? "",
+          category: sp.category ?? "",
+          from: sp.from ?? "",
+          to: sp.to ?? "",
+        }}
       />
     </div>
   );

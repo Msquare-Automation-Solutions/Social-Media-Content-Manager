@@ -22,7 +22,7 @@ export function ActivityPanel({
 }: {
   initial: ActivityRow[];
   actors: { id: string; name: string }[];
-  filters: { actor: string; category: string };
+  filters: { actor: string; category: string; from: string; to: string };
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -31,20 +31,24 @@ export function ActivityPanel({
   const [exhausted, setExhausted] = useState(initial.length < PAGE);
 
   const rows = [...initial, ...extra];
+  const hasFilters = filters.actor || filters.category || filters.from || filters.to;
 
-  function setParam(key: "actor" | "category", value: string) {
-    const next = { ...filters, [key]: value };
-    const params = new URLSearchParams();
-    if (next.actor) params.set("actor", next.actor);
-    if (next.category) params.set("category", next.category);
-    router.push(`${pathname}?${params.toString()}`);
+  function paramsFrom(f: typeof filters): URLSearchParams {
+    const p = new URLSearchParams();
+    if (f.actor) p.set("actor", f.actor);
+    if (f.category) p.set("category", f.category);
+    if (f.from) p.set("from", f.from);
+    if (f.to) p.set("to", f.to);
+    return p;
+  }
+
+  function setParam(key: keyof typeof filters, value: string) {
+    router.push(`${pathname}?${paramsFrom({ ...filters, [key]: value }).toString()}`);
   }
 
   async function loadMore() {
     setLoading(true);
-    const params = new URLSearchParams();
-    if (filters.actor) params.set("actor", filters.actor);
-    if (filters.category) params.set("category", filters.category);
+    const params = paramsFrom(filters);
     const cursor = rows[rows.length - 1]?.createdAt;
     if (cursor) params.set("cursor", cursor);
     try {
@@ -75,6 +79,16 @@ export function ActivityPanel({
             ...ACTIVITY_CATEGORIES.map((c) => ({ value: c.key, label: c.label })),
           ]}
         />
+        <DateField label="From" value={filters.from} max={filters.to || undefined} onChange={(v) => setParam("from", v)} />
+        <DateField label="To" value={filters.to} min={filters.from || undefined} onChange={(v) => setParam("to", v)} />
+        {hasFilters && (
+          <button
+            onClick={() => router.push(pathname)}
+            className="self-end px-1 py-2.5 text-[12.5px] font-semibold text-teal-dark"
+          >
+            Clear
+          </button>
+        )}
       </div>
 
       {rows.length === 0 ? (
@@ -156,6 +170,34 @@ function Filter({
           </option>
         ))}
       </select>
+    </label>
+  );
+}
+
+function DateField({
+  label,
+  value,
+  onChange,
+  min,
+  max,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  min?: string;
+  max?: string;
+}) {
+  return (
+    <label className="flex flex-col gap-1 text-[11.5px] font-semibold text-slate">
+      {label}
+      <input
+        type="date"
+        value={value}
+        min={min}
+        max={max}
+        onChange={(e) => onChange(e.target.value)}
+        className="rounded-[11px] border border-line bg-card px-3 py-[9px] font-normal text-ink outline-none focus:border-teal"
+      />
     </label>
   );
 }
