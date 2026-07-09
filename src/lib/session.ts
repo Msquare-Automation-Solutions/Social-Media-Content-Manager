@@ -26,6 +26,8 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     include: { user: true, workspace: true },
   });
   if (!membership) return null;
+  // Deactivated accounts lose access immediately, even mid-session.
+  if (membership.user.disabledAt) return null;
 
   return {
     id: membership.user.id,

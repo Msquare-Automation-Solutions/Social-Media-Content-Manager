@@ -1,5 +1,5 @@
 import { z } from "zod";
-import bcrypt from "bcryptjs";
+import { hashPassword } from "@/lib/password";
 import { prisma } from "@/lib/db";
 import { colorFor } from "@/lib/colors";
 
@@ -29,7 +29,7 @@ export async function POST(req: Request) {
     return Response.json({ error: "This invite is invalid or expired." }, { status: 400 });
   }
 
-  const passwordHash = await bcrypt.hash(password, 12);
+  const passwordHash = await hashPassword(password);
   const email = invite.email.toLowerCase();
 
   await prisma.$transaction(async (tx) => {

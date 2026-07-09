@@ -1,8 +1,8 @@
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
+import { verifyPassword } from "@/lib/password";
 
 const credentialsSchema = z.object({
   email: z.string().email(),
@@ -29,8 +29,10 @@ export const authOptions: NextAuthOptions = {
         });
         // Generic failure — never reveal whether the email exists.
         if (!user) return null;
+        // Deactivated accounts cannot sign in.
+        if (user.disabledAt) return null;
 
-        const ok = await bcrypt.compare(password, user.passwordHash);
+        const ok = await verifyPassword(password, user.passwordHash);
         if (!ok) return null;
 
         return { id: user.id, email: user.email, name: user.name };

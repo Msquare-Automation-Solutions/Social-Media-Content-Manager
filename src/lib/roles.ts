@@ -30,3 +30,19 @@ export function requireRole(actual: Role | null | undefined, required: Role): Ro
   }
   return actual as Role;
 }
+
+// ── Admin / User surface (v1 accounts UI) ───────────────────────────────────
+// The UI shows only two roles. OWNER/ADMIN read as "Admin", EDITOR as "User".
+// The role a new/edited USER account maps to internally:
+export const USER_ROLE: Role = "EDITOR";
+export const ADMIN_ROLE: Role = "ADMIN";
+
+/** Human label for the accounts table: "Admin" or "User". */
+export function roleLabel(role: Role): "Admin" | "User" {
+  return hasRole(role, "ADMIN") ? "Admin" : "User";
+}
+
+/** True when a role represents an admin (OWNER or ADMIN). */
+export function isAdminRole(role: Role): boolean {
+  return hasRole(role, "ADMIN");
+}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { hasRole, requireRole, RoleError } from "@/lib/roles";
+import { hasRole, requireRole, RoleError, roleLabel, isAdminRole } from "@/lib/roles";
 
 describe("requireRole / hasRole", () => {
   it("grants when the role meets or exceeds the requirement", () => {
@@ -35,5 +35,20 @@ describe("requireRole / hasRole", () => {
       expect((e as RoleError).required).toBe("ADMIN");
       expect((e as RoleError).actual).toBe("EDITOR");
     }
+  });
+});
+
+describe("roleLabel / isAdminRole (accounts UI)", () => {
+  it("labels OWNER and ADMIN as Admin, EDITOR as User", () => {
+    expect(roleLabel("OWNER")).toBe("Admin");
+    expect(roleLabel("ADMIN")).toBe("Admin");
+    expect(roleLabel("EDITOR")).toBe("User");
+    expect(roleLabel("VIEWER")).toBe("User");
+  });
+
+  it("isAdminRole is true only for OWNER/ADMIN", () => {
+    expect(isAdminRole("OWNER")).toBe(true);
+    expect(isAdminRole("ADMIN")).toBe(true);
+    expect(isAdminRole("EDITOR")).toBe(false);
   });
 });

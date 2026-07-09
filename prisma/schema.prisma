@@ -27,6 +27,8 @@ model User {
   createdAt         DateTime @default(now())
   // Bumped on password reset/change to invalidate older JWT sessions.
   passwordChangedAt DateTime @default(now())
+  // Set when an admin deactivates the account — login + active sessions blocked.
+  disabledAt        DateTime?
 
   memberships    Membership[]
   person         Person[]

@@ -35,13 +35,13 @@ async function main() {
     data: { name: "MSquare Studio" },
   });
 
-  // ---- Single shared office login (full-access Owner) ----
-  // One account the whole team signs in with. Person/creator records below are
-  // separate from this login (they're just who content is tagged to).
+  // ---- Primary admin account (OWNER) ----
+  // The admin creates individual user accounts from the Members page. Person/
+  // creator records below are separate from logins (just who content is tagged to).
   const sharedUser = await prisma.user.create({
     data: {
-      name: "MSquare Team",
-      email: "team@msquare.pro",
+      name: "Admin",
+      email: "admin@msquare.pro",
       passwordHash,
       avatarColor: "#0e9f8f",
       memberships: {
@@ -318,14 +318,14 @@ async function main() {
 
   console.log(`✅ Seed complete.
   Workspace : ${workspace.name}
-  Members   : 1 (shared office login)
+  Members   : 1 (primary admin — create users in the app)
   People    : ${personDefs.length} (creators)
   Channels  : ${channelDefs.length}
   Assets    : ${assetSeeds.length}
   Skill     : ${DEFAULT_SKILL_NAME}
 
-  Shared login (Owner — full access):
-    email    : team@msquare.pro
+  Admin login (full access):
+    email    : admin@msquare.pro
     password : ${DEV_PASSWORD}`);
 }
 

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import bcrypt from "bcryptjs";
+import { hashPassword } from "@/lib/password";
 import { prisma } from "@/lib/db";
 import { hashToken } from "@/lib/tokens";
 
@@ -28,7 +28,7 @@ export async function POST(req: Request) {
     return Response.json({ error: "This link is invalid or expired." }, { status: 400 });
   }
 
-  const passwordHash = await bcrypt.hash(parsed.data.password, 12);
+  const passwordHash = await hashPassword(parsed.data.password);
   await prisma.$transaction([
     prisma.user.update({
       where: { id: record.userId },

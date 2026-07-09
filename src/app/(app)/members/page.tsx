@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/session";
-import { listMembers, listPendingInvites, listCreators } from "@/lib/data";
+import { listMembers, listCreators } from "@/lib/data";
 import { MembersTable } from "@/components/members/members-table";
 import { CreatorsSection } from "@/components/members/creators-section";
 
@@ -11,11 +11,8 @@ export default async function MembersPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const [members, invites, creators] = await Promise.all([
+  const [members, creators] = await Promise.all([
     listMembers(user.workspaceId),
-    user.role === "ADMIN" || user.role === "OWNER"
-      ? listPendingInvites(user.workspaceId)
-      : Promise.resolve([]),
     listCreators(user.workspaceId),
   ]);
 
@@ -29,12 +26,6 @@ export default async function MembersPage() {
       </div>
       <MembersTable
         members={members}
-        invites={invites.map((i) => ({
-          id: i.id,
-          email: i.email,
-          role: i.role,
-          expiresAt: i.expiresAt.toISOString(),
-        }))}
         currentUserId={user.id}
         canManage={user.role === "ADMIN" || user.role === "OWNER"}
       />

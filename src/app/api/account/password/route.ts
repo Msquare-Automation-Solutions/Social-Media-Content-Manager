@@ -1,5 +1,5 @@
 import { z } from "zod";
-import bcrypt from "bcryptjs";
+import { hashPassword, verifyPassword } from "@/lib/password";
 import { guard } from "@/lib/api-guard";
 import { prisma } from "@/lib/db";
 
@@ -27,12 +27,12 @@ export async function POST(req: Request) {
   const user = await prisma.user.findUnique({ where: { id: g.user.id } });
   if (!user) return new Response("Unauthorized", { status: 401 });
 
-  const ok = await bcrypt.compare(parsed.data.currentPassword, user.passwordHash);
+  const ok = await verifyPassword(parsed.data.currentPassword, user.passwordHash);
   if (!ok) {
     return Response.json({ error: "Current password is incorrect." }, { status: 400 });
   }
 
-  const passwordHash = await bcrypt.hash(parsed.data.newPassword, 12);
+  const passwordHash = await hashPassword(parsed.data.newPassword);
   await prisma.user.update({
     where: { id: user.id },
     data: { passwordHash, passwordChangedAt: new Date() },

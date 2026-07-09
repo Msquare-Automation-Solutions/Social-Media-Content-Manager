@@ -59,7 +59,18 @@ export async function listMembers(workspaceId: string) {
   const rows = await prisma.membership.findMany({
     where: { workspaceId },
     orderBy: { createdAt: "asc" },
-    include: { user: { select: { id: true, name: true, email: true, avatarColor: true } } },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          avatarColor: true,
+          disabledAt: true,
+          _count: { select: { createdAssets: true, chatSessions: true } },
+        },
+      },
+    },
   });
   return rows.map((m) => ({
     membershipId: m.id,
@@ -68,6 +79,9 @@ export async function listMembers(workspaceId: string) {
     email: m.user.email,
     avatarColor: m.user.avatarColor,
     role: m.role,
+    disabled: m.user.disabledAt !== null,
+    assetCount: m.user._count.createdAssets,
+    chatCount: m.user._count.chatSessions,
   }));
 }
 

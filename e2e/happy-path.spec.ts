@@ -7,9 +7,9 @@ import { test, expect } from "@playwright/test";
 test("full content lifecycle", async ({ page }) => {
   const platform = `PW-${Date.now().toString().slice(-6)}`;
 
-  // 1. Login (shared office account, full access)
+  // 1. Login (admin account, full access)
   await page.goto("/login");
-  await page.getByPlaceholder("you@company.com").fill("team@msquare.pro");
+  await page.getByPlaceholder("you@company.com").fill("admin@msquare.pro");
   await page.getByPlaceholder("••••••••").fill("msquare2026");
   await page.getByRole("button", { name: "Sign in" }).click();
   // Login does a hard navigation to "/"; wait for it before asserting.
