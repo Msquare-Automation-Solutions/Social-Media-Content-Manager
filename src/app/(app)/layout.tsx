@@ -16,9 +16,12 @@ export default async function AppLayout({
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const [counts, membersCount] = await Promise.all([
+  const [counts, membersCount, queueCount] = await Promise.all([
     getAssetCounts(user.workspaceId),
     prisma.membership.count({ where: { workspaceId: user.workspaceId } }),
+    prisma.mediaAsset.count({
+      where: { workspaceId: user.workspaceId, deletedAt: null, status: "IN_QUEUE" },
+    }),
   ]);
 
   return (
@@ -34,6 +37,7 @@ export default async function AppLayout({
           workspaceName={user.workspaceName}
           counts={counts}
           membersCount={membersCount}
+          queueCount={queueCount}
         />
         <main className="flex h-screen flex-col overflow-hidden">{children}</main>
       </div>

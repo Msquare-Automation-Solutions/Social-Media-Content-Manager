@@ -20,9 +20,10 @@ type Props = {
   workspaceName: string;
   counts: Record<LibraryViewKey, number>;
   membersCount: number;
+  queueCount: number;
 };
 
-export function Sidebar({ user, workspaceName, counts, membersCount }: Props) {
+export function Sidebar({ user, workspaceName, counts, membersCount, queueCount }: Props) {
   const pathname = usePathname();
   const upload = useUploadDialog();
   const canUpload = user.role !== "VIEWER";
@@ -55,6 +56,14 @@ export function Sidebar({ user, workspaceName, counts, membersCount }: Props) {
         active={isActive("/dashboard")}
         label="Dashboard"
         icon="dashboard"
+      />
+      <NavLink
+        href="/review"
+        active={isActive("/review")}
+        label="Review queue"
+        icon="review"
+        count={queueCount || undefined}
+        hot={queueCount > 0}
       />
 
       <div className="px-3 pb-1.5 pt-3.5 text-[11px] font-bold uppercase tracking-[0.06em] text-[#9aa7b6]">
@@ -128,12 +137,14 @@ function NavLink({
   label,
   icon,
   count,
+  hot = false,
 }: {
   href: string;
   active: boolean;
   label: string;
   icon?: IconName;
   count?: number;
+  hot?: boolean;
 }) {
   return (
     <Link
@@ -156,9 +167,11 @@ function NavLink({
       {count !== undefined && (
         <span
           className={`ml-auto rounded-full px-2.5 py-0.5 text-[11px] font-semibold tabular-nums ${
-            active
-              ? "bg-white text-teal-dark shadow-soft"
-              : "bg-black/[0.05] text-slate"
+            hot
+              ? "bg-[#e0912b] text-white shadow-soft"
+              : active
+                ? "bg-white text-teal-dark shadow-soft"
+                : "bg-black/[0.05] text-slate"
           }`}
         >
           {count}
