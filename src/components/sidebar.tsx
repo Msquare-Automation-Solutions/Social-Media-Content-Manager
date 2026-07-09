@@ -6,6 +6,14 @@ import { signOut } from "next-auth/react";
 import { LIBRARY_VIEWS, LIBRARY_SLUGS, type LibraryViewKey } from "@/lib/library";
 import { initials } from "@/lib/colors";
 import { useUploadDialog } from "@/components/save/dialog-context";
+import { Icon, type IconName } from "@/components/ui/icons";
+
+const VIEW_ICONS: Record<LibraryViewKey, IconName> = {
+  IMAGE: "images",
+  THUMBNAIL: "thumbnails",
+  VIDEO: "videos",
+  BLOGPOST: "blog",
+};
 
 type Props = {
   user: { name: string; email: string; role: string; avatarColor: string };
@@ -36,11 +44,11 @@ export function Sidebar({ user, workspaceName, counts, membersCount }: Props) {
           onClick={() => upload.open()}
           className="mb-3.5 flex items-center justify-center gap-2 rounded-[12px] bg-teal px-3.5 py-2.5 font-semibold text-white hover:bg-teal-dark"
         >
-          ⬆ Upload files
+          <Icon name="upload" size={17} /> Upload files
         </button>
       )}
 
-      <NavLink href="/" active={isActive("/")} label="💬 Home" />
+      <NavLink href="/" active={isActive("/")} label="Home" icon="home" />
 
       <div className="px-3 pb-1.5 pt-3.5 text-[11px] font-bold uppercase tracking-[0.06em] text-[#9aa7b6]">
         Library
@@ -52,7 +60,8 @@ export function Sidebar({ user, workspaceName, counts, membersCount }: Props) {
             key={v.key}
             href={href}
             active={isActive(href)}
-            label={`${v.icon} ${v.label}`}
+            label={v.label}
+            icon={VIEW_ICONS[v.key]}
             count={counts[v.key]}
           />
         );
@@ -63,10 +72,11 @@ export function Sidebar({ user, workspaceName, counts, membersCount }: Props) {
       <NavLink
         href="/members"
         active={isActive("/members")}
-        label="🧑‍🤝‍🧑 Members"
+        label="Members"
+        icon="members"
         count={membersCount}
       />
-      <NavLink href="/trash" active={isActive("/trash")} label="🗑 Trash" />
+      <NavLink href="/trash" active={isActive("/trash")} label="Trash" icon="trash" />
 
       <div className="mt-auto">
         <Link
@@ -90,7 +100,7 @@ export function Sidebar({ user, workspaceName, counts, membersCount }: Props) {
           onClick={() => signOut({ callbackUrl: "/login" })}
           className="mt-1.5 flex w-full items-center justify-center gap-2 rounded-[10px] border border-line py-2.5 font-medium text-slate hover:bg-bg hover:text-[#c23b2a]"
         >
-          🚪 Sign out
+          <Icon name="signout" size={16} /> Sign out
         </button>
       </div>
     </aside>
@@ -101,22 +111,25 @@ function NavLink({
   href,
   active,
   label,
+  icon,
   count,
 }: {
   href: string;
   active: boolean;
   label: string;
+  icon?: IconName;
   count?: number;
 }) {
   return (
     <Link
       href={href}
-      className={`flex items-center gap-3 rounded-[10px] px-3 py-2.5 font-medium ${
+      className={`flex items-center gap-2.5 rounded-[10px] px-3 py-2.5 font-medium ${
         active
           ? "bg-teal-soft font-semibold text-teal-dark"
           : "text-slate hover:bg-bg"
       }`}
     >
+      {icon && <Icon name={icon} className="flex-shrink-0 text-current opacity-90" />}
       {label}
       {count !== undefined && (
         <span
