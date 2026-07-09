@@ -1,12 +1,11 @@
 // MediaChat — Prisma schema (see CLAUDE.md "Prisma model")
 //
-// Dev uses SQLite, which has NO native enums and NO scalar-list (String[])
-// columns. To keep ONE schema that also runs on PostgreSQL later:
+// Runs on PostgreSQL (Neon). For portability the schema keeps a couple of
+// deliberate simplifications that also worked on the original SQLite dev DB:
 //   - enum-like fields (role, asset type, source, chat role) are stored as
 //     String and validated in application code (see src/lib/enums.ts).
 //   - JSON-ish fields (tags, attachments, snapshots, artifacts) are stored as
-//     String holding JSON — SQLite's Prisma connector has no Json type. Use the
-//     helpers in src/lib/json.ts to (de)serialize.
+//     String holding JSON — use the helpers in src/lib/json.ts to (de)serialize.
 //   - the asset<->channel many-to-many uses the explicit AssetChannel join
 //     table (already required by the spec) instead of an array column.
 
@@ -15,7 +14,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
