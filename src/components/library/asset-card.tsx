@@ -4,6 +4,7 @@ import type { AssetListItem } from "@/lib/data";
 import { TYPE_ICONS } from "@/lib/library";
 import { gradientFor } from "@/lib/artifact-view";
 import { initials } from "@/lib/colors";
+import { StatusBadge } from "@/components/library/status-badge";
 
 export function AssetCard({
   asset,
@@ -45,6 +46,10 @@ export function AssetCard({
           )}
         </button>
       )}
+      <StatusBadge
+        status={asset.status}
+        className="absolute right-2 top-2 z-10 shadow-soft"
+      />
       <div className="overflow-hidden">
         <div className="transition-transform duration-500 ease-premium group-hover:scale-[1.04]">
           <AssetPreview asset={asset} />

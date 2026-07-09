@@ -305,6 +305,7 @@ async function main() {
         type: a.type,
         title: a.title,
         source: a.source,
+        status: "APPROVED", // seeded demo content is already published
         tags: JSON.stringify(a.tags),
         filename: a.filename,
         mimeType: a.mimeType,

@@ -44,6 +44,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     mimeType: a.mimeType,
     sizeBytes: a.sizeBytes,
     tags: parseTags(a.tags),
+    status: a.status,
+    reviewNote: a.reviewNote,
+    reviewedAt: a.reviewedAt ? a.reviewedAt.toISOString() : null,
     createdAt: a.createdAt.toISOString(),
     updatedAt: a.updatedAt.toISOString(),
     person: a.person,
@@ -134,6 +137,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       data.thumbnailUrl = await makeImageThumbnail(buf, keyBase);
     }
   }
+
+  // Any content edit resubmits the item for review (back to In queue).
+  data.status = "IN_QUEUE";
+  data.reviewNote = null;
+  data.reviewedAt = null;
 
   const updated = await prisma.mediaAsset.update({
     where: { id: asset.id },

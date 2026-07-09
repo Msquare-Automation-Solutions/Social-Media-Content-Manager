@@ -18,6 +18,8 @@ export const ACTIONS = {
   "asset.bulk_setPerson": { category: "content", verb: "reassigned the creator of" },
   "asset.bulk_setTags": { category: "content", verb: "set tags on" },
   "asset.bulk_addTags": { category: "content", verb: "added tags to" },
+  "asset.approved": { category: "content", verb: "approved" },
+  "asset.reworked": { category: "content", verb: "requested rework on" },
   "creator.created": { category: "creator", verb: "added creator" },
   "creator.updated": { category: "creator", verb: "edited creator" },
   "creator.deleted": { category: "creator", verb: "removed creator" },

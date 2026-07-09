@@ -6,6 +6,7 @@ import { describeActivity } from "@/lib/activity-format";
 export type LibraryFilters = {
   personId?: string;
   channelId?: string;
+  status?: string;
   q?: string;
   sort?: "newest" | "name" | "postdate";
 };
@@ -15,6 +16,8 @@ export type AssetListItem = {
   title: string;
   type: string;
   source: string;
+  status: string;
+  reviewNote: string | null;
   thumbnailUrl: string | null;
   tags: string[];
   createdAt: string;
@@ -54,6 +57,8 @@ export async function getTrashedAssets(workspaceId: string): Promise<AssetListIt
     title: a.title,
     type: a.type,
     source: a.source,
+    status: a.status,
+    reviewNote: a.reviewNote,
     thumbnailUrl: a.thumbnailUrl,
     tags: parseTags(a.tags),
     createdAt: (a.deletedAt ?? a.createdAt).toISOString(),
@@ -237,6 +242,7 @@ export async function getLibraryAssets(
       deletedAt: null,
       type: { in: typesForView(view) },
       ...(filters.personId ? { personId: filters.personId } : {}),
+      ...(filters.status ? { status: filters.status } : {}),
       ...(filters.channelId
         ? { channels: { some: { channelId: filters.channelId } } }
         : {}),
@@ -268,6 +274,8 @@ export async function getLibraryAssets(
       title: a.title,
       type: a.type,
       source: a.source,
+      status: a.status,
+      reviewNote: a.reviewNote,
       thumbnailUrl: a.thumbnailUrl,
       tags: parseTags(a.tags),
       createdAt: a.createdAt.toISOString(),

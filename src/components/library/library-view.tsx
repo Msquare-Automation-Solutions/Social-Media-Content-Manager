@@ -14,11 +14,20 @@ type Props = {
   assets: AssetListItem[];
   people: { id: string; name: string }[];
   channels: { id: string; name: string; icon: string }[];
-  filters: { person: string; channel: string; q: string; sort: string };
+  filters: { person: string; channel: string; status: string; q: string; sort: string };
   canEdit: boolean;
+  canReview: boolean;
 };
 
-export function LibraryView({ title, assets, people, channels, filters, canEdit }: Props) {
+export function LibraryView({
+  title,
+  assets,
+  people,
+  channels,
+  filters,
+  canEdit,
+  canReview,
+}: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const [pending, startTransition] = useTransition();
@@ -39,6 +48,7 @@ export function LibraryView({ title, assets, people, channels, filters, canEdit 
     const params = new URLSearchParams({
       ...(filters.person && { person: filters.person }),
       ...(filters.channel && { channel: filters.channel }),
+      ...(filters.status && { status: filters.status }),
       ...(filters.q && { q: filters.q }),
       ...(filters.sort && filters.sort !== "newest" && { sort: filters.sort }),
     });
@@ -49,7 +59,7 @@ export function LibraryView({ title, assets, people, channels, filters, canEdit 
     });
   }
 
-  const hasFilters = filters.person || filters.channel || filters.q;
+  const hasFilters = filters.person || filters.channel || filters.status || filters.q;
 
   return (
     <div className="flex-1 overflow-y-auto px-7 py-6">
@@ -76,6 +86,17 @@ export function LibraryView({ title, assets, people, channels, filters, canEdit 
           options={[
             { value: "", label: "All platforms" },
             ...channels.map((c) => ({ value: c.id, label: `${c.icon} ${c.name}` })),
+          ]}
+        />
+        <FilterSelect
+          label="Status"
+          value={filters.status}
+          onChange={(v) => setParam("status", v)}
+          options={[
+            { value: "", label: "All statuses" },
+            { value: "IN_QUEUE", label: "In queue" },
+            { value: "REWORK", label: "Rework" },
+            { value: "APPROVED", label: "Approved" },
           ]}
         />
         <label className="flex flex-col gap-1 text-[11.5px] font-semibold text-slate">
@@ -155,6 +176,7 @@ export function LibraryView({ title, assets, people, channels, filters, canEdit 
         <AssetDrawer
           assetId={selectedId}
           canEdit={canEdit}
+          canReview={canReview}
           onClose={() => setSelectedId(null)}
           // Refresh the grid in the background but keep the drawer open, so
           // edits reveal the new version snapshot rather than dismissing it.

@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { TYPE_LABELS } from "@/lib/library";
 import { initials } from "@/lib/colors";
 import { AssetPreview } from "@/components/library/asset-card";
+import { StatusBadge } from "@/components/library/status-badge";
 import { BlogEditor } from "@/components/library/blog-editor";
 import { EditAssetDialog } from "@/components/library/edit-asset-dialog";
 import { VersionHistory } from "@/components/library/version-history";
@@ -22,6 +23,9 @@ type AssetDetail = {
   mimeType: string | null;
   sizeBytes: number | null;
   tags: string[];
+  status: string;
+  reviewNote: string | null;
+  reviewedAt: string | null;
   createdAt: string;
   updatedAt: string;
   person: { id: string; name: string; avatarColor: string };
@@ -40,11 +44,13 @@ type AssetDetail = {
 export function AssetDrawer({
   assetId,
   canEdit,
+  canReview = false,
   onClose,
   onChanged,
 }: {
   assetId: string;
   canEdit: boolean;
+  canReview?: boolean;
   onClose: () => void;
   onChanged: () => void;
 }) {
@@ -52,7 +58,28 @@ export function AssetDrawer({
   const qc = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [reworkOpen, setReworkOpen] = useState(false);
+  const [reworkNote, setReworkNote] = useState("");
   const replaceInput = useRef<HTMLInputElement>(null);
+
+  async function review(status: "APPROVED" | "REWORK", note?: string) {
+    setBusy(true);
+    const r = await fetch(`/api/assets/${assetId}/status`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status, note }),
+    });
+    setBusy(false);
+    if (r.ok) {
+      toast(status === "APPROVED" ? "Approved ✓" : "Sent back for rework");
+      setReworkOpen(false);
+      setReworkNote("");
+      refetch();
+      onChanged();
+    } else {
+      toast((await r.text()) || "Couldn't update status.");
+    }
+  }
 
   // After any mutation that writes a snapshot, the separate version-history
   // query must be invalidated so the new snapshot appears immediately.
@@ -145,6 +172,71 @@ export function AssetDrawer({
             </div>
 
             <div className="flex-1 px-6 py-5">
+              {/* Review status + admin controls */}
+              <div className="mb-4 rounded-[12px] border border-line p-3.5">
+                <div className="flex items-center gap-2">
+                  <StatusBadge status={asset.status} />
+                  {asset.reviewedAt && (
+                    <span className="text-[11px] text-slate">
+                      reviewed {new Date(asset.reviewedAt).toLocaleDateString()}
+                    </span>
+                  )}
+                </div>
+                {asset.status === "REWORK" && asset.reviewNote && (
+                  <div className="mt-2 rounded-[9px] bg-[#fdecea] px-3 py-2 text-[12px] text-[#c23b2a]">
+                    <b>Rework requested:</b> {asset.reviewNote}
+                  </div>
+                )}
+                {canReview ? (
+                  <>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {asset.status !== "APPROVED" && (
+                        <button
+                          onClick={() => review("APPROVED")}
+                          disabled={busy}
+                          className="rounded-[9px] bg-teal px-3.5 py-1.5 text-[12.5px] font-semibold text-white hover:bg-teal-dark disabled:opacity-50"
+                        >
+                          ✓ Approve
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setReworkOpen((v) => !v)}
+                        className="rounded-[9px] border border-line px-3.5 py-1.5 text-[12.5px] font-semibold text-[#c23b2a] hover:border-[#c23b2a]"
+                      >
+                        Request rework
+                      </button>
+                    </div>
+                    {reworkOpen && (
+                      <div className="mt-2">
+                        <textarea
+                          autoFocus
+                          value={reworkNote}
+                          onChange={(e) => setReworkNote(e.target.value)}
+                          placeholder="What needs to change?"
+                          rows={2}
+                          className="w-full rounded-[9px] border border-line px-3 py-2 text-[12.5px] outline-none focus:border-teal"
+                        />
+                        <button
+                          onClick={() => review("REWORK", reworkNote.trim())}
+                          disabled={busy || !reworkNote.trim()}
+                          className="mt-1.5 rounded-[9px] bg-[#c23b2a] px-3.5 py-1.5 text-[12.5px] font-semibold text-white hover:brightness-95 disabled:opacity-50"
+                        >
+                          Send back for rework
+                        </button>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <p className="mt-2 text-[11.5px] text-slate">
+                    {asset.status === "APPROVED"
+                      ? "Approved by an admin."
+                      : asset.status === "REWORK"
+                        ? "Edit this item to resubmit it for review."
+                        : "Waiting for an admin to review."}
+                  </p>
+                )}
+              </div>
+
               {/* Preview or rendered document */}
               {asset.mimeType?.startsWith("video/") && asset.url ? (
                 <video src={asset.url} controls className="w-full rounded-[12px]" />

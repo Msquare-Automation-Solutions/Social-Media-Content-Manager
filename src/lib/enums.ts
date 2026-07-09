@@ -24,6 +24,16 @@ export type AssetType = (typeof ASSET_TYPES)[number];
 export const ASSET_SOURCES = ["UPLOAD", "GENERATED", "LINK"] as const;
 export type AssetSource = (typeof ASSET_SOURCES)[number];
 
+// Review workflow: content lands IN_QUEUE; an admin marks it APPROVED or REWORK.
+export const ASSET_STATUSES = ["IN_QUEUE", "REWORK", "APPROVED"] as const;
+export type AssetStatus = (typeof ASSET_STATUSES)[number];
+
+export const STATUS_LABELS: Record<AssetStatus, string> = {
+  IN_QUEUE: "In queue",
+  REWORK: "Rework",
+  APPROVED: "Approved",
+};
+
 export const CHAT_ROLES = ["user", "assistant"] as const;
 export type ChatRole = (typeof CHAT_ROLES)[number];
 

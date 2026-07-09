@@ -2,6 +2,7 @@ import { redirect, notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
 import { getLibraryAssets } from "@/lib/data";
+import { isAdminRole } from "@/lib/roles";
 import { SLUG_TO_VIEW, LIBRARY_VIEWS } from "@/lib/library";
 import { LibraryView } from "@/components/library/library-view";
 
@@ -15,6 +16,7 @@ export default async function LibraryPage({
   searchParams: Promise<{
     person?: string;
     channel?: string;
+    status?: string;
     q?: string;
     sort?: string;
   }>;
@@ -30,6 +32,7 @@ export default async function LibraryPage({
   const filters = {
     personId: sp.person || undefined,
     channelId: sp.channel || undefined,
+    status: sp.status || undefined,
     q: sp.q || undefined,
     sort: (sp.sort as "newest" | "name" | "postdate") || "newest",
   };
@@ -59,10 +62,12 @@ export default async function LibraryPage({
       filters={{
         person: sp.person ?? "",
         channel: sp.channel ?? "",
+        status: sp.status ?? "",
         q: sp.q ?? "",
         sort: filters.sort,
       }}
       canEdit={user.role !== "VIEWER"}
+      canReview={isAdminRole(user.role)}
     />
   );
 }
