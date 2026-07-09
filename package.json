@@ -15,6 +15,7 @@
     "db:seed": "prisma db seed",
     "test": "vitest run",
     "e2e": "playwright test",
+    "e2e:db": "tsx scripts/e2e-db-setup.ts",
     "e2e:install": "playwright install chromium"
   },
   "prisma": {

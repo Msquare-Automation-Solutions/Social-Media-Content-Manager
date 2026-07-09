@@ -32,3 +32,6 @@ prisma/dev.db-journal
 
 # OS
 .DS_Store
+
+# Isolated E2E test database (never commit real connection strings)
+.env.test
