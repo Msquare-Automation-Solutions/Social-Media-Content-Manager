@@ -73,6 +73,8 @@ async function main() {
     { name: "LinkedIn", icon: "💼", color: "#0a66c2" },
     { name: "Facebook", icon: "📘", color: "#1877f2" },
     { name: "TikTok", icon: "🎵", color: "#010101" },
+    { name: "Reddit", icon: "👽", color: "#ff4500" },
+    { name: "Skool", icon: "🎓", color: "#f59e0b" },
     { name: "Blog / Website", icon: "🌐", color: "#0e9f8f" },
   ];
   const channels: Record<string, { id: string }> = {};
