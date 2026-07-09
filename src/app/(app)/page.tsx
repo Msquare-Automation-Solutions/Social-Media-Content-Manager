@@ -11,8 +11,9 @@ export const dynamic = "force-dynamic";
 export default async function ChatPage({
   searchParams,
 }: {
-  searchParams: { s?: string };
+  searchParams: Promise<{ s?: string }>;
 }) {
+  const { s: selectedParam } = await searchParams;
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
@@ -21,7 +22,7 @@ export default async function ChatPage({
     listSessions(user.workspaceId, user.id),
   ]);
 
-  const selectedId = searchParams.s ?? null;
+  const selectedId = selectedParam ?? null;
   let initialMessages: UiMessage[] = [];
   if (selectedId) {
     const session = await getSessionWithMessages(selectedId, user.workspaceId);

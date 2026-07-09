@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { hashToken } from "@/lib/tokens";
 import { AcceptInviteForm } from "./accept-form";
@@ -7,11 +8,12 @@ export const dynamic = "force-dynamic";
 export default async function InvitePage({
   params,
 }: {
-  params: { token: string };
+  params: Promise<{ token: string }>;
 }) {
+  const { token } = await params;
   void hashToken; // invites store the raw token (single-use workspace join)
   const invite = await prisma.invite.findUnique({
-    where: { token: params.token },
+    where: { token },
     include: { workspace: { select: { name: true } } },
   });
 
@@ -31,7 +33,7 @@ export default async function InvitePage({
               <br />
               Set a password to finish.
             </p>
-            <AcceptInviteForm token={params.token} />
+            <AcceptInviteForm token={token} />
           </>
         ) : (
           <>
@@ -40,12 +42,12 @@ export default async function InvitePage({
               This invite link is invalid, already used, or expired. Ask an admin
               to send a new one.
             </p>
-            <a
+            <Link
               href="/login"
               className="block rounded-[12px] bg-teal py-3 text-center font-semibold text-white hover:bg-teal-dark"
             >
               Back to sign in
-            </a>
+            </Link>
           </>
         )}
       </div>

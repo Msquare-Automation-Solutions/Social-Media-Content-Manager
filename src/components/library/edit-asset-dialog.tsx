@@ -130,7 +130,8 @@ export function EditAssetDialog({
                 onClick={() =>
                   setChannels((s) => {
                     const n = new Set(s);
-                    n.has(c.id) ? n.delete(c.id) : n.add(c.id);
+                    if (n.has(c.id)) n.delete(c.id);
+                    else n.add(c.id);
                     return n;
                   })
                 }

@@ -1,12 +1,13 @@
+import Link from "next/link";
 import { AuthCard } from "@/components/auth/auth-card";
 import { ResetForm } from "./reset-form";
 
-export default function ResetPasswordPage({
+export default async function ResetPasswordPage({
   searchParams,
 }: {
-  searchParams: { token?: string };
+  searchParams: Promise<{ token?: string }>;
 }) {
-  const token = searchParams.token ?? "";
+  const token = (await searchParams).token ?? "";
   return (
     <AuthCard
       title="Set a new password"
@@ -17,9 +18,9 @@ export default function ResetPasswordPage({
       ) : (
         <div className="text-center text-[12.5px] text-slate">
           Missing or invalid reset link.{" "}
-          <a href="/forgot-password" className="font-semibold text-teal-dark">
+          <Link href="/forgot-password" className="font-semibold text-teal-dark">
             Request a new one
-          </a>
+          </Link>
           .
         </div>
       )}

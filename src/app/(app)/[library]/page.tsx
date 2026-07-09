@@ -11,20 +11,27 @@ export default async function LibraryPage({
   params,
   searchParams,
 }: {
-  params: { library: string };
-  searchParams: { person?: string; channel?: string; q?: string; sort?: string };
+  params: Promise<{ library: string }>;
+  searchParams: Promise<{
+    person?: string;
+    channel?: string;
+    q?: string;
+    sort?: string;
+  }>;
 }) {
-  const view = SLUG_TO_VIEW[params.library];
+  const { library } = await params;
+  const sp = await searchParams;
+  const view = SLUG_TO_VIEW[library];
   if (!view) notFound();
 
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
   const filters = {
-    personId: searchParams.person || undefined,
-    channelId: searchParams.channel || undefined,
-    q: searchParams.q || undefined,
-    sort: (searchParams.sort as "newest" | "name") || "newest",
+    personId: sp.person || undefined,
+    channelId: sp.channel || undefined,
+    q: sp.q || undefined,
+    sort: (sp.sort as "newest" | "name") || "newest",
   };
 
   const [assets, people, channels] = await Promise.all([
@@ -50,9 +57,9 @@ export default async function LibraryPage({
       people={people}
       channels={channels}
       filters={{
-        person: searchParams.person ?? "",
-        channel: searchParams.channel ?? "",
-        q: searchParams.q ?? "",
+        person: sp.person ?? "",
+        channel: sp.channel ?? "",
+        q: sp.q ?? "",
         sort: filters.sort,
       }}
       canEdit={user.role !== "VIEWER"}

@@ -23,11 +23,11 @@ async function loadOwned(id: string, workspaceId: string) {
 }
 
 // ── Detail (drawer / reader) ────────────────────────────────────────────────
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const g = await guard();
   if (!g.ok) return g.response;
 
-  const a = await loadOwned(params.id, g.user.workspaceId);
+  const a = await loadOwned((await params).id, g.user.workspaceId);
   if (!a || a.deletedAt) return new Response("Not found", { status: 404 });
 
   return Response.json({
@@ -61,12 +61,12 @@ const patchSchema = z.object({
   html: z.string().optional(),
 });
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const g = await guard("EDITOR");
   if (!g.ok) return g.response;
 
   const asset = await prisma.mediaAsset.findFirst({
-    where: { id: params.id, workspaceId: g.user.workspaceId },
+    where: { id: (await params).id, workspaceId: g.user.workspaceId },
   });
   if (!asset || asset.deletedAt) return new Response("Not found", { status: 404 });
   if (!canMutateAsset(g.user, asset)) return new Response("Forbidden", { status: 403 });
@@ -142,12 +142,12 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 }
 
 // ── Soft delete ─────────────────────────────────────────────────────────────
-export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const g = await guard("EDITOR");
   if (!g.ok) return g.response;
 
   const asset = await prisma.mediaAsset.findFirst({
-    where: { id: params.id, workspaceId: g.user.workspaceId },
+    where: { id: (await params).id, workspaceId: g.user.workspaceId },
   });
   if (!asset || asset.deletedAt) return new Response("Not found", { status: 404 });
   if (!canMutateAsset(g.user, asset)) return new Response("Forbidden", { status: 403 });

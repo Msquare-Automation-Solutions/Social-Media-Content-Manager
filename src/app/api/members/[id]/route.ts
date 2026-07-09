@@ -12,7 +12,7 @@ const schema = z.object({
   role: z.enum(ROLES).refine((r) => r !== "OWNER", "Cannot assign OWNER"),
 });
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const g = await guard("ADMIN");
   if (!g.ok) return g.response;
 
@@ -20,7 +20,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   if (!parsed.success) return new Response("Bad request", { status: 400 });
 
   const membership = await prisma.membership.findFirst({
-    where: { id: params.id, workspaceId: g.user.workspaceId },
+    where: { id: (await params).id, workspaceId: g.user.workspaceId },
   });
   if (!membership) return new Response("Not found", { status: 404 });
   if (membership.role === "OWNER") {
@@ -35,12 +35,12 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 }
 
 // Remove a member — ADMIN and above. Owners cannot be removed.
-export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const g = await guard("ADMIN");
   if (!g.ok) return g.response;
 
   const membership = await prisma.membership.findFirst({
-    where: { id: params.id, workspaceId: g.user.workspaceId },
+    where: { id: (await params).id, workspaceId: g.user.workspaceId },
   });
   if (!membership) return new Response("Not found", { status: 404 });
   if (membership.role === "OWNER") {

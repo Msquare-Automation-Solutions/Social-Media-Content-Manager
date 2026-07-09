@@ -6,14 +6,15 @@ import { LoginForm } from "./login-form";
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: { reset?: string; joined?: string; error?: string };
+  searchParams: Promise<{ reset?: string; joined?: string; error?: string }>;
 }) {
+  const sp = await searchParams;
   const user = await getCurrentUser();
   if (user) redirect("/");
 
-  const notice = searchParams.reset
+  const notice = sp.reset
     ? "Password updated — sign in with your new password."
-    : searchParams.joined
+    : sp.joined
       ? "You're in! Sign in to your new workspace."
       : null;
 
@@ -24,7 +25,7 @@ export default async function LoginPage({
           {notice}
         </div>
       )}
-      <LoginForm initialError={Boolean(searchParams.error)} />
+      <LoginForm initialError={Boolean(sp.error)} />
     </AuthCard>
   );
 }

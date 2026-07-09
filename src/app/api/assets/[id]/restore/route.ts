@@ -6,12 +6,12 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 // Restore a soft-deleted asset from Trash (undelete).
-export async function POST(_req: Request, { params }: { params: { id: string } }) {
+export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const g = await guard("EDITOR");
   if (!g.ok) return g.response;
 
   const asset = await prisma.mediaAsset.findFirst({
-    where: { id: params.id, workspaceId: g.user.workspaceId },
+    where: { id: (await params).id, workspaceId: g.user.workspaceId },
   });
   if (!asset || !asset.deletedAt) return new Response("Not found", { status: 404 });
   if (!canMutateAsset(g.user, asset)) return new Response("Forbidden", { status: 403 });

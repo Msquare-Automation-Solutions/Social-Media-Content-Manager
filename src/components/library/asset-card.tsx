@@ -1,7 +1,7 @@
 "use client";
 
 import type { AssetListItem } from "@/lib/data";
-import { TYPE_LABELS, TYPE_ICONS } from "@/lib/library";
+import { TYPE_ICONS } from "@/lib/library";
 import { gradientFor } from "@/lib/artifact-view";
 import { initials } from "@/lib/colors";
 

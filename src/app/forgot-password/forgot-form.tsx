@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 export function ForgotForm() {
   const [email, setEmail] = useState("");
@@ -26,9 +27,9 @@ export function ForgotForm() {
           If an account exists for that email, we&apos;ve sent a reset link. Check
           your inbox. <span className="opacity-70">(Dev: see the server console.)</span>
         </div>
-        <a href="/login" className="block text-center text-[12.5px] font-semibold text-teal-dark">
+        <Link href="/login" className="block text-center text-[12.5px] font-semibold text-teal-dark">
           ← Back to sign in
-        </a>
+        </Link>
       </div>
     );
   }
@@ -49,9 +50,9 @@ export function ForgotForm() {
       >
         {busy ? "Sending…" : "Send reset link"}
       </button>
-      <a href="/login" className="mt-3.5 block text-center text-[12.5px] font-semibold text-teal-dark">
+      <Link href="/login" className="mt-3.5 block text-center text-[12.5px] font-semibold text-teal-dark">
         ← Back to sign in
-      </a>
+      </Link>
     </form>
   );
 }

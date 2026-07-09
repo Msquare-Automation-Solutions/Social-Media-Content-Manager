@@ -1,6 +1,5 @@
 import crypto from "crypto";
 import { guard } from "@/lib/api-guard";
-import { prisma } from "@/lib/db";
 import { validateSaveAsset } from "@/lib/validation/save-asset";
 import { createAsset } from "@/lib/assets";
 import { storage } from "@/lib/storage";

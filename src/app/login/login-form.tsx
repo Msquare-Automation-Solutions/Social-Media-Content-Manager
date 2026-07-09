@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { signIn, getSession } from "next-auth/react";
 
 export function LoginForm({ initialError = false }: { initialError?: boolean }) {
@@ -75,9 +76,9 @@ export function LoginForm({ initialError = false }: { initialError?: boolean }) 
         {loading ? "Signing in…" : "Sign in"}
       </button>
       <div className="mt-3.5 text-center text-[12.5px]">
-        <a className="font-semibold text-teal-dark" href="/forgot-password">
+        <Link className="font-semibold text-teal-dark" href="/forgot-password">
           Forgot password?
-        </a>
+        </Link>
       </div>
     </form>
   );

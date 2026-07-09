@@ -10,19 +10,19 @@ export const dynamic = "force-dynamic";
 // restore is itself reversible.
 export async function POST(
   _req: Request,
-  { params }: { params: { id: string; versionId: string } },
+  { params }: { params: Promise<{ id: string; versionId: string }> },
 ) {
   const g = await guard("EDITOR");
   if (!g.ok) return g.response;
 
   const asset = await prisma.mediaAsset.findFirst({
-    where: { id: params.id, workspaceId: g.user.workspaceId },
+    where: { id: (await params).id, workspaceId: g.user.workspaceId },
   });
   if (!asset) return new Response("Not found", { status: 404 });
   if (!canMutateAsset(g.user, asset)) return new Response("Forbidden", { status: 403 });
 
   const version = await prisma.assetVersion.findFirst({
-    where: { id: params.versionId, assetId: params.id },
+    where: { id: (await params).versionId, assetId: (await params).id },
   });
   if (!version) return new Response("Version not found", { status: 404 });
 

@@ -11,7 +11,6 @@ import {
   artifactDefaultCategory,
   gradientFor,
 } from "@/lib/artifact-view";
-import { initials } from "@/lib/colors";
 
 type Options = {
   people: { id: string; name: string; label?: string | null; avatarColor: string }[];
@@ -125,15 +124,15 @@ function SaveDialogInner({
 
   const thumbInput = useRef<HTMLInputElement>(null);
 
-  // Default the person once options load.
-  useEffect(() => {
-    if (options?.people.length && !personId) setPersonId(options.people[0].id);
-  }, [options, personId]);
+  // Default to the first person until one is explicitly chosen (derived, so we
+  // avoid syncing async data into state inside an effect).
+  const effectivePersonId = personId || options?.people[0]?.id || "";
 
   const [c1, c2] = gradientFor(draft.gradientSeed);
   const previewImage = customThumbUrl ?? draft.imagePreviewUrl ?? null;
   const canEdit = options?.canEdit ?? false;
-  const canSave = title.trim().length > 0 && channels.size > 0 && !!personId;
+  const canSave =
+    title.trim().length > 0 && channels.size > 0 && !!effectivePersonId;
 
   function pickThumb(file: File | null) {
     if (!file) return;
@@ -202,7 +201,7 @@ function SaveDialogInner({
       title: title.trim(),
       type: category,
       source: draft.source,
-      personId,
+      personId: effectivePersonId,
       channelIds: [...channels],
       tags: tags
         .split(",")
@@ -323,7 +322,7 @@ function SaveDialogInner({
       <Field label="Person / creator" error={errors.personId}>
         <div className="flex gap-2">
           <select
-            value={personId}
+            value={effectivePersonId}
             onChange={(e) => setPersonId(e.target.value)}
             className="flex-1 rounded-[10px] border border-line px-3 py-2.5 outline-none focus:border-teal"
           >
@@ -398,7 +397,8 @@ function SaveDialogInner({
                 onClick={() =>
                   setChannels((s) => {
                     const n = new Set(s);
-                    n.has(c.id) ? n.delete(c.id) : n.add(c.id);
+                    if (n.has(c.id)) n.delete(c.id);
+                    else n.add(c.id);
                     return n;
                   })
                 }
