@@ -213,6 +213,176 @@ export async function getAssetCounts(
   return out;
 }
 
+// ── Dashboard ────────────────────────────────────────────────────────────────
+// Workspace-wide analytics. The math lives in the pure `aggregateDashboard`
+// helper (unit-tested without a DB); `getDashboardData` only does the queries.
+
+export type DashAsset = {
+  id: string;
+  title: string;
+  type: string;
+  status: string;
+  channels: { channelId: string; scheduledFor: string | null }[];
+};
+export type DashChannel = { id: string; name: string; icon: string; color: string };
+
+export type TypeSlice = { key: LibraryViewKey; label: string; count: number };
+export type StatusCounts = { IN_QUEUE: number; REWORK: number; APPROVED: number };
+
+export type PlatformSlice = {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+  total: number;
+  byType: TypeSlice[];
+  byStatus: StatusCounts;
+  scheduledThisMonth: number;
+};
+
+export type DashboardData = {
+  totalAssets: number;
+  statusCounts: StatusCounts;
+  scheduledThisMonth: number;
+  byType: TypeSlice[];
+  perPlatform: PlatformSlice[];
+  upcoming: {
+    id: string;
+    title: string;
+    platformName: string;
+    platformIcon: string;
+    platformColor: string;
+    date: string;
+  }[];
+  topCreators: { name: string; avatarColor: string; assetCount: number }[];
+};
+
+function typeBreakdown(assets: { type: string }[]): TypeSlice[] {
+  return LIBRARY_VIEWS.map((v) => ({
+    key: v.key,
+    label: v.label,
+    count: assets.filter((a) => (v.types as readonly string[]).includes(a.type)).length,
+  }));
+}
+
+function statusBreakdown(assets: { status: string }[]): StatusCounts {
+  return {
+    IN_QUEUE: assets.filter((a) => a.status === "IN_QUEUE").length,
+    REWORK: assets.filter((a) => a.status === "REWORK").length,
+    APPROVED: assets.filter((a) => a.status === "APPROVED").length,
+  };
+}
+
+/** Pure dashboard aggregation — deterministic given `now`, so it's unit-testable. */
+export function aggregateDashboard(
+  assets: DashAsset[],
+  channels: DashChannel[],
+  creators: Pick<CreatorRow, "name" | "avatarColor" | "assetCount">[],
+  now: Date,
+): DashboardData {
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  const inMonth = (iso: string | null) => {
+    if (!iso) return false;
+    const d = new Date(iso);
+    return d >= monthStart && d < monthEnd;
+  };
+  // # of assets with at least one platform post date this month.
+  const scheduledThisMonth = (list: DashAsset[]) =>
+    list.filter((a) => a.channels.some((c) => inMonth(c.scheduledFor))).length;
+
+  const perPlatform: PlatformSlice[] = channels.map((ch) => {
+    const tagged = assets.filter((a) =>
+      a.channels.some((c) => c.channelId === ch.id),
+    );
+    return {
+      id: ch.id,
+      name: ch.name,
+      icon: ch.icon,
+      color: ch.color,
+      total: tagged.length,
+      byType: typeBreakdown(tagged),
+      byStatus: statusBreakdown(tagged),
+      // Post dates for *this* platform specifically.
+      scheduledThisMonth: tagged.filter((a) =>
+        a.channels.some((c) => c.channelId === ch.id && inMonth(c.scheduledFor)),
+      ).length,
+    };
+  });
+
+  const upcoming = assets
+    .flatMap((a) =>
+      a.channels
+        .filter((c) => c.scheduledFor && new Date(c.scheduledFor) >= todayStart)
+        .map((c) => {
+          const ch = channels.find((x) => x.id === c.channelId);
+          return {
+            id: a.id,
+            title: a.title,
+            date: c.scheduledFor as string,
+            platformName: ch?.name ?? "—",
+            platformIcon: ch?.icon ?? "",
+            platformColor: ch?.color ?? "#0e9f8f",
+          };
+        }),
+    )
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(0, 6);
+
+  const topCreators = creators
+    .filter((c) => c.assetCount > 0)
+    .sort((a, b) => b.assetCount - a.assetCount)
+    .slice(0, 5)
+    .map((c) => ({ name: c.name, avatarColor: c.avatarColor, assetCount: c.assetCount }));
+
+  return {
+    totalAssets: assets.length,
+    statusCounts: statusBreakdown(assets),
+    scheduledThisMonth: scheduledThisMonth(assets),
+    byType: typeBreakdown(assets),
+    perPlatform,
+    upcoming,
+    topCreators,
+  };
+}
+
+/** Workspace-wide analytics for the dashboard page (visible to everyone). */
+export async function getDashboardData(workspaceId: string): Promise<DashboardData> {
+  const [assets, channels, creators] = await Promise.all([
+    prisma.mediaAsset.findMany({
+      where: { workspaceId, deletedAt: null },
+      select: {
+        id: true,
+        title: true,
+        type: true,
+        status: true,
+        channels: { select: { channelId: true, scheduledFor: true } },
+      },
+    }),
+    prisma.socialChannel.findMany({
+      where: { workspaceId },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, name: true, icon: true, color: true },
+    }),
+    listCreators(workspaceId),
+  ]);
+
+  const input: DashAsset[] = assets.map((a) => ({
+    id: a.id,
+    title: a.title,
+    type: a.type,
+    status: a.status,
+    channels: a.channels.map((c) => ({
+      channelId: c.channelId,
+      scheduledFor: c.scheduledFor ? c.scheduledFor.toISOString() : null,
+    })),
+  }));
+
+  return aggregateDashboard(input, channels, creators, new Date());
+}
+
 export async function listSessions(workspaceId: string, userId: string) {
   return prisma.chatSession.findMany({
     where: { workspaceId, userId, archivedAt: null },

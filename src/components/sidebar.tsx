@@ -50,6 +50,12 @@ export function Sidebar({ user, workspaceName, counts, membersCount }: Props) {
       )}
 
       <NavLink href="/" active={isActive("/")} label="Home" icon="home" />
+      <NavLink
+        href="/dashboard"
+        active={isActive("/dashboard")}
+        label="Dashboard"
+        icon="dashboard"
+      />
 
       <div className="px-3 pb-1.5 pt-3.5 text-[11px] font-bold uppercase tracking-[0.06em] text-[#9aa7b6]">
         Library
