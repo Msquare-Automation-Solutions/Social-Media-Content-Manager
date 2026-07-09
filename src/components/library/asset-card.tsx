@@ -8,15 +8,43 @@ import { initials } from "@/lib/colors";
 export function AssetCard({
   asset,
   onOpen,
+  selected = false,
+  selecting = false,
+  onToggleSelect,
 }: {
   asset: AssetListItem;
   onOpen: () => void;
+  selected?: boolean;
+  selecting?: boolean;
+  onToggleSelect?: (e: React.MouseEvent) => void;
 }) {
   return (
-    <button
+    <div
       onClick={onOpen}
-      className="card-lift group overflow-hidden rounded-card border border-line/70 bg-card text-left shadow-soft"
+      className={`card-lift group relative cursor-pointer overflow-hidden rounded-card border bg-card text-left shadow-soft ${
+        selected ? "border-teal ring-2 ring-teal/40" : "border-line/70"
+      }`}
     >
+      {onToggleSelect && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleSelect(e);
+          }}
+          aria-label={selected ? "Deselect" : "Select"}
+          className={`absolute left-2 top-2 z-10 grid h-6 w-6 place-items-center rounded-[7px] border text-white shadow-soft transition ${
+            selected
+              ? "border-teal bg-teal"
+              : `border-white/80 bg-black/25 ${selecting ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`
+          }`}
+        >
+          {selected && (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 6 9 17l-5-5" />
+            </svg>
+          )}
+        </button>
+      )}
       <div className="overflow-hidden">
         <div className="transition-transform duration-500 ease-premium group-hover:scale-[1.04]">
           <AssetPreview asset={asset} />
@@ -51,7 +79,7 @@ export function AssetCard({
           </span>
         </div>
       </div>
-    </button>
+    </div>
   );
 }
 

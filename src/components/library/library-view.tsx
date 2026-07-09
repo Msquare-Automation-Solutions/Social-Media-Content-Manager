@@ -6,6 +6,7 @@ import { useRouter, usePathname } from "next/navigation";
 import type { AssetListItem } from "@/lib/data";
 import { AssetCard } from "@/components/library/asset-card";
 import { AssetDrawer } from "@/components/library/asset-drawer";
+import { BulkBar } from "@/components/library/bulk-bar";
 
 type Props = {
   title: string;
@@ -21,6 +22,16 @@ export function LibraryView({ title, assets, people, channels, filters, canEdit 
   const pathname = usePathname();
   const [pending, startTransition] = useTransition();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  function toggleSelect(id: string) {
+    setSelected((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  }
 
   // Filters persist in the URL (combine with AND, server refilters).
   function setParam(key: string, value: string) {
@@ -99,14 +110,34 @@ export function LibraryView({ title, assets, people, channels, filters, canEdit 
 
       {assets.length === 0 ? (
         <div className="grid place-items-center py-20 text-center text-slate">
-          No items match — adjust filters, or create something in chat. 💬
+          No items match — adjust filters, or create something in chat.
         </div>
       ) : (
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(215px,1fr))] gap-4">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(215px,1fr))] gap-4 pb-24">
           {assets.map((a) => (
-            <AssetCard key={a.id} asset={a} onOpen={() => setSelectedId(a.id)} />
+            <AssetCard
+              key={a.id}
+              asset={a}
+              onOpen={() => setSelectedId(a.id)}
+              selected={selected.has(a.id)}
+              selecting={selected.size > 0}
+              onToggleSelect={canEdit ? () => toggleSelect(a.id) : undefined}
+            />
           ))}
         </div>
+      )}
+
+      {selected.size > 0 && (
+        <BulkBar
+          count={selected.size}
+          ids={[...selected]}
+          people={people}
+          onClear={() => setSelected(new Set())}
+          onDone={() => {
+            setSelected(new Set());
+            router.refresh();
+          }}
+        />
       )}
 
       {selectedId && (
