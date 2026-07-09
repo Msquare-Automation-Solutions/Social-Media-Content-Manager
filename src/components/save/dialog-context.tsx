@@ -18,6 +18,7 @@ import type { Artifact } from "@/lib/ai/tools";
 export type SaveTarget =
   | { mode: "artifact"; artifact: Artifact; messageId: string }
   | { mode: "upload"; file: UploadFileDraft }
+  | { mode: "link"; link: LinkDraft }
   | { mode: "edit"; assetId: string };
 
 export type UploadFileDraft = {
@@ -30,6 +31,9 @@ export type UploadFileDraft = {
   file: File;
 };
 
+// An external file reference (e.g. a Google Drive / Dropbox / YouTube link).
+export type LinkDraft = { url: string; name: string };
+
 type SaveContextValue = {
   target: SaveTarget | null;
   queueLength: number;
@@ -41,6 +45,7 @@ type SaveContextValue = {
   ) => void;
   openUploadFile: (file: UploadFileDraft) => void;
   queueUploads: (files: UploadFileDraft[]) => void;
+  openLink: (link: LinkDraft) => void;
   openEdit: (assetId: string) => void;
   close: () => void;
 };
@@ -92,6 +97,12 @@ export function DialogProvider({ children }: { children: ReactNode }) {
     setTarget({ mode: "upload", file: files[0] });
     setQueue(files.slice(1));
   }, []);
+  const openLink = useCallback<SaveContextValue["openLink"]>((link) => {
+    setUploadOpen(false);
+    setOnSaved(() => undefined);
+    setQueue([]);
+    setTarget({ mode: "link", link });
+  }, []);
   const openEdit = useCallback<SaveContextValue["openEdit"]>((assetId) => {
     setOnSaved(() => undefined);
     setQueue([]);
@@ -117,10 +128,11 @@ export function DialogProvider({ children }: { children: ReactNode }) {
       openArtifact,
       openUploadFile,
       queueUploads,
+      openLink,
       openEdit,
       close,
     }),
-    [target, queue.length, onSaved, openArtifact, openUploadFile, queueUploads, openEdit, close],
+    [target, queue.length, onSaved, openArtifact, openUploadFile, queueUploads, openLink, openEdit, close],
   );
   const uploadValue = useMemo<UploadContextValue>(
     () => ({

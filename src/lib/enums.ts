@@ -21,7 +21,7 @@ export const ASSET_TYPES = [
 ] as const;
 export type AssetType = (typeof ASSET_TYPES)[number];
 
-export const ASSET_SOURCES = ["UPLOAD", "GENERATED"] as const;
+export const ASSET_SOURCES = ["UPLOAD", "GENERATED", "LINK"] as const;
 export type AssetSource = (typeof ASSET_SOURCES)[number];
 
 export const CHAT_ROLES = ["user", "assistant"] as const;

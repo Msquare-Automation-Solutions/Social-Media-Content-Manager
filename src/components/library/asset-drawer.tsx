@@ -189,8 +189,24 @@ export function AssetDrawer({
                   </div>
                 </Row>
                 <Row label="Source">
-                  {asset.source === "GENERATED" ? "AI generated" : "Upload"}
+                  {asset.source === "GENERATED"
+                    ? "AI generated"
+                    : asset.source === "LINK"
+                      ? "External link"
+                      : "Upload"}
                 </Row>
+                {asset.source === "LINK" && asset.url && (
+                  <Row label="Link">
+                    <a
+                      href={asset.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="truncate text-teal-dark underline"
+                    >
+                      {asset.url}
+                    </a>
+                  </Row>
+                )}
                 {asset.tags.length > 0 && (
                   <Row label="Tags">
                     <div className="flex flex-wrap gap-1.5">
@@ -240,15 +256,25 @@ export function AssetDrawer({
 
             {/* Actions */}
             <div className="flex flex-wrap items-center gap-2 border-t border-line px-6 py-4">
-              {asset.url && (
-                <a
-                  href={asset.url}
-                  download={asset.filename ?? undefined}
-                  className="rounded-[10px] border border-line px-3.5 py-2 text-[13px] font-semibold text-teal-dark hover:border-teal"
-                >
-                  ⬇ Download
-                </a>
-              )}
+              {asset.url &&
+                (asset.source === "LINK" ? (
+                  <a
+                    href={asset.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-[10px] border border-line px-3.5 py-2 text-[13px] font-semibold text-teal-dark hover:border-teal"
+                  >
+                    ↗ Open link
+                  </a>
+                ) : (
+                  <a
+                    href={asset.url}
+                    download={asset.filename ?? undefined}
+                    className="rounded-[10px] border border-line px-3.5 py-2 text-[13px] font-semibold text-teal-dark hover:border-teal"
+                  >
+                    ⬇ Download
+                  </a>
+                ))}
               {canDoEdit && (
                 <>
                   <button
@@ -257,7 +283,7 @@ export function AssetDrawer({
                   >
                     ✎ Edit tags & fields
                   </button>
-                  {asset.url && (
+                  {asset.url && asset.source !== "LINK" && (
                     <>
                       <button
                         onClick={() => replaceInput.current?.click()}

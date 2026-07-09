@@ -86,10 +86,12 @@ export function AssetCard({
             className={`ml-auto rounded-full px-1.5 py-0.5 text-[9.5px] font-bold uppercase ${
               asset.source === "GENERATED"
                 ? "bg-[#efe6fb] text-[#7a4fc9]"
-                : "bg-[#e5f0fb] text-[#2a6fb8]"
+                : asset.source === "LINK"
+                  ? "bg-[#fdeeda] text-[#b07514]"
+                  : "bg-[#e5f0fb] text-[#2a6fb8]"
             }`}
           >
-            {asset.source === "GENERATED" ? "AI" : "Upload"}
+            {asset.source === "GENERATED" ? "AI" : asset.source === "LINK" ? "Link" : "Upload"}
           </span>
         </div>
       </div>

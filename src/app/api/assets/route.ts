@@ -77,9 +77,12 @@ export async function POST(req: Request) {
     thumbnailUrl = await generateCover(data.title, label, keyBase);
   }
 
+  // Uploaded file → its stored URL; otherwise a LINK asset keeps its external URL.
+  const finalUrl = url ?? data.url ?? undefined;
+
   try {
     const asset = await createAsset(
-      { ...data, thumbnailUrl, url },
+      { ...data, thumbnailUrl, url: finalUrl },
       { workspaceId: g.user.workspaceId, userId: g.user.id },
     );
     // Link the originating chat message (generated artifacts).

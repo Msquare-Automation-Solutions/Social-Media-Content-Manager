@@ -23,12 +23,13 @@ type Draft = {
   category: string;
   tags: string[];
   html?: string;
-  source: "GENERATED" | "UPLOAD";
+  source: "GENERATED" | "UPLOAD" | "LINK";
   chatMessageId?: string;
   filename?: string;
   mimeType?: string;
   sizeBytes?: number;
   file?: File;
+  url?: string;
   imagePreviewUrl?: string;
   gradientSeed: string;
   fileMeta?: string;
@@ -47,6 +48,18 @@ function draftFromTarget(
       source: "GENERATED",
       chatMessageId: target.messageId,
       gradientSeed: a.title,
+    };
+  }
+  if (target.mode === "link") {
+    const l = target.link;
+    return {
+      title: l.name.replace(/\.[a-z0-9]+$/i, "") || "Linked file",
+      category: "IMAGE",
+      tags: [],
+      source: "LINK",
+      url: l.url,
+      gradientSeed: l.url,
+      fileMeta: `🔗 ${l.url}`,
     };
   }
   // upload
@@ -215,6 +228,7 @@ function SaveDialogInner({
         .map((t) => t.trim())
         .filter(Boolean),
       html: draft.html,
+      url: draft.url,
       chatMessageId: draft.chatMessageId,
       filename: draft.filename,
       mimeType: draft.mimeType,
@@ -565,6 +579,7 @@ function categoryToView(type: string): "IMAGE" | "THUMBNAIL" | "VIDEO" | "BLOGPO
 function targetKey(t: SaveTarget): string {
   if (t.mode === "artifact") return "a:" + t.messageId;
   if (t.mode === "upload") return "u:" + t.file.tempId;
+  if (t.mode === "link") return "l:" + t.link.url;
   return "e:" + t.assetId;
 }
 

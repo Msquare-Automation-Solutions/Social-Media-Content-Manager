@@ -15,22 +15,29 @@ export const channelSelectionSchema = z.object({
   scheduledFor: z.string().datetime().nullish().or(z.literal("")),
 });
 
-export const saveAssetSchema = z.object({
-  title: z.string().trim().min(1, "Name is required").max(200),
-  type: z.enum(ASSET_TYPES),
-  source: z.enum(ASSET_SOURCES),
-  personId: z.string().min(1, "Person is required"),
-  channels: z
-    .array(channelSelectionSchema)
-    .min(1, "Pick at least one social platform"),
-  tags: z.array(z.string().trim().min(1)).max(30).default([]),
-  html: z.string().optional(),
-  chatMessageId: z.string().optional(),
-  // Present for uploads (Phase 4); ignored for generated artifacts.
-  filename: z.string().optional(),
-  mimeType: z.string().optional(),
-  sizeBytes: z.number().int().nonnegative().optional(),
-});
+export const saveAssetSchema = z
+  .object({
+    title: z.string().trim().min(1, "Name is required").max(200),
+    type: z.enum(ASSET_TYPES),
+    source: z.enum(ASSET_SOURCES),
+    personId: z.string().min(1, "Person is required"),
+    channels: z
+      .array(channelSelectionSchema)
+      .min(1, "Pick at least one social platform"),
+    tags: z.array(z.string().trim().min(1)).max(30).default([]),
+    html: z.string().optional(),
+    chatMessageId: z.string().optional(),
+    // Present for uploads; ignored for generated artifacts.
+    filename: z.string().optional(),
+    mimeType: z.string().optional(),
+    sizeBytes: z.number().int().nonnegative().optional(),
+    // Present for LINK assets (external file reference).
+    url: z.string().url().optional(),
+  })
+  .refine((d) => d.source !== "LINK" || !!d.url, {
+    message: "A link URL is required",
+    path: ["url"],
+  });
 
 export type SaveAssetInput = z.infer<typeof saveAssetSchema>;
 
