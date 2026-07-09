@@ -151,9 +151,9 @@ export function ChatView({
   return (
     <div className="flex h-screen flex-col overflow-hidden">
       {/* header */}
-      <div className="flex items-center gap-3 border-b border-line bg-card px-6 py-3.5">
-        <h2 className="font-display text-[15px] font-semibold">Content Studio</h2>
-        <span className="rounded-full bg-teal-soft px-3 py-1 text-[11.5px] font-semibold text-teal-dark">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-line bg-card px-6 py-3.5">
+        <h2 className="shrink-0 font-display text-[15px] font-semibold">Content Studio</h2>
+        <span className="max-w-full shrink truncate rounded-full bg-teal-soft px-3 py-1 text-[11.5px] font-semibold text-teal-dark">
           Skill: {skillName}
         </span>
         {sessions.length > 0 && (
