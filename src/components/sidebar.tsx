@@ -31,9 +31,9 @@ export function Sidebar({ user, workspaceName, counts, membersCount }: Props) {
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   return (
-    <aside className="flex h-screen flex-col gap-[3px] border-r border-line bg-card px-3.5 py-4">
+    <aside className="flex h-screen flex-col gap-[3px] border-r border-line/80 bg-gradient-to-b from-white to-[#fafbfc] px-3.5 py-4">
       <div className="flex items-center gap-2.5 px-2 pb-3.5 pt-0.5 font-display text-[17px] font-bold">
-        <div className="grid h-8 w-8 place-items-center rounded-[9px] bg-gradient-to-br from-teal to-[#0b6f88] text-white">
+        <div className="grid h-8 w-8 place-items-center rounded-[10px] bg-brand-teal text-white shadow-glow-sm">
           ◆
         </div>
         {workspaceName}
@@ -42,7 +42,7 @@ export function Sidebar({ user, workspaceName, counts, membersCount }: Props) {
       {canUpload && (
         <button
           onClick={() => upload.open()}
-          className="mb-3.5 flex items-center justify-center gap-2 rounded-[12px] bg-teal px-3.5 py-2.5 font-semibold text-white hover:bg-teal-dark"
+          className="btn-premium mb-3.5 flex items-center justify-center gap-2 rounded-[12px] px-3.5 py-2.5 font-semibold"
         >
           <Icon name="upload" size={17} /> Upload files
         </button>
@@ -81,10 +81,10 @@ export function Sidebar({ user, workspaceName, counts, membersCount }: Props) {
       <div className="mt-auto">
         <Link
           href="/account"
-          className="flex items-center gap-2.5 rounded-[12px] bg-bg px-3 py-2.5 hover:ring-1 hover:ring-line"
+          className="flex items-center gap-2.5 rounded-[12px] bg-black/[0.03] px-3 py-2.5 transition duration-200 hover:bg-black/[0.06]"
         >
           <div
-            className="grid h-8 w-8 place-items-center rounded-full text-[13px] font-bold text-white"
+            className="grid h-8 w-8 place-items-center rounded-full text-[13px] font-bold text-white shadow-soft"
             style={{ background: user.avatarColor }}
           >
             {initials(user.name)}
@@ -123,18 +123,27 @@ function NavLink({
   return (
     <Link
       href={href}
-      className={`flex items-center gap-2.5 rounded-[10px] px-3 py-2.5 font-medium ${
+      className={`group flex items-center gap-2.5 rounded-[10px] px-3 py-2.5 font-medium transition duration-200 ease-premium ${
         active
-          ? "bg-teal-soft font-semibold text-teal-dark"
-          : "text-slate hover:bg-bg"
+          ? "bg-teal-soft font-semibold text-teal-dark shadow-[inset_0_0_0_1px_rgba(14,159,143,0.16)]"
+          : "text-slate hover:bg-black/[0.035] hover:text-ink"
       }`}
     >
-      {icon && <Icon name={icon} className="flex-shrink-0 text-current opacity-90" />}
+      {icon && (
+        <Icon
+          name={icon}
+          className={`flex-shrink-0 transition-opacity ${
+            active ? "opacity-100" : "opacity-70 group-hover:opacity-100"
+          }`}
+        />
+      )}
       {label}
       {count !== undefined && (
         <span
-          className={`ml-auto rounded-full px-2.5 py-0.5 text-[11px] ${
-            active ? "bg-white text-slate" : "bg-bg text-slate"
+          className={`ml-auto rounded-full px-2.5 py-0.5 text-[11px] font-semibold tabular-nums ${
+            active
+              ? "bg-white text-teal-dark shadow-soft"
+              : "bg-black/[0.05] text-slate"
           }`}
         >
           {count}

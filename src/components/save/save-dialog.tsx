@@ -460,7 +460,7 @@ function SaveDialogInner({
         <button
           onClick={commit}
           disabled={!canSave || saving}
-          className="rounded-[11px] bg-teal px-5 py-2.5 font-semibold text-white hover:bg-teal-dark disabled:opacity-45"
+          className="btn-premium rounded-[11px] px-5 py-2.5 font-semibold disabled:opacity-45 disabled:shadow-none"
         >
           {saving ? "Saving…" : "Save"}
         </button>
@@ -501,10 +501,10 @@ function Overlay({
   }, [onClose]);
   return (
     <div
-      className="fixed inset-0 z-50 grid place-items-center bg-[rgba(20,31,46,0.44)] p-4"
+      className="fixed inset-0 z-50 grid place-items-center bg-ink/35 p-4 backdrop-blur-[3px]"
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="max-h-[92vh] w-[500px] max-w-[94vw] overflow-y-auto rounded-[18px] bg-card p-6 shadow-card">
+      <div className="max-h-[92vh] w-[500px] max-w-[94vw] animate-fade-up overflow-y-auto rounded-xl2 border border-white/60 bg-card p-6 shadow-lift">
         {children}
       </div>
     </div>

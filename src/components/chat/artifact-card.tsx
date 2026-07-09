@@ -21,7 +21,7 @@ export function ArtifactCard({ artifact, messageId, saved, savedType, onSaved }:
   const showCover = artifact.kind !== "VIDEO_SCRIPT";
 
   return (
-    <div className="mt-3 max-w-[530px] overflow-hidden rounded-[14px] border border-line bg-card shadow-card">
+    <div className="mt-3 max-w-[530px] animate-fade-up overflow-hidden rounded-card border border-line/70 bg-card shadow-card">
       {showCover && (
         <div
           className="grid h-[130px] place-items-center px-4 text-center font-display text-[15px] font-semibold text-white"
@@ -55,7 +55,7 @@ export function ArtifactCard({ artifact, messageId, saved, savedType, onSaved }:
         ) : (
           <>
             <button
-              className="rounded-[9px] bg-teal px-4 py-1.5 text-[12px] font-semibold text-white hover:bg-teal-dark"
+              className="btn-premium rounded-[9px] px-4 py-1.5 text-[12px] font-semibold"
               onClick={() => save.openArtifact(artifact, messageId, (r) => onSaved?.(r.type))}
             >
               Save…

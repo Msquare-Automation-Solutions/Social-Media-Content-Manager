@@ -70,7 +70,7 @@ export function LoginForm({ initialError = false }: { initialError?: boolean }) 
       <button
         type="submit"
         disabled={loading}
-        className="mt-1 w-full rounded-[12px] bg-teal py-3 font-semibold text-white hover:bg-teal-dark disabled:opacity-50"
+        className="btn-premium mt-1 w-full rounded-[12px] py-3 font-semibold disabled:opacity-50"
       >
         {loading ? "Signing in…" : "Sign in"}
       </button>

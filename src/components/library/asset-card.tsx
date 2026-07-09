@@ -15,9 +15,13 @@ export function AssetCard({
   return (
     <button
       onClick={onOpen}
-      className="overflow-hidden rounded-[14px] bg-card text-left shadow-card transition hover:-translate-y-0.5"
+      className="card-lift group overflow-hidden rounded-card border border-line/70 bg-card text-left shadow-soft"
     >
-      <AssetPreview asset={asset} />
+      <div className="overflow-hidden">
+        <div className="transition-transform duration-500 ease-premium group-hover:scale-[1.04]">
+          <AssetPreview asset={asset} />
+        </div>
+      </div>
       <div className="p-3">
         <div className="truncate text-[12.5px] font-semibold">{asset.title}</div>
         <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] text-slate">

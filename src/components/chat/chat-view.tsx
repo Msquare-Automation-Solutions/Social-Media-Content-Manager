@@ -200,7 +200,7 @@ export function ChatView({
 
       {/* composer */}
       <div className="bg-gradient-to-t from-bg to-transparent px-6 pb-6 pt-3.5">
-        <div className="mx-auto max-w-[760px] rounded-[18px] border border-line bg-card p-3.5 shadow-card">
+        <div className="mx-auto max-w-[760px] rounded-xl2 border border-line/70 bg-card p-3.5 shadow-card transition duration-200 focus-within:border-teal/40 focus-within:shadow-lift">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -228,7 +228,7 @@ export function ChatView({
             <button
               onClick={() => send(input)}
               disabled={busy || !input.trim()}
-              className="ml-auto rounded-[11px] bg-teal px-5 py-2 font-semibold text-white hover:bg-teal-dark disabled:opacity-50"
+              className="btn-premium ml-auto rounded-[11px] px-5 py-2 font-semibold disabled:opacity-50 disabled:shadow-none"
             >
               {busy ? "Generating…" : "Send ↑"}
             </button>
@@ -242,7 +242,7 @@ export function ChatView({
 function Hello({ onPick }: { onPick: (t: string) => void }) {
   return (
     <div className="py-10 text-center">
-      <div className="mx-auto mb-3.5 grid h-[52px] w-[52px] place-items-center rounded-[16px] bg-gradient-to-br from-teal to-[#0b6f88] text-2xl text-white">
+      <div className="mx-auto mb-3.5 grid h-[52px] w-[52px] place-items-center rounded-[16px] bg-brand-teal text-2xl text-white shadow-glow">
         ◆
       </div>
       <h1 className="mb-2 font-display text-2xl">What are we creating today?</h1>
