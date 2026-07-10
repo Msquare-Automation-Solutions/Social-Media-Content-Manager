@@ -21,12 +21,19 @@ type NotificationRow = {
 
 type Feed = { rows: NotificationRow[]; nextCursor: string | null; unread: number };
 
-// Where a notification takes you when clicked — the gallery its status lives in.
-function hrefFor(action: string): string | null {
-  if (action === "asset.approved") return "/approved";
-  if (action === "asset.published") return "/published";
-  if (action === "asset.reworked") return "/review";
-  return null;
+// Where a notification takes you when clicked — the gallery its status lives in,
+// with the specific asset's drawer opened via ?asset=<id>.
+function hrefFor(action: string, targetId: string | null): string | null {
+  const base =
+    action === "asset.approved"
+      ? "/approved"
+      : action === "asset.published"
+        ? "/published"
+        : action === "asset.reworked"
+          ? "/rework"
+          : null;
+  if (!base) return null;
+  return targetId ? `${base}?asset=${encodeURIComponent(targetId)}` : base;
 }
 
 export function NotificationBell({ initialUnread }: { initialUnread: number }) {
@@ -48,6 +55,51 @@ export function NotificationBell({ initialUnread }: { initialUnread: number }) {
 
   const unread = data?.unread ?? 0;
   const rows = data?.rows ?? [];
+
+  // Desktop (OS) notifications — poll-driven. `perm` tracks browser permission;
+  // `lastTopId` remembers the newest notification we've already seen so we only
+  // fire the OS toast for genuinely new arrivals (never on first load).
+  const [perm, setPerm] = useState<NotificationPermission | "unsupported">("default");
+  const lastTopId = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !("Notification" in window)) {
+      setPerm("unsupported");
+      return;
+    }
+    setPerm(Notification.permission);
+  }, []);
+
+  useEffect(() => {
+    if (rows.length === 0) return;
+    const prevTop = lastTopId.current;
+    // First real feed: record the baseline without notifying.
+    if (prevTop === null) {
+      lastTopId.current = rows[0].id;
+      return;
+    }
+    if (rows[0].id === prevTop) return;
+    const idx = rows.findIndex((r) => r.id === prevTop);
+    const fresh = idx === -1 ? rows.slice(0, 5) : rows.slice(0, idx);
+    lastTopId.current = rows[0].id;
+    if (typeof window === "undefined" || !("Notification" in window)) return;
+    if (Notification.permission !== "granted") return;
+    for (const n of fresh.slice(0, 3)) {
+      const notif = new Notification(n.actorName, { body: n.message, tag: n.id });
+      notif.onclick = () => {
+        window.focus();
+        const href = hrefFor(n.action, n.targetId);
+        if (href) router.push(href);
+        notif.close();
+      };
+    }
+  }, [rows, router]);
+
+  async function enableDesktopAlerts() {
+    if (typeof window === "undefined" || !("Notification" in window)) return;
+    const res = await Notification.requestPermission();
+    setPerm(res);
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -78,7 +130,7 @@ export function NotificationBell({ initialUnread }: { initialUnread: number }) {
   }
 
   function onRowClick(n: NotificationRow) {
-    const href = hrefFor(n.action);
+    const href = hrefFor(n.action, n.targetId);
     setOpen(false);
     if (href) router.push(href);
   }
@@ -102,6 +154,17 @@ export function NotificationBell({ initialUnread }: { initialUnread: number }) {
         <div className="absolute left-0 top-11 z-50 w-[320px] max-w-[calc(100vw-2rem)] rounded-[14px] border border-line bg-card shadow-card">
           <div className="flex items-center justify-between border-b border-line px-4 py-2.5">
             <b className="text-[13px]">Notifications</b>
+            {perm === "default" && (
+              <button
+                onClick={enableDesktopAlerts}
+                className="text-[11px] font-semibold text-teal-dark hover:underline"
+              >
+                Enable desktop alerts
+              </button>
+            )}
+            {perm === "granted" && (
+              <span className="text-[11px] text-slate">Desktop alerts on</span>
+            )}
           </div>
           <div className="max-h-[380px] overflow-y-auto">
             {rows.length === 0 ? (

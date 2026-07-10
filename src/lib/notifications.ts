@@ -46,21 +46,31 @@ export async function createNotifications(
   }
 }
 
-// Recipients for an asset review event: the uploader plus every workspace admin
-// (OWNER/ADMIN), minus the actor. Never throws.
+// Recipients for an asset review event: the uploader (the login user who saved
+// it), the creator the content is *attributed to* (Person.userId, when that
+// Person is linked to a login user), and every workspace admin (OWNER/ADMIN) —
+// minus the actor (filtered later by createNotifications). Never throws.
 export async function reviewNotificationRecipients(
   workspaceId: string,
-  uploaderId: string,
+  asset: { createdById: string; personId: string },
 ): Promise<string[]> {
   try {
-    const admins = await prisma.membership.findMany({
-      where: { workspaceId, role: { in: ["OWNER", "ADMIN"] } },
-      select: { userId: true },
-    });
-    return [uploaderId, ...admins.map((a) => a.userId)];
+    const [admins, person] = await Promise.all([
+      prisma.membership.findMany({
+        where: { workspaceId, role: { in: ["OWNER", "ADMIN"] } },
+        select: { userId: true },
+      }),
+      prisma.person.findUnique({
+        where: { id: asset.personId },
+        select: { userId: true },
+      }),
+    ]);
+    const ids = [asset.createdById, ...admins.map((a) => a.userId)];
+    if (person?.userId) ids.push(person.userId);
+    return ids;
   } catch (err) {
     console.error("reviewNotificationRecipients failed", err);
-    return [uploaderId];
+    return [asset.createdById];
   }
 }
 

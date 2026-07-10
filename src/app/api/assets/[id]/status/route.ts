@@ -79,7 +79,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   // Notify the uploader + other admins (minus the actor) that a decision landed.
   const verb =
     target === "APPROVED" ? "approved" : target === "REWORK" ? "requested rework on" : "published";
-  const recipients = await reviewNotificationRecipients(g.user.workspaceId, asset.createdById);
+  const recipients = await reviewNotificationRecipients(g.user.workspaceId, {
+    createdById: asset.createdById,
+    personId: asset.personId,
+  });
   await createNotifications(g.user, recipients, {
     action,
     message: `${verb} “${asset.title}”`,

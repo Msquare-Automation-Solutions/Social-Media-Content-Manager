@@ -16,6 +16,7 @@ export default async function PublishedPage({
     type?: string;
     q?: string;
     sort?: string;
+    asset?: string;
   }>;
 }) {
   const user = await getCurrentUser();
@@ -58,6 +59,7 @@ export default async function PublishedPage({
       }}
       canEdit={user.role !== "VIEWER"}
       canReview={isAdminRole(user.role)}
+      initialAssetId={sp.asset ?? null}
       title="Published"
       subtitle="Content that's live — everything marked published after it went out."
       emptyText="Nothing published yet — mark an approved item as published once it's live."

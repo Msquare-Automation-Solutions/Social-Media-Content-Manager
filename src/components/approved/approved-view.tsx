@@ -18,6 +18,9 @@ type Props = {
   title?: string;
   subtitle?: string;
   emptyText?: string;
+  // When set (e.g. from a notification's ?asset=<id> deep-link), open that
+  // asset's drawer on load.
+  initialAssetId?: string | null;
 };
 
 // A browsable gallery of a status bucket (Approved / Published) — cards with
@@ -32,11 +35,26 @@ export function ApprovedView({
   title = "Approved",
   subtitle = "Everything signed off and ready to publish — preview any card to open, download, or edit it.",
   emptyText = "Nothing approved yet — items show here once an admin approves them from the review queue.",
+  initialAssetId = null,
 }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const [pending, startTransition] = useTransition();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(initialAssetId);
+
+  // Strip the ?asset deep-link param when closing the drawer, preserving filters.
+  function closeDrawer() {
+    setSelectedId(null);
+    const params = new URLSearchParams({
+      ...(filters.person && { person: filters.person }),
+      ...(filters.channel && { channel: filters.channel }),
+      ...(filters.type && { type: filters.type }),
+      ...(filters.q && { q: filters.q }),
+      ...(filters.sort && filters.sort !== "newest" && { sort: filters.sort }),
+    });
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname);
+  }
 
   function setParam(key: string, value: string) {
     const params = new URLSearchParams({
@@ -142,7 +160,7 @@ export function ApprovedView({
           assetId={selectedId}
           canEdit={canEdit}
           canReview={canReview}
-          onClose={() => setSelectedId(null)}
+          onClose={closeDrawer}
           onChanged={() => router.refresh()}
         />
       )}

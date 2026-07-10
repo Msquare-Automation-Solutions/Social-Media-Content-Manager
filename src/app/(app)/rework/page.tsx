@@ -16,6 +16,7 @@ export default async function ReworkPage({
     type?: string;
     q?: string;
     sort?: string;
+    asset?: string;
   }>;
 }) {
   const user = await getCurrentUser();
@@ -58,6 +59,7 @@ export default async function ReworkPage({
       }}
       canEdit={user.role !== "VIEWER"}
       canReview={isAdminRole(user.role)}
+      initialAssetId={sp.asset ?? null}
       title="Rework"
       subtitle="Items an admin sent back — edit and resubmit to move them into review again."
       emptyText="Nothing needs rework right now."

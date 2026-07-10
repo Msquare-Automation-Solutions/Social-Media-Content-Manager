@@ -16,6 +16,7 @@ export default async function ApprovedPage({
     type?: string;
     q?: string;
     sort?: string;
+    asset?: string;
   }>;
 }) {
   const user = await getCurrentUser();
@@ -58,6 +59,7 @@ export default async function ApprovedPage({
       }}
       canEdit={user.role !== "VIEWER"}
       canReview={isAdminRole(user.role)}
+      initialAssetId={sp.asset ?? null}
     />
   );
 }

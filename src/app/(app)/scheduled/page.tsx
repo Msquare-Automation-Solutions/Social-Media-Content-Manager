@@ -16,6 +16,7 @@ export default async function ScheduledPage({
     type?: string;
     q?: string;
     sort?: string;
+    asset?: string;
   }>;
 }) {
   const user = await getCurrentUser();
@@ -59,6 +60,7 @@ export default async function ScheduledPage({
       }}
       canEdit={user.role !== "VIEWER"}
       canReview={isAdminRole(user.role)}
+      initialAssetId={sp.asset ?? null}
       title="Scheduled this month"
       subtitle="Content with a post date set for this month — sorted by when it goes out."
       emptyText="Nothing scheduled this month — add post dates in the save dialog."
