@@ -3,6 +3,7 @@
 // gap between donut segments, and a direct numeric label on every mark so
 // identity/magnitude is never carried by color alone.
 
+import Link from "next/link";
 import { PlatformIcon } from "@/components/ui/platform-icon";
 
 export function StatTile({
@@ -10,14 +11,16 @@ export function StatTile({
   value,
   sublabel,
   accent = "#0e9f8f",
+  href,
 }: {
   label: string;
   value: number | string;
   sublabel?: string;
   accent?: string;
+  href?: string;
 }) {
-  return (
-    <div className="surface card-lift relative overflow-hidden rounded-card p-4">
+  const inner = (
+    <>
       <span
         className="absolute inset-y-0 left-0 w-1"
         style={{ background: accent }}
@@ -30,7 +33,21 @@ export function StatTile({
         {value}
       </div>
       {sublabel && <div className="mt-1 text-[11.5px] text-slate">{sublabel}</div>}
-    </div>
+      {href && (
+        <div className="mt-2 text-[11px] font-semibold text-teal-dark opacity-0 transition-opacity group-hover:opacity-100">
+          View list →
+        </div>
+      )}
+    </>
+  );
+
+  const base = "surface card-lift relative overflow-hidden rounded-card p-4";
+  return href ? (
+    <Link href={href} className={`group block ${base}`}>
+      {inner}
+    </Link>
+  ) : (
+    <div className={base}>{inner}</div>
   );
 }
 

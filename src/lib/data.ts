@@ -838,6 +838,35 @@ export function getPublishedAssets(workspaceId: string, filters: LibraryFilters)
 }
 
 /**
+ * Assets with any platform post date in the current month — the list behind the
+ * dashboard's "Scheduled this month" KPI. Same person / platform / search / sort
+ * filters as the galleries. `now` is injectable for testing.
+ */
+export async function getScheduledThisMonthAssets(
+  workspaceId: string,
+  filters: LibraryFilters,
+  now: Date = new Date(),
+): Promise<AssetListItem[]> {
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+  const rows = await prisma.mediaAsset.findMany({
+    where: {
+      workspaceId,
+      deletedAt: null,
+      channels: { some: { scheduledFor: { gte: monthStart, lt: monthEnd } } },
+      ...(filters.type ? { type: { in: typesForView(filters.type as LibraryViewKey) } } : {}),
+      ...(filters.personId ? { personId: filters.personId } : {}),
+      ...(filters.channelId ? { channels: { some: { channelId: filters.channelId } } } : {}),
+    },
+    orderBy: { createdAt: "desc" },
+    include: ASSET_LIST_INCLUDE,
+  });
+
+  return filterAndSortAssets(rows.map(mapAssetRow), filters);
+}
+
+/**
  * Compact recent-library summary injected into the Skill system prompt so the
  * chat can reference existing content ("rewrite my last blog post") without a
  * live tool round-trip (see src/lib/ai/tools.ts header).

@@ -44,30 +44,35 @@ export function DashboardView({ data }: { data: DashboardData }) {
           value={data.scheduledThisMonth}
           sublabel="Posts going out"
           accent="#7a4fc9"
+          href="/scheduled"
         />
         <StatTile
           label={STATUS_LABELS.PENDING}
           value={data.statusCounts.PENDING}
           sublabel="Awaiting review"
           accent={STATUS_COLORS.PENDING}
+          href="/review"
         />
         <StatTile
           label={STATUS_LABELS.REWORK}
           value={data.statusCounts.REWORK}
           sublabel="Needs changes"
           accent={STATUS_COLORS.REWORK}
+          href="/rework"
         />
         <StatTile
           label={STATUS_LABELS.APPROVED}
           value={data.statusCounts.APPROVED}
           sublabel="Queued to post"
           accent={STATUS_COLORS.APPROVED}
+          href="/approved"
         />
         <StatTile
           label={STATUS_LABELS.PUBLISHED}
           value={data.statusCounts.PUBLISHED}
           sublabel={`of ${data.totalAssets} total`}
           accent={STATUS_COLORS.PUBLISHED}
+          href="/published"
         />
       </div>
 
