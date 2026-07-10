@@ -37,16 +37,31 @@ describe("buildWorkspaceOverview", () => {
     expect(o.groups.map((g) => g.id)).toEqual(["ig"]);
     const ig = o.groups[0];
     // Every category is present (even the empty ones), in library order.
+    // "Other" isn't platform content, so the tree shows only the four
+    // social-media categories.
     expect(ig.categories.map((c) => c.key)).toEqual([
       "IMAGE",
       "THUMBNAIL",
       "VIDEO",
       "BLOGPOST",
-      "OTHER",
     ]);
     expect(ig.categories.find((c) => c.key === "IMAGE")!.count).toBe(1);
     expect(ig.categories.find((c) => c.key === "VIDEO")!.count).toBe(1);
     expect(ig.categories.find((c) => c.key === "THUMBNAIL")!.count).toBe(0);
+  });
+
+  it("keeps OTHER-typed assets out of the tree (groups and total)", () => {
+    const o = buildWorkspaceOverview(
+      [
+        asset({ id: "img", type: "IMAGE", channels: [{ id: "ig" }] }),
+        asset({ id: "misc", type: "OTHER", channels: [{ id: "ig" }] }),
+      ],
+      CHANNELS,
+    );
+    expect(o.total).toBe(1);
+    expect(o.groups[0].count).toBe(1);
+    // …but it still shows in the Recent Content strip.
+    expect(o.recent.map((r) => r.id)).toContain("misc");
   });
 
   it("folds VIDEO_SCRIPT into the Video card", () => {

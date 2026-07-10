@@ -679,7 +679,12 @@ type OverviewAsset = {
   channels: { id: string }[];
 };
 
-/** Pure: group every asset into Platform → content-type cards (all 4 shown). */
+// The tree shows the social-media content types; "Other" is a catch-all that
+// isn't platform content, so it stays out of the tree (it still has its own
+// library, filters, and dashboard buckets).
+const TREE_VIEWS = LIBRARY_VIEWS.filter((v) => v.key !== "OTHER");
+
+/** Pure: group platform content into Platform → content-type cards. */
 export function buildWorkspaceOverview(
   assets: OverviewAsset[],
   channels: { id: string; name: string; icon: string; color: string }[],
@@ -687,19 +692,22 @@ export function buildWorkspaceOverview(
   const viewFor = (type: string): LibraryViewKey | null =>
     LIBRARY_VIEWS.find((v) => (v.types as readonly string[]).includes(type))?.key ?? null;
 
+  // Other-typed items don't belong to a platform tree.
+  const treeAssets = assets.filter((a) => viewFor(a.type) !== "OTHER");
+
   const byGroup = new Map<string, OverviewAsset[]>();
   const push = (gid: string, a: OverviewAsset) => {
     const arr = byGroup.get(gid);
     if (arr) arr.push(a);
     else byGroup.set(gid, [a]);
   };
-  for (const a of assets) {
+  for (const a of treeAssets) {
     if (a.channels.length === 0) push(UNASSIGNED_ID, a);
     else for (const c of a.channels) push(c.id, a);
   }
 
   const categoriesFor = (list: OverviewAsset[]): OverviewCategory[] =>
-    LIBRARY_VIEWS.map((v) => {
+    TREE_VIEWS.map((v) => {
       const items = list.filter((a) => viewFor(a.type) === v.key);
       return {
         key: v.key,
@@ -755,7 +763,7 @@ export function buildWorkspaceOverview(
     };
   });
 
-  return { total: assets.length, groups, recent };
+  return { total: treeAssets.length, groups, recent };
 }
 
 export async function getWorkspaceOverview(

@@ -79,7 +79,7 @@ export function WorkspaceOverview({
                   <ul>
                     {g.categories.map((cat) => (
                       <li key={cat.key}>
-                        <CategoryCard channelId={g.id} cat={cat} />
+                        <CategoryCard channelId={g.id} cat={cat} filters={filters} />
                       </li>
                     ))}
                   </ul>
@@ -140,11 +140,25 @@ function PlatformNode({ group: g }: { group: OverviewGroup }) {
   );
 }
 
-function CategoryCard({ channelId, cat }: { channelId: string; cat: OverviewCategory }) {
-  const viewAllHref =
-    channelId === "unassigned"
-      ? `/${cat.slug}`
-      : `/${cat.slug}?channel=${encodeURIComponent(channelId)}`;
+function CategoryCard({
+  channelId,
+  cat,
+  filters,
+}: {
+  channelId: string;
+  cat: OverviewCategory;
+  filters: { status: string; from: string; to: string };
+}) {
+  // "View all" carries the tree's active filters (status/date) into the library
+  // so the list shows exactly what the card counted.
+  const params = new URLSearchParams({
+    ...(channelId !== "unassigned" && { channel: channelId }),
+    ...(filters.status && { status: filters.status }),
+    ...(filters.from && { from: filters.from }),
+    ...(filters.to && { to: filters.to }),
+    person: "all",
+  });
+  const viewAllHref = `/${cat.slug}?${params.toString()}`;
 
   return (
     <div className="flex w-[168px] flex-col rounded-card border border-line/70 bg-card p-3.5 shadow-soft">
