@@ -92,13 +92,17 @@ export function NotificationBell({ initialUnread }: { initialUnread: number }) {
     if (typeof window === "undefined" || !("Notification" in window)) return;
     if (Notification.permission !== "granted") return;
     for (const n of fresh.slice(0, 3)) {
-      const notif = new Notification(n.actorName, { body: n.message, tag: n.id });
-      notif.onclick = () => {
-        window.focus();
-        const href = hrefFor(n.action, n.targetId);
-        if (href) router.push(href);
-        notif.close();
-      };
+      try {
+        const notif = new Notification(n.actorName, { body: n.message, tag: n.id });
+        notif.onclick = () => {
+          window.focus();
+          const href = hrefFor(n.action, n.targetId);
+          if (href) router.push(href);
+          notif.close();
+        };
+      } catch {
+        // Some environments disallow the constructor — the in-app bell still shows it.
+      }
     }
   }, [rows, router]);
 
@@ -106,6 +110,19 @@ export function NotificationBell({ initialUnread }: { initialUnread: number }) {
     if (typeof window === "undefined" || !("Notification" in window)) return;
     const res = await Notification.requestPermission();
     setPerm(res);
+  }
+
+  // Fire a sample OS notification so the user can verify delivery end-to-end.
+  // If this doesn't show, the block is at the OS level (System Settings →
+  // Notifications → browser, or an active Focus/Do Not Disturb).
+  function testDesktopAlert() {
+    try {
+      new Notification("MediaChat", {
+        body: "Test — desktop alerts are working ✓",
+      });
+    } catch {
+      // ignore
+    }
   }
 
   useEffect(() => {
@@ -170,7 +187,15 @@ export function NotificationBell({ initialUnread }: { initialUnread: number }) {
               </button>
             )}
             {perm === "granted" && (
-              <span className="text-[11px] text-slate">Desktop alerts on</span>
+              <span className="flex items-center gap-2 text-[11px] text-slate">
+                Desktop alerts on
+                <button
+                  onClick={testDesktopAlert}
+                  className="font-semibold text-teal-dark hover:underline"
+                >
+                  Test
+                </button>
+              </span>
             )}
           </div>
           <div className="max-h-[380px] overflow-y-auto">
