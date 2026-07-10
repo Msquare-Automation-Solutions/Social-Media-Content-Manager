@@ -5,6 +5,7 @@ import { hashPassword, passwordSchema } from "@/lib/password";
 import { colorFor } from "@/lib/colors";
 import { logActivity } from "@/lib/activity";
 import { roleLabel } from "@/lib/roles";
+import { ensureSelfPerson } from "@/lib/people";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -48,6 +49,16 @@ export async function POST(req: Request) {
       },
     },
     include: { memberships: { where: { workspaceId: g.user.workspaceId } } },
+  });
+
+  // Give the new login user a linked creator record so their uploads are
+  // attributed to them by default.
+  await ensureSelfPerson({
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    avatarColor: user.avatarColor,
+    workspaceId: g.user.workspaceId,
   });
 
   await logActivity(g.user, {

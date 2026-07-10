@@ -17,7 +17,7 @@ for (const line of readFileSync(".env", "utf8").split("\n")) {
   const i = s.indexOf("=");
   if (i === -1) continue;
   const k = s.slice(0, i).trim();
-  let v = s.slice(i + 1).trim().replace(/^"|"$/g, "");
+  const v = s.slice(i + 1).trim().replace(/^"|"$/g, "");
   if (!(k in process.env)) process.env[k] = v;
 }
 

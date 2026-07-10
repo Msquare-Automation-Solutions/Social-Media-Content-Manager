@@ -6,6 +6,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSaveDialog, type SaveTarget } from "@/components/save/dialog-context";
 import { useToast } from "@/components/ui/toast";
 import { CATEGORY_OPTIONS, TYPE_LABELS, LIBRARY_SLUGS } from "@/lib/library";
+import { initials } from "@/lib/colors";
 import {
   artifactToHtml,
   artifactDefaultCategory,
@@ -16,6 +17,8 @@ type Options = {
   people: { id: string; name: string; label?: string | null; avatarColor: string }[];
   channels: { id: string; name: string; icon: string; color: string }[];
   canEdit: boolean;
+  mePersonId: string | null;
+  isAdmin: boolean;
 };
 
 type Draft = {
@@ -119,6 +122,7 @@ function SaveDialogInner({
   });
 
   const [title, setTitle] = useState(draft.title);
+  // Admins may override the creator; for everyone else it stays their own name.
   const [personId, setPersonId] = useState<string>("");
   const [category, setCategory] = useState(draft.category);
   const [channels, setChannels] = useState<Set<string>>(new Set());
@@ -130,7 +134,7 @@ function SaveDialogInner({
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Inline add-person / add-platform
+  // Inline add-person (admins) / add-platform
   const [personFormOpen, setPersonFormOpen] = useState(false);
   const [newPerson, setNewPerson] = useState({ name: "", email: "", label: "" });
   const [platFormOpen, setPlatFormOpen] = useState(false);
@@ -139,9 +143,12 @@ function SaveDialogInner({
 
   const thumbInput = useRef<HTMLInputElement>(null);
 
-  // Default to the first person until one is explicitly chosen (derived, so we
-  // avoid syncing async data into state inside an effect).
-  const effectivePersonId = personId || options?.people[0]?.id || "";
+  // New uploads/generations default to the uploader's own Person record. Admins
+  // can pick a different creator; everyone else is locked to themselves
+  // (reassignable later via Edit).
+  const effectivePersonId =
+    personId || options?.mePersonId || options?.people[0]?.id || "";
+  const mePerson = options?.people.find((p) => p.id === effectivePersonId);
 
   const [c1, c2] = gradientFor(draft.gradientSeed);
   const previewImage = customThumbUrl ?? draft.imagePreviewUrl ?? null;
@@ -339,51 +346,69 @@ function SaveDialogInner({
         </div>
       </div>
 
-      {/* Person */}
+      {/* Person / creator. Admins pick any creator; everyone else is attributed
+          to themselves (reassignable later via Edit). Defaults to the uploader. */}
       <Field label="Person / creator" error={errors.personId}>
-        <div className="flex gap-2">
-          <select
-            value={effectivePersonId}
-            onChange={(e) => setPersonId(e.target.value)}
-            className="flex-1 rounded-[10px] border border-line px-3 py-2.5 outline-none focus:border-teal"
-          >
-            {(options?.people ?? []).map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-                {p.label ? ` · ${p.label}` : ""}
-              </option>
-            ))}
-          </select>
-          {canEdit && (
-            <button
-              onClick={() => setPersonFormOpen((v) => !v)}
-              className="whitespace-nowrap rounded-[10px] border border-dashed border-line px-3 text-[12.5px] font-semibold text-teal-dark hover:border-teal hover:bg-teal-soft"
+        {options?.isAdmin ? (
+          <>
+            <div className="flex gap-2">
+              <select
+                value={effectivePersonId}
+                onChange={(e) => setPersonId(e.target.value)}
+                className="flex-1 rounded-[10px] border border-line px-3 py-2.5 outline-none focus:border-teal"
+              >
+                {(options?.people ?? []).map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                    {p.label ? ` · ${p.label}` : ""}
+                    {p.id === options?.mePersonId ? " (you)" : ""}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={() => setPersonFormOpen((v) => !v)}
+                className="whitespace-nowrap rounded-[10px] border border-dashed border-line px-3 text-[12.5px] font-semibold text-teal-dark hover:border-teal hover:bg-teal-soft"
+              >
+                ＋ Add person
+              </button>
+            </div>
+            {personFormOpen && (
+              <div className="mt-2 flex flex-wrap gap-2 rounded-[11px] bg-bg p-3">
+                <input
+                  placeholder="Name"
+                  value={newPerson.name}
+                  onChange={(e) => setNewPerson({ ...newPerson, name: e.target.value })}
+                  className="flex-1 rounded-[9px] border border-line px-2.5 py-2 outline-none"
+                />
+                <input
+                  placeholder="Role label (optional)"
+                  value={newPerson.label}
+                  onChange={(e) => setNewPerson({ ...newPerson, label: e.target.value })}
+                  className="flex-1 rounded-[9px] border border-line px-2.5 py-2 outline-none"
+                />
+                <button
+                  onClick={addPerson}
+                  disabled={adding || !newPerson.name.trim()}
+                  className="rounded-[9px] bg-teal px-3.5 py-2 text-[12.5px] font-semibold text-white disabled:opacity-50"
+                >
+                  Add
+                </button>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="flex items-center gap-2.5 rounded-[10px] border border-line bg-bg px-3 py-2.5">
+            <span
+              className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-[10px] font-bold text-white"
+              style={{ background: mePerson?.avatarColor ?? "#0e9f8f" }}
             >
-              ＋ Add person
-            </button>
-          )}
-        </div>
-        {personFormOpen && (
-          <div className="mt-2 flex flex-wrap gap-2 rounded-[11px] bg-bg p-3">
-            <input
-              placeholder="Name"
-              value={newPerson.name}
-              onChange={(e) => setNewPerson({ ...newPerson, name: e.target.value })}
-              className="flex-1 rounded-[9px] border border-line px-2.5 py-2 outline-none"
-            />
-            <input
-              placeholder="Role label (optional)"
-              value={newPerson.label}
-              onChange={(e) => setNewPerson({ ...newPerson, label: e.target.value })}
-              className="flex-1 rounded-[9px] border border-line px-2.5 py-2 outline-none"
-            />
-            <button
-              onClick={addPerson}
-              disabled={adding || !newPerson.name.trim()}
-              className="rounded-[9px] bg-teal px-3.5 py-2 text-[12.5px] font-semibold text-white disabled:opacity-50"
-            >
-              Add
-            </button>
+              {initials(mePerson?.name ?? "You")}
+            </span>
+            <span className="font-medium">{mePerson?.name ?? "You"}</span>
+            <span className="rounded-full bg-teal-soft px-1.5 py-0.5 text-[10px] font-semibold text-teal-dark">
+              you
+            </span>
+            <span className="ml-auto text-[11px] text-slate">Change later via Edit</span>
           </div>
         )}
       </Field>
