@@ -49,9 +49,18 @@ export function NotificationBell({ initialUnread }: { initialUnread: number }) {
       if (!r.ok) throw new Error("Failed to load notifications");
       return r.json();
     },
-    refetchInterval: 45_000,
+    // Fallback poll only — real-time delivery comes from the SSE stream below.
+    refetchInterval: 60_000,
     initialData: { rows: [], nextCursor: null, unread: initialUnread },
   });
+
+  // Real-time: subscribe to the notification stream; any change signal makes
+  // react-query refetch the feed immediately. EventSource reconnects on drop.
+  useEffect(() => {
+    const es = new EventSource("/api/notifications/stream");
+    es.onmessage = () => qc.invalidateQueries({ queryKey: ["notifications"] });
+    return () => es.close();
+  }, [qc]);
 
   const unread = data?.unread ?? 0;
   const rows = useMemo(() => data?.rows ?? [], [data]);
