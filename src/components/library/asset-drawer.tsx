@@ -401,7 +401,7 @@ export function AssetDrawer({
                   </a>
                 ) : (
                   <a
-                    href={asset.url}
+                    href={`/api/assets/${asset.id}/download`}
                     download={asset.filename ?? undefined}
                     className="rounded-[10px] border border-line px-3.5 py-2 text-[13px] font-semibold text-teal-dark hover:border-teal"
                   >

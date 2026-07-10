@@ -30,7 +30,7 @@ export function WorkspaceOverview({
       <style>{`
         .wtree ul { position: relative; display: flex; justify-content: center; padding-top: 22px; }
         .wtree li { position: relative; display: flex; flex-direction: column;
-          align-items: center; padding: 22px 12px 0; }
+          align-items: center; padding: 22px 7px 0; }
         .wtree li::before, .wtree li::after { content: ''; position: absolute; top: 0;
           right: 50%; width: 50%; height: 22px; border-top: 1.5px solid ${line}; }
         .wtree li::after { right: auto; left: 50%; border-left: 1.5px solid ${line}; }
@@ -70,7 +70,7 @@ export function WorkspaceOverview({
           {/* Each platform is its own subtree (node + its content-type cards),
               laid in a row that scrolls sideways when there are many platforms. */}
           <div className="wtree w-max min-w-full">
-            <ul className="!justify-start gap-8">
+            <ul className="!justify-start gap-5">
               {overview.groups.map((g) => (
                 <li key={g.id}>
                   <PlatformNode group={g} />
@@ -120,22 +120,19 @@ export function WorkspaceOverview({
 function PlatformNode({ group: g }: { group: OverviewGroup }) {
   const typeCount = g.categories.filter((c) => c.count > 0).length;
   return (
-    <div className="flex w-[220px] items-center gap-2.5 rounded-card border border-line bg-card px-3.5 py-3 shadow-soft">
-      <span
-        className="grid h-9 w-9 shrink-0 place-items-center rounded-[11px] text-white shadow-soft"
-        style={{ background: g.color }}
-      >
-        <PlatformIcon name={g.name} icon={g.icon} size={18} mono />
+    <div
+      className="flex w-[192px] items-center gap-2.5 rounded-[14px] border px-3.5 py-2.5"
+      style={{ background: `${g.color}0d`, borderColor: `${g.color}30` }}
+    >
+      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-card shadow-soft">
+        <PlatformIcon name={g.name} icon={g.icon} size={19} />
       </span>
       <div className="min-w-0 flex-1">
-        <div className="truncate font-display text-[14.5px] font-semibold">{g.name}</div>
-        <div className="text-[11.5px] text-slate">
+        <div className="truncate font-display text-[13.5px] font-semibold">{g.name}</div>
+        <div className="text-[11px] text-slate">
           {typeCount} content {typeCount === 1 ? "type" : "types"}
         </div>
       </div>
-      <span className="shrink-0 rounded-full bg-black/[0.05] px-2 py-0.5 text-[11px] font-semibold text-slate tabular-nums">
-        {g.count}
-      </span>
     </div>
   );
 }
@@ -161,39 +158,39 @@ function CategoryCard({
   const viewAllHref = `/${cat.slug}?${params.toString()}`;
 
   return (
-    <div className="flex w-[168px] flex-col rounded-card border border-line/70 bg-card p-3.5 shadow-soft">
+    <div className="flex w-[128px] flex-col items-center rounded-[13px] border border-line/70 bg-card px-2.5 pt-3 text-center">
       <div className="flex items-center gap-1.5">
-        <span aria-hidden className="text-[14px]">
+        <span aria-hidden className="text-[13px]">
           {TYPE_ICONS[cat.key] ?? "📄"}
         </span>
-        <span className="truncate text-[12.5px] font-semibold">{cat.label}</span>
+        <span className="truncate text-[12px] font-semibold">{cat.label}</span>
       </div>
-      <div className="mt-1.5 flex items-baseline gap-1.5">
-        <span className="font-display text-[22px] font-bold tabular-nums leading-none">
-          {cat.count}
-        </span>
-        <span className="text-[11px] text-slate">items</span>
+      <div className="mt-1.5 font-display text-[23px] font-bold tabular-nums leading-none">
+        {cat.count}
       </div>
+      <div className="mt-0.5 text-[10.5px] text-slate">items</div>
 
       {cat.previews.length > 0 ? (
-        <div className="mt-2.5 flex gap-1">
-          {cat.previews.slice(0, 3).map((p) => (
+        <div className="mt-2 flex w-full gap-1">
+          {cat.previews.slice(0, 2).map((p) => (
             <MiniPreview key={p.id} title={p.title} type={p.type} thumbnailUrl={p.thumbnailUrl} />
           ))}
         </div>
       ) : (
-        <div className="mt-2.5 grid h-[44px] place-items-center rounded-[8px] bg-bg text-[11px] text-slate">
+        <div className="mt-2 grid h-[48px] w-full place-items-center rounded-[8px] bg-bg text-[10.5px] text-slate">
           None yet
         </div>
       )}
 
-      {cat.count > 0 && (
+      {cat.count > 0 ? (
         <Link
           href={viewAllHref}
-          className="mt-2.5 text-[11.5px] font-semibold text-teal-dark hover:underline"
+          className="mt-2 w-[calc(100%+20px)] border-t border-line/60 py-2 text-[11px] font-semibold text-teal-dark hover:underline"
         >
           View all →
         </Link>
+      ) : (
+        <div className="pb-3" />
       )}
     </div>
   );
@@ -215,7 +212,7 @@ function MiniPreview({
         src={thumbnailUrl}
         alt={title}
         title={title}
-        className="h-[44px] w-[44px] shrink-0 rounded-[8px] object-cover"
+        className="h-[48px] min-w-0 flex-1 rounded-[8px] object-cover"
       />
     );
   }
@@ -223,7 +220,7 @@ function MiniPreview({
   return (
     <div
       title={title}
-      className="grid h-[44px] w-[44px] shrink-0 place-items-center rounded-[8px] text-[14px]"
+      className="grid h-[48px] min-w-0 flex-1 place-items-center rounded-[8px] text-[14px]"
       style={{ background: `linear-gradient(135deg, ${c1}, ${c2})` }}
     >
       <span>{TYPE_ICONS[type] ?? "📄"}</span>
