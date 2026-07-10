@@ -99,7 +99,7 @@ export function NotificationBell({ initialUnread }: { initialUnread: number }) {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-10 z-50 w-[320px] rounded-[14px] border border-line bg-card shadow-card">
+        <div className="absolute left-0 top-11 z-50 w-[320px] max-w-[calc(100vw-2rem)] rounded-[14px] border border-line bg-card shadow-card">
           <div className="flex items-center justify-between border-b border-line px-4 py-2.5">
             <b className="text-[13px]">Notifications</b>
           </div>
