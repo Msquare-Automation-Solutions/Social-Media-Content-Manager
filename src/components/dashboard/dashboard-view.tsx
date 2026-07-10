@@ -72,7 +72,7 @@ export function DashboardView({ data }: { data: DashboardData }) {
           <h3 className="mb-3 font-display text-[15px]">Media files per platform</h3>
           <BarChart data={platformBars} empty="No platforms tagged yet" />
         </section>
-        <section>
+        <section className="surface rounded-card p-5">
           <h3 className="mb-3 font-display text-[15px]">Platform spotlight</h3>
           <PlatformCarousel platforms={data.perPlatform} />
         </section>

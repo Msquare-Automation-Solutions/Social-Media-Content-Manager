@@ -20,7 +20,7 @@ export function PlatformCarousel({ platforms }: { platforms: PlatformSlice[] }) 
 
   if (count === 0) {
     return (
-      <div className="surface rounded-card p-6 text-center text-[13px] text-slate">
+      <div className="py-6 text-center text-[13px] text-slate">
         No platforms yet — add one from the save dialog.
       </div>
     );
@@ -31,7 +31,6 @@ export function PlatformCarousel({ platforms }: { platforms: PlatformSlice[] }) 
 
   return (
     <div
-      className="surface rounded-card p-5"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onFocusCapture={() => setPaused(true)}
