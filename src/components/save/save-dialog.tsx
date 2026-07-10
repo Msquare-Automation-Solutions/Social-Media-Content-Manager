@@ -132,6 +132,7 @@ function SaveDialogInner({
   const [tags, setTags] = useState(draft.tags.join(", "));
   const [customThumb, setCustomThumb] = useState<File | null>(null);
   const [customThumbUrl, setCustomThumbUrl] = useState<string | null>(null);
+  const [dragThumb, setDragThumb] = useState(false);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -167,6 +168,25 @@ function SaveDialogInner({
     setCustomThumb(file);
     setCustomThumbUrl(URL.createObjectURL(file));
   }
+
+  // Paste an image from the clipboard (e.g. a screenshot) → thumbnail, while the
+  // dialog is open. A ref keeps the listener pointing at the latest pickThumb.
+  const pickThumbRef = useRef(pickThumb);
+  pickThumbRef.current = pickThumb;
+  useEffect(() => {
+    function onPaste(e: ClipboardEvent) {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      const img = Array.from(items).find((it) => it.type.startsWith("image/"));
+      const file = img?.getAsFile();
+      if (file) {
+        e.preventDefault();
+        pickThumbRef.current(file);
+      }
+    }
+    window.addEventListener("paste", onPaste);
+    return () => window.removeEventListener("paste", onPaste);
+  }, []);
 
   async function addPerson() {
     const name = newPerson.name.trim();
@@ -307,7 +327,27 @@ function SaveDialogInner({
           Thumbnail
         </label>
         <div className="flex items-center gap-3">
-          <div className="h-[70px] w-[124px] flex-shrink-0 overflow-hidden rounded-[10px] border border-line">
+          <div
+            role="button"
+            tabIndex={0}
+            title="Click, drop an image, or paste (⌘/Ctrl+V)"
+            onClick={() => thumbInput.current?.click()}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && thumbInput.current?.click()}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragThumb(true);
+            }}
+            onDragLeave={() => setDragThumb(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragThumb(false);
+              const f = Array.from(e.dataTransfer.files).find((x) => x.type.startsWith("image/"));
+              pickThumb(f ?? null);
+            }}
+            className={`relative h-[70px] w-[124px] flex-shrink-0 cursor-pointer overflow-hidden rounded-[10px] border ${
+              dragThumb ? "border-teal ring-2 ring-teal/40" : "border-line"
+            }`}
+          >
             {previewImage ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -323,6 +363,11 @@ function SaveDialogInner({
                 {title || draft.title}
               </div>
             )}
+            {dragThumb && (
+              <div className="absolute inset-0 grid place-items-center bg-teal/20 text-[11px] font-bold text-teal-dark">
+                Drop image
+              </div>
+            )}
           </div>
           <div className="text-[12px] text-slate">
             <button
@@ -334,7 +379,7 @@ function SaveDialogInner({
             <div className="mt-1 text-[11px]">
               {previewImage
                 ? "Custom image · cropped to 16:9"
-                : "Auto cover — or upload your own (≤ 2 MB)"}
+                : "Click, drop or paste an image (≤ 2 MB)"}
             </div>
             <input
               ref={thumbInput}
