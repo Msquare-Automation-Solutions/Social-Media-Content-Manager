@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { BackButton } from "@/components/ui/back-button";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/session";
 import { getTrashedAssets } from "@/lib/data";
@@ -15,9 +15,7 @@ export default async function TrashPage() {
   return (
     <div className="flex-1 overflow-y-auto px-7 py-6">
       <div className="mb-1 flex items-center gap-3.5">
-        <Link href="/" className="text-[13px] font-semibold text-teal-dark">
-          ← Back to chat
-        </Link>
+        <BackButton />
         <h2 className="font-display text-[19px]">Trash</h2>
       </div>
       <p className="mb-4 text-[12.5px] text-slate">

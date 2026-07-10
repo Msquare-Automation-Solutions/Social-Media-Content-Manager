@@ -626,13 +626,26 @@ export type OverviewGroup = {
   count: number; // distinct assets under this platform
   categories: OverviewCategory[];
 };
-export type WorkspaceOverview = { total: number; groups: OverviewGroup[] };
+export type OverviewRecent = {
+  id: string;
+  title: string;
+  type: string;
+  thumbnailUrl: string | null;
+  status: string;
+  platform: { name: string; icon: string; color: string } | null;
+};
+export type WorkspaceOverview = {
+  total: number;
+  groups: OverviewGroup[];
+  recent: OverviewRecent[];
+};
 
 type OverviewAsset = {
   id: string;
   title: string;
   type: string;
   thumbnailUrl: string | null;
+  status: string;
   channels: { id: string }[];
 };
 
@@ -697,7 +710,22 @@ export function buildWorkspaceOverview(
     });
   }
 
-  return { total: assets.length, groups };
+  // Recent strip: newest 8 assets (input is already sorted newest-first), each
+  // tagged with its first platform (null when the asset has none).
+  const channelById = new Map(channels.map((c) => [c.id, c]));
+  const recent: OverviewRecent[] = assets.slice(0, 8).map((a) => {
+    const ch = a.channels[0] ? channelById.get(a.channels[0].id) : undefined;
+    return {
+      id: a.id,
+      title: a.title,
+      type: a.type,
+      thumbnailUrl: a.thumbnailUrl,
+      status: a.status,
+      platform: ch ? { name: ch.name, icon: ch.icon, color: ch.color } : null,
+    };
+  });
+
+  return { total: assets.length, groups, recent };
 }
 
 export async function getWorkspaceOverview(workspaceId: string): Promise<WorkspaceOverview> {
@@ -710,6 +738,7 @@ export async function getWorkspaceOverview(workspaceId: string): Promise<Workspa
         title: true,
         type: true,
         thumbnailUrl: true,
+        status: true,
         channels: { select: { channelId: true } },
       },
     }),
@@ -725,6 +754,7 @@ export async function getWorkspaceOverview(workspaceId: string): Promise<Workspa
     title: a.title,
     type: a.type,
     thumbnailUrl: a.thumbnailUrl,
+    status: a.status,
     channels: a.channels.map((c) => ({ id: c.channelId })),
   }));
 

@@ -11,6 +11,7 @@ type OA = {
   title: string;
   type: string;
   thumbnailUrl: string | null;
+  status: string;
   channels: { id: string }[];
 };
 const asset = (over: Partial<OA>): OA => ({
@@ -18,6 +19,7 @@ const asset = (over: Partial<OA>): OA => ({
   title: "t",
   type: "IMAGE",
   thumbnailUrl: null,
+  status: "PENDING",
   channels: [],
   ...over,
 });
@@ -76,5 +78,23 @@ describe("buildWorkspaceOverview", () => {
     const last = o.groups[o.groups.length - 1];
     expect(last.id).toBe("unassigned");
     expect(last.name).toBe("Unassigned");
+  });
+
+  it("surfaces the newest 8 assets (input order) with their first platform", () => {
+    const many = Array.from({ length: 10 }, (_, i) =>
+      asset({ id: `r${i}`, status: "APPROVED", channels: [{ id: "ig" }] }),
+    );
+    const o = buildWorkspaceOverview(many, CHANNELS);
+    expect(o.recent).toHaveLength(8);
+    expect(o.recent.map((r) => r.id)).toEqual([
+      "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7",
+    ]);
+    expect(o.recent[0].platform?.name).toBe("Instagram");
+    expect(o.recent[0].status).toBe("APPROVED");
+  });
+
+  it("leaves the platform null for an unassigned recent asset", () => {
+    const o = buildWorkspaceOverview([asset({ id: "orphan", channels: [] })], CHANNELS);
+    expect(o.recent[0].platform).toBeNull();
   });
 });

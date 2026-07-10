@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import Link from "next/link";
+import { BackButton } from "@/components/ui/back-button";
 import { useRouter, usePathname } from "next/navigation";
 import type { AssetListItem } from "@/lib/data";
 import { LIBRARY_VIEWS } from "@/lib/library";
@@ -56,9 +56,7 @@ export function ApprovedView({
   return (
     <div className="flex-1 overflow-y-auto px-7 py-6">
       <div className="mb-1.5 flex items-center gap-3.5">
-        <Link href="/" className="text-[13px] font-semibold text-teal-dark">
-          ← Back to chat
-        </Link>
+        <BackButton />
         <h2 className="font-display text-[19px]">{title}</h2>
         {assets.length > 0 && (
           <span className="rounded-full bg-teal-soft px-2.5 py-0.5 text-[12px] font-bold text-teal-dark tabular-nums">

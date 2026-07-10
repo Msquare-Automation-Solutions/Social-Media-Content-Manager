@@ -1,5 +1,5 @@
 import { redirect, notFound } from "next/navigation";
-import Link from "next/link";
+import { BackButton } from "@/components/ui/back-button";
 import { getCurrentUser } from "@/lib/session";
 import { isAdminRole } from "@/lib/roles";
 import { listActivity, listMembers } from "@/lib/data";
@@ -36,9 +36,7 @@ export default async function ActivityPage({
   return (
     <div className="flex-1 overflow-y-auto px-7 py-6">
       <div className="mb-1 flex items-center gap-3.5">
-        <Link href="/" className="text-[13px] font-semibold text-teal-dark">
-          ← Back to chat
-        </Link>
+        <BackButton />
         <h2 className="font-display text-[19px]">Activity</h2>
       </div>
       <p className="mb-4 text-[12.5px] text-slate">

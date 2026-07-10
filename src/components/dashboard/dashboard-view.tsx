@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { BackButton } from "@/components/ui/back-button";
 import type { DashboardData } from "@/lib/data";
 import { STATUS_LABELS } from "@/lib/enums";
 import { initials } from "@/lib/colors";
@@ -33,9 +33,7 @@ export function DashboardView({ data }: { data: DashboardData }) {
   return (
     <div className="flex-1 overflow-y-auto px-7 py-6">
       <div className="mb-4 flex items-center gap-3.5">
-        <Link href="/" className="text-[13px] font-semibold text-teal-dark">
-          ← Back to chat
-        </Link>
+        <BackButton />
         <h2 className="font-display text-[19px]">Dashboard</h2>
       </div>
 

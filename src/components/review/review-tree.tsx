@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { BackButton } from "@/components/ui/back-button";
 import { useRouter } from "next/navigation";
 import type { ReviewQueue } from "@/lib/data";
 import { TYPE_ICONS } from "@/lib/library";
@@ -45,9 +45,7 @@ export function ReviewTree({
   return (
     <div className="flex-1 overflow-y-auto px-7 py-6">
       <div className="mb-1.5 flex items-center gap-3.5">
-        <Link href="/" className="text-[13px] font-semibold text-teal-dark">
-          ← Back to chat
-        </Link>
+        <BackButton />
         <h2 className="font-display text-[19px]">Review queue</h2>
         {queue.total > 0 && (
           <span className="rounded-full bg-[#fdeeda] px-2.5 py-0.5 text-[12px] font-bold text-[#b07514] tabular-nums">
