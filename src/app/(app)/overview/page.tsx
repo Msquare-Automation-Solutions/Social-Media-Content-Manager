@@ -5,10 +5,24 @@ import { WorkspaceOverview } from "@/components/overview/workspace-overview";
 
 export const dynamic = "force-dynamic";
 
-export default async function OverviewPage() {
+export default async function OverviewPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string; from?: string; to?: string }>;
+}) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  const sp = await searchParams;
 
-  const overview = await getWorkspaceOverview(user.workspaceId);
-  return <WorkspaceOverview overview={overview} />;
+  const overview = await getWorkspaceOverview(user.workspaceId, {
+    status: sp.status || undefined,
+    from: sp.from || undefined,
+    to: sp.to || undefined,
+  });
+  return (
+    <WorkspaceOverview
+      overview={overview}
+      filters={{ status: sp.status ?? "", from: sp.from ?? "", to: sp.to ?? "" }}
+    />
+  );
 }

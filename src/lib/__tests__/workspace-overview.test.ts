@@ -37,7 +37,13 @@ describe("buildWorkspaceOverview", () => {
     expect(o.groups.map((g) => g.id)).toEqual(["ig"]);
     const ig = o.groups[0];
     // Every category is present (even the empty ones), in library order.
-    expect(ig.categories.map((c) => c.key)).toEqual(["IMAGE", "THUMBNAIL", "VIDEO", "BLOGPOST"]);
+    expect(ig.categories.map((c) => c.key)).toEqual([
+      "IMAGE",
+      "THUMBNAIL",
+      "VIDEO",
+      "BLOGPOST",
+      "OTHER",
+    ]);
     expect(ig.categories.find((c) => c.key === "IMAGE")!.count).toBe(1);
     expect(ig.categories.find((c) => c.key === "VIDEO")!.count).toBe(1);
     expect(ig.categories.find((c) => c.key === "THUMBNAIL")!.count).toBe(0);

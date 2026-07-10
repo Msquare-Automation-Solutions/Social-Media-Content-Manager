@@ -371,21 +371,26 @@ function statusBreakdown(assets: { status: string }[]): StatusCounts {
   };
 }
 
-/** Pure dashboard aggregation — deterministic given `now`, so it's unit-testable. */
+/**
+ * Pure dashboard aggregation — deterministic given `now`, so it's unit-testable.
+ * When a `range` is supplied (the dashboard's date filter), the "scheduled"
+ * window is that range; otherwise it's the calendar month of `now`.
+ */
 export function aggregateDashboard(
   assets: DashAsset[],
   channels: DashChannel[],
   creators: Pick<CreatorRow, "name" | "avatarColor" | "assetCount">[],
   now: Date,
+  range?: { start: Date; end: Date },
 ): DashboardData {
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const winStart = range ? range.start : new Date(now.getFullYear(), now.getMonth(), 1);
+  const winEnd = range ? range.end : new Date(now.getFullYear(), now.getMonth() + 1, 1);
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
   const inMonth = (iso: string | null) => {
     if (!iso) return false;
     const d = new Date(iso);
-    return d >= monthStart && d < monthEnd;
+    return d >= winStart && d <= winEnd;
   };
   // # of assets with at least one platform post date this month.
   const scheduledThisMonth = (list: DashAsset[]) =>
@@ -447,10 +452,14 @@ export function aggregateDashboard(
 }
 
 /** Workspace-wide analytics for the dashboard page (visible to everyone). */
-export async function getDashboardData(workspaceId: string): Promise<DashboardData> {
+export async function getDashboardData(
+  workspaceId: string,
+  opts: { from?: string; to?: string } = {},
+): Promise<DashboardData> {
+  const range = createdAtRange(opts.from, opts.to);
   const [assets, channels, creators] = await Promise.all([
     prisma.mediaAsset.findMany({
-      where: { workspaceId, deletedAt: null },
+      where: { workspaceId, deletedAt: null, ...(range ? { createdAt: range } : {}) },
       select: {
         id: true,
         title: true,
@@ -478,7 +487,14 @@ export async function getDashboardData(workspaceId: string): Promise<DashboardDa
     })),
   }));
 
-  return aggregateDashboard(input, channels, creators, new Date());
+  const dashRange =
+    opts.from || opts.to
+      ? {
+          start: opts.from ? new Date(`${opts.from}T00:00:00.000`) : new Date(0),
+          end: opts.to ? new Date(`${opts.to}T23:59:59.999`) : new Date(),
+        }
+      : undefined;
+  return aggregateDashboard(input, channels, creators, new Date(), dashRange);
 }
 
 // ── Review queue tree ────────────────────────────────────────────────────────
@@ -742,10 +758,19 @@ export function buildWorkspaceOverview(
   return { total: assets.length, groups, recent };
 }
 
-export async function getWorkspaceOverview(workspaceId: string): Promise<WorkspaceOverview> {
+export async function getWorkspaceOverview(
+  workspaceId: string,
+  opts: { status?: string; from?: string; to?: string } = {},
+): Promise<WorkspaceOverview> {
+  const range = createdAtRange(opts.from, opts.to);
   const [rows, channels] = await Promise.all([
     prisma.mediaAsset.findMany({
-      where: { workspaceId, deletedAt: null },
+      where: {
+        workspaceId,
+        deletedAt: null,
+        ...(opts.status ? { status: opts.status } : {}),
+        ...(range ? { createdAt: range } : {}),
+      },
       orderBy: { createdAt: "desc" },
       select: {
         id: true,

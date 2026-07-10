@@ -10,12 +10,19 @@ import { gradientFor } from "@/lib/artifact-view";
 import { PlatformIcon } from "@/components/ui/platform-icon";
 import { StatusBadge } from "@/components/library/status-badge";
 import { BackButton } from "@/components/ui/back-button";
+import { OverviewFilters } from "@/components/overview/overview-filters";
 
 // A bird's-eye map of the workspace drawn as a connected org-chart:
 // Workspace → each social platform → its four content-type cards (count + mini
 // previews + "View all"), with a Recent Content strip underneath. The tree
 // scrolls horizontally when there are more platforms than fit.
-export function WorkspaceOverview({ overview }: { overview: Overview }) {
+export function WorkspaceOverview({
+  overview,
+  filters,
+}: {
+  overview: Overview;
+  filters: { status: string; from: string; to: string };
+}) {
   const line = "#e6ebf1";
   return (
     <div className="flex-1 overflow-y-auto px-7 py-6">
@@ -46,13 +53,17 @@ export function WorkspaceOverview({ overview }: { overview: Overview }) {
           </span>
         )}
       </div>
-      <p className="mb-5 text-[13px] text-slate">
+      <p className="mb-3 text-[13px] text-slate">
         Overview of your content across all platforms.
       </p>
 
+      <OverviewFilters filters={filters} />
+
       {overview.groups.length === 0 ? (
         <div className="grid place-items-center py-20 text-center text-slate">
-          Nothing here yet — save or upload content and tag it to a platform.
+          {filters.status || filters.from || filters.to
+            ? "No content matches these filters."
+            : "Nothing here yet — save or upload content and tag it to a platform."}
         </div>
       ) : (
         <div className="overflow-x-auto pb-4">

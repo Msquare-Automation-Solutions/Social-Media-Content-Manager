@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter, usePathname } from "next/navigation";
 import { BackButton } from "@/components/ui/back-button";
 import type { DashboardData } from "@/lib/data";
 import { STATUS_LABELS } from "@/lib/enums";
@@ -14,7 +15,25 @@ import {
 } from "@/components/dashboard/charts";
 import { PlatformCarousel } from "@/components/dashboard/platform-carousel";
 
-export function DashboardView({ data }: { data: DashboardData }) {
+export function DashboardView({
+  data,
+  from,
+  to,
+}: {
+  data: DashboardData;
+  from: string;
+  to: string;
+}) {
+  const router = useRouter();
+  const pathname = usePathname();
+  // Carry the selected range onto KPI drill-down links.
+  const range = `from=${from}&to=${to}`;
+  const setRange = (key: "from" | "to", value: string) => {
+    const params = new URLSearchParams({ from, to });
+    params.set(key, value);
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
   const platformBars: BarDatum[] = data.perPlatform.map((p) => ({
     label: p.name,
     value: p.total,
@@ -32,15 +51,37 @@ export function DashboardView({ data }: { data: DashboardData }) {
 
   return (
     <div className="flex-1 overflow-y-auto px-7 py-6">
-      <div className="mb-4 flex items-center gap-3.5">
+      <div className="mb-4 flex flex-wrap items-center gap-3.5">
         <BackButton />
         <h2 className="font-display text-[19px]">Dashboard</h2>
+        <div className="ml-auto flex items-end gap-2">
+          <label className="flex flex-col gap-1 text-[11px] font-semibold text-slate">
+            From
+            <input
+              type="date"
+              value={from}
+              max={to}
+              onChange={(e) => setRange("from", e.target.value)}
+              className="rounded-[10px] border border-line bg-card px-2.5 py-1.5 text-[12.5px] font-normal text-ink outline-none focus:border-teal"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-[11px] font-semibold text-slate">
+            To
+            <input
+              type="date"
+              value={to}
+              min={from}
+              onChange={(e) => setRange("to", e.target.value)}
+              className="rounded-[10px] border border-line bg-card px-2.5 py-1.5 text-[12.5px] font-normal text-ink outline-none focus:border-teal"
+            />
+          </label>
+        </div>
       </div>
 
       {/* KPI tiles */}
       <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-5">
         <StatTile
-          label="Scheduled this month"
+          label="Scheduled in range"
           value={data.scheduledThisMonth}
           sublabel="Posts going out"
           accent="#7a4fc9"
@@ -51,28 +92,28 @@ export function DashboardView({ data }: { data: DashboardData }) {
           value={data.statusCounts.PENDING}
           sublabel="Awaiting review"
           accent={STATUS_COLORS.PENDING}
-          href="/review"
+          href={`/review`}
         />
         <StatTile
           label={STATUS_LABELS.REWORK}
           value={data.statusCounts.REWORK}
           sublabel="Needs changes"
           accent={STATUS_COLORS.REWORK}
-          href="/rework"
+          href={`/rework?${range}`}
         />
         <StatTile
           label={STATUS_LABELS.APPROVED}
           value={data.statusCounts.APPROVED}
           sublabel="Queued to post"
           accent={STATUS_COLORS.APPROVED}
-          href="/approved"
+          href={`/approved?${range}`}
         />
         <StatTile
           label={STATUS_LABELS.PUBLISHED}
           value={data.statusCounts.PUBLISHED}
           sublabel={`of ${data.totalAssets} total`}
           accent={STATUS_COLORS.PUBLISHED}
-          href="/published"
+          href={`/published?${range}`}
         />
       </div>
 
