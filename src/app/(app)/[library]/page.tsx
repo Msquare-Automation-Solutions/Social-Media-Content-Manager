@@ -2,6 +2,7 @@ import { redirect, notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
 import { getLibraryAssets } from "@/lib/data";
+import { resolveListFilters, type ListSearchParams } from "@/lib/list-filters";
 import { isAdminRole } from "@/lib/roles";
 import { SLUG_TO_VIEW, LIBRARY_VIEWS } from "@/lib/library";
 import { LibraryView } from "@/components/library/library-view";
@@ -13,13 +14,7 @@ export default async function LibraryPage({
   searchParams,
 }: {
   params: Promise<{ library: string }>;
-  searchParams: Promise<{
-    person?: string;
-    channel?: string;
-    status?: string;
-    q?: string;
-    sort?: string;
-  }>;
+  searchParams: Promise<ListSearchParams>;
 }) {
   const { library } = await params;
   const sp = await searchParams;
@@ -29,13 +24,8 @@ export default async function LibraryPage({
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const filters = {
-    personId: sp.person || undefined,
-    channelId: sp.channel || undefined,
-    status: sp.status || undefined,
-    q: sp.q || undefined,
-    sort: (sp.sort as "newest" | "name" | "postdate") || "newest",
-  };
+  const { filters, view: vf } = await resolveListFilters(user.workspaceId, user.id, sp);
+  filters.status = sp.status || undefined;
 
   const [assets, people, channels] = await Promise.all([
     getLibraryAssets(user.workspaceId, view, filters),
@@ -60,11 +50,13 @@ export default async function LibraryPage({
       people={people}
       channels={channels}
       filters={{
-        person: sp.person ?? "",
-        channel: sp.channel ?? "",
+        person: vf.person,
+        channel: vf.channel,
         status: sp.status ?? "",
-        q: sp.q ?? "",
-        sort: filters.sort,
+        q: vf.q,
+        sort: vf.sort,
+        from: vf.from,
+        to: vf.to,
       }}
       canEdit={user.role !== "VIEWER"}
       canReview={isAdminRole(user.role)}

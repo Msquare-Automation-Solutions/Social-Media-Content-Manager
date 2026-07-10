@@ -10,7 +10,21 @@ export type LibraryFilters = {
   type?: string; // LibraryViewKey — narrow to one category (Approved page)
   q?: string;
   sort?: "newest" | "name" | "postdate";
+  from?: string; // yyyy-mm-dd — createdAt range (inclusive)
+  to?: string;
 };
+
+// A Prisma `createdAt` filter from an inclusive yyyy-mm-dd range (mirrors the
+// date parsing in listActivity). Returns undefined when neither bound is set.
+export function createdAtRange(
+  from?: string,
+  to?: string,
+): { gte?: Date; lte?: Date } | undefined {
+  const range: { gte?: Date; lte?: Date } = {};
+  if (from) range.gte = new Date(`${from}T00:00:00.000`);
+  if (to) range.lte = new Date(`${to}T23:59:59.999`);
+  return range.gte || range.lte ? range : undefined;
+}
 
 // Shared shape + mappers for asset grids (library + approved). The include is
 // declared once so every grid query returns the same row shape.
@@ -794,6 +808,9 @@ export async function getLibraryAssets(
       ...(filters.channelId
         ? { channels: { some: { channelId: filters.channelId } } }
         : {}),
+      ...(createdAtRange(filters.from, filters.to)
+        ? { createdAt: createdAtRange(filters.from, filters.to) }
+        : {}),
     },
     orderBy: { createdAt: "desc" },
     include: ASSET_LIST_INCLUDE,
@@ -821,6 +838,9 @@ export async function getAssetsByStatus(
       ...(filters.type ? { type: { in: typesForView(filters.type as LibraryViewKey) } } : {}),
       ...(filters.personId ? { personId: filters.personId } : {}),
       ...(filters.channelId ? { channels: { some: { channelId: filters.channelId } } } : {}),
+      ...(createdAtRange(filters.from, filters.to)
+        ? { createdAt: createdAtRange(filters.from, filters.to) }
+        : {}),
     },
     orderBy: { createdAt: "desc" },
     include: ASSET_LIST_INCLUDE,
@@ -858,6 +878,9 @@ export async function getScheduledThisMonthAssets(
       ...(filters.type ? { type: { in: typesForView(filters.type as LibraryViewKey) } } : {}),
       ...(filters.personId ? { personId: filters.personId } : {}),
       ...(filters.channelId ? { channels: { some: { channelId: filters.channelId } } } : {}),
+      ...(createdAtRange(filters.from, filters.to)
+        ? { createdAt: createdAtRange(filters.from, filters.to) }
+        : {}),
     },
     orderBy: { createdAt: "desc" },
     include: ASSET_LIST_INCLUDE,

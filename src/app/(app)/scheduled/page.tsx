@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
 import { getScheduledThisMonthAssets } from "@/lib/data";
+import { resolveListFilters, type ListSearchParams } from "@/lib/list-filters";
 import { isAdminRole } from "@/lib/roles";
 import { ApprovedView } from "@/components/approved/approved-view";
 
@@ -10,27 +11,13 @@ export const dynamic = "force-dynamic";
 export default async function ScheduledPage({
   searchParams,
 }: {
-  searchParams: Promise<{
-    person?: string;
-    channel?: string;
-    type?: string;
-    q?: string;
-    sort?: string;
-    asset?: string;
-  }>;
+  searchParams: Promise<ListSearchParams>;
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   const sp = await searchParams;
-
-  const filters = {
-    personId: sp.person || undefined,
-    channelId: sp.channel || undefined,
-    type: sp.type || undefined,
-    q: sp.q || undefined,
-    // Default to post-date order — most useful for a schedule.
-    sort: (sp.sort as "newest" | "name" | "postdate") || "postdate",
-  };
+  // Default to post-date order — most useful for a schedule.
+  const { filters, view } = await resolveListFilters(user.workspaceId, user.id, sp, "postdate");
 
   const [assets, people, channels] = await Promise.all([
     getScheduledThisMonthAssets(user.workspaceId, filters),
@@ -51,13 +38,7 @@ export default async function ScheduledPage({
       assets={assets}
       people={people}
       channels={channels}
-      filters={{
-        person: sp.person ?? "",
-        channel: sp.channel ?? "",
-        type: sp.type ?? "",
-        q: sp.q ?? "",
-        sort: filters.sort,
-      }}
+      filters={view}
       canEdit={user.role !== "VIEWER"}
       canReview={isAdminRole(user.role)}
       initialAssetId={sp.asset ?? null}

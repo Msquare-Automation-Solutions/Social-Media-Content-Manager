@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
 import { getPublishedAssets } from "@/lib/data";
 import { isAdminRole } from "@/lib/roles";
+import { resolveListFilters, type ListSearchParams } from "@/lib/list-filters";
 import { ApprovedView } from "@/components/approved/approved-view";
 
 export const dynamic = "force-dynamic";
@@ -10,26 +11,12 @@ export const dynamic = "force-dynamic";
 export default async function PublishedPage({
   searchParams,
 }: {
-  searchParams: Promise<{
-    person?: string;
-    channel?: string;
-    type?: string;
-    q?: string;
-    sort?: string;
-    asset?: string;
-  }>;
+  searchParams: Promise<ListSearchParams>;
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   const sp = await searchParams;
-
-  const filters = {
-    personId: sp.person || undefined,
-    channelId: sp.channel || undefined,
-    type: sp.type || undefined,
-    q: sp.q || undefined,
-    sort: (sp.sort as "newest" | "name" | "postdate") || "newest",
-  };
+  const { filters, view } = await resolveListFilters(user.workspaceId, user.id, sp);
 
   const [assets, people, channels] = await Promise.all([
     getPublishedAssets(user.workspaceId, filters),
@@ -50,13 +37,7 @@ export default async function PublishedPage({
       assets={assets}
       people={people}
       channels={channels}
-      filters={{
-        person: sp.person ?? "",
-        channel: sp.channel ?? "",
-        type: sp.type ?? "",
-        q: sp.q ?? "",
-        sort: filters.sort,
-      }}
+      filters={view}
       canEdit={user.role !== "VIEWER"}
       canReview={isAdminRole(user.role)}
       initialAssetId={sp.asset ?? null}

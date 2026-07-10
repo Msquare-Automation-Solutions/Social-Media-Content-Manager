@@ -15,7 +15,15 @@ type Props = {
   assets: AssetListItem[];
   people: { id: string; name: string }[];
   channels: { id: string; name: string; icon: string }[];
-  filters: { person: string; channel: string; status: string; q: string; sort: string };
+  filters: {
+    person: string;
+    channel: string;
+    status: string;
+    q: string;
+    sort: string;
+    from: string;
+    to: string;
+  };
   canEdit: boolean;
   canReview: boolean;
 };
@@ -52,6 +60,8 @@ export function LibraryView({
       ...(filters.status && { status: filters.status }),
       ...(filters.q && { q: filters.q }),
       ...(filters.sort && filters.sort !== "newest" && { sort: filters.sort }),
+      ...(filters.from && { from: filters.from }),
+      ...(filters.to && { to: filters.to }),
     });
     if (value) params.set(key, value);
     else params.delete(key);
@@ -60,7 +70,8 @@ export function LibraryView({
     });
   }
 
-  const hasFilters = filters.person || filters.channel || filters.status || filters.q;
+  const hasFilters =
+    filters.person || filters.channel || filters.status || filters.q || filters.from || filters.to;
 
   return (
     <div className="flex-1 overflow-y-auto px-7 py-6">
@@ -76,7 +87,7 @@ export function LibraryView({
           label="Person"
           value={filters.person}
           onChange={(v) => setParam("person", v)}
-          options={[{ value: "", label: "All people" }, ...people.map((p) => ({ value: p.id, label: p.name }))]}
+          options={[{ value: "all", label: "All people" }, ...people.map((p) => ({ value: p.id, label: p.name }))]}
         />
         <FilterSelect
           label="Social platform"
@@ -96,6 +107,26 @@ export function LibraryView({
             ...ASSET_STATUSES.map((s) => ({ value: s, label: STATUS_LABELS[s] })),
           ]}
         />
+        <label className="flex flex-col gap-1 text-[11.5px] font-semibold text-slate">
+          From
+          <input
+            type="date"
+            value={filters.from}
+            max={filters.to || undefined}
+            onChange={(e) => setParam("from", e.target.value)}
+            className="rounded-[11px] border border-line bg-card px-3 py-2.5 font-normal text-ink outline-none focus:border-teal"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-[11.5px] font-semibold text-slate">
+          To
+          <input
+            type="date"
+            value={filters.to}
+            min={filters.from || undefined}
+            onChange={(e) => setParam("to", e.target.value)}
+            className="rounded-[11px] border border-line bg-card px-3 py-2.5 font-normal text-ink outline-none focus:border-teal"
+          />
+        </label>
         <label className="flex flex-col gap-1 text-[11.5px] font-semibold text-slate">
           Search
           <input

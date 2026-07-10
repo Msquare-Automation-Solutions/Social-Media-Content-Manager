@@ -12,7 +12,15 @@ type Props = {
   assets: AssetListItem[];
   people: { id: string; name: string }[];
   channels: { id: string; name: string; icon: string }[];
-  filters: { person: string; channel: string; type: string; q: string; sort: string };
+  filters: {
+    person: string;
+    channel: string;
+    type: string;
+    q: string;
+    sort: string;
+    from: string;
+    to: string;
+  };
   canEdit: boolean;
   canReview: boolean;
   title?: string;
@@ -42,34 +50,35 @@ export function ApprovedView({
   const [pending, startTransition] = useTransition();
   const [selectedId, setSelectedId] = useState<string | null>(initialAssetId);
 
-  // Strip the ?asset deep-link param when closing the drawer, preserving filters.
-  function closeDrawer() {
-    setSelectedId(null);
-    const params = new URLSearchParams({
+  // The current filters as URL params (shared by setParam + closeDrawer).
+  function currentParams() {
+    return new URLSearchParams({
       ...(filters.person && { person: filters.person }),
       ...(filters.channel && { channel: filters.channel }),
       ...(filters.type && { type: filters.type }),
       ...(filters.q && { q: filters.q }),
       ...(filters.sort && filters.sort !== "newest" && { sort: filters.sort }),
+      ...(filters.from && { from: filters.from }),
+      ...(filters.to && { to: filters.to }),
     });
-    const qs = params.toString();
+  }
+
+  // Strip the ?asset deep-link param when closing the drawer, preserving filters.
+  function closeDrawer() {
+    setSelectedId(null);
+    const qs = currentParams().toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname);
   }
 
   function setParam(key: string, value: string) {
-    const params = new URLSearchParams({
-      ...(filters.person && { person: filters.person }),
-      ...(filters.channel && { channel: filters.channel }),
-      ...(filters.type && { type: filters.type }),
-      ...(filters.q && { q: filters.q }),
-      ...(filters.sort && filters.sort !== "newest" && { sort: filters.sort }),
-    });
+    const params = currentParams();
     if (value) params.set(key, value);
     else params.delete(key);
     startTransition(() => router.push(`${pathname}?${params.toString()}`));
   }
 
-  const hasFilters = filters.person || filters.channel || filters.type || filters.q;
+  const hasFilters =
+    filters.person || filters.channel || filters.type || filters.q || filters.from || filters.to;
 
   return (
     <div className="flex-1 overflow-y-auto px-7 py-6">
@@ -91,7 +100,7 @@ export function ApprovedView({
           label="Person"
           value={filters.person}
           onChange={(v) => setParam("person", v)}
-          options={[{ value: "", label: "All people" }, ...people.map((p) => ({ value: p.id, label: p.name }))]}
+          options={[{ value: "all", label: "All people" }, ...people.map((p) => ({ value: p.id, label: p.name }))]}
         />
         <FilterSelect
           label="Social platform"
@@ -111,6 +120,26 @@ export function ApprovedView({
             ...LIBRARY_VIEWS.map((v) => ({ value: v.key, label: v.label })),
           ]}
         />
+        <label className="flex flex-col gap-1 text-[11.5px] font-semibold text-slate">
+          From
+          <input
+            type="date"
+            value={filters.from}
+            max={filters.to || undefined}
+            onChange={(e) => setParam("from", e.target.value)}
+            className="rounded-[11px] border border-line bg-card px-3 py-2.5 font-normal text-ink outline-none focus:border-teal"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-[11.5px] font-semibold text-slate">
+          To
+          <input
+            type="date"
+            value={filters.to}
+            min={filters.from || undefined}
+            onChange={(e) => setParam("to", e.target.value)}
+            className="rounded-[11px] border border-line bg-card px-3 py-2.5 font-normal text-ink outline-none focus:border-teal"
+          />
+        </label>
         <label className="flex flex-col gap-1 text-[11.5px] font-semibold text-slate">
           Search
           <input
