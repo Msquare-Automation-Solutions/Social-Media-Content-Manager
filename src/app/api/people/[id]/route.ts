@@ -26,7 +26,7 @@ export async function PATCH(
   const { id } = await params;
 
   const person = await prisma.person.findFirst({
-    where: { id, workspaceId: g.user.workspaceId },
+    where: { id, workspaceId: g.user.workspaceId, deletedAt: null },
     select: { id: true },
   });
   if (!person) return new Response("Not found", { status: 404 });
@@ -58,8 +58,10 @@ export async function PATCH(
   return Response.json(updated);
 }
 
-// Delete a creator (EDITOR+) — only when nothing is attributed to them, since
-// MediaAsset.personId is required. Returns 409 if assets still reference them.
+// Remove a creator (EDITOR+) — soft-delete (archive). MediaAsset.personId is a
+// required FK, so we never hard-delete a referenced creator; instead we mark
+// them archived. They vanish from every picker/filter while past assets keep
+// their attribution.
 export async function DELETE(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -69,24 +71,12 @@ export async function DELETE(
   const { id } = await params;
 
   const person = await prisma.person.findFirst({
-    where: { id, workspaceId: g.user.workspaceId },
+    where: { id, workspaceId: g.user.workspaceId, deletedAt: null },
     select: { id: true, name: true },
   });
   if (!person) return new Response("Not found", { status: 404 });
 
-  const assetCount = await prisma.mediaAsset.count({
-    where: { personId: id, deletedAt: null },
-  });
-  if (assetCount > 0) {
-    return Response.json(
-      {
-        error: `Can't remove — ${assetCount} asset${assetCount === 1 ? "" : "s"} still attributed to this creator. Reassign or delete those first.`,
-      },
-      { status: 409 },
-    );
-  }
-
-  await prisma.person.delete({ where: { id } });
+  await prisma.person.update({ where: { id }, data: { deletedAt: new Date() } });
   await logActivity(g.user, {
     action: "creator.deleted",
     targetId: id,

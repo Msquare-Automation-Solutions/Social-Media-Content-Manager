@@ -41,7 +41,7 @@ export async function POST(req: Request) {
   if (action === "setPerson") {
     if (!personId) return new Response("personId required", { status: 400 });
     const person = await prisma.person.findFirst({
-      where: { id: personId, workspaceId: g.user.workspaceId },
+      where: { id: personId, workspaceId: g.user.workspaceId, deletedAt: null },
       select: { id: true, name: true },
     });
     if (!person) return new Response("Person not in workspace", { status: 400 });

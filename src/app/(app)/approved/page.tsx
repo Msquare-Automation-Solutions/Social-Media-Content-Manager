@@ -34,7 +34,7 @@ export default async function ApprovedPage({
   const [assets, people, channels] = await Promise.all([
     getApprovedAssets(user.workspaceId, filters),
     prisma.person.findMany({
-      where: { workspaceId: user.workspaceId },
+      where: { workspaceId: user.workspaceId, deletedAt: null },
       orderBy: { createdAt: "asc" },
       select: { id: true, name: true },
     }),

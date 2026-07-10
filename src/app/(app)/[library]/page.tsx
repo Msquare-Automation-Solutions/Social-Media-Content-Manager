@@ -40,7 +40,7 @@ export default async function LibraryPage({
   const [assets, people, channels] = await Promise.all([
     getLibraryAssets(user.workspaceId, view, filters),
     prisma.person.findMany({
-      where: { workspaceId: user.workspaceId },
+      where: { workspaceId: user.workspaceId, deletedAt: null },
       orderBy: { createdAt: "asc" },
       select: { id: true, name: true },
     }),

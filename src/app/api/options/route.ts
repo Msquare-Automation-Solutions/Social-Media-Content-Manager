@@ -19,7 +19,7 @@ export async function GET() {
 
   const [people, channels] = await Promise.all([
     prisma.person.findMany({
-      where: { workspaceId: g.user.workspaceId },
+      where: { workspaceId: g.user.workspaceId, deletedAt: null },
       orderBy: { createdAt: "asc" },
       select: { id: true, name: true, label: true, avatarColor: true },
     }),

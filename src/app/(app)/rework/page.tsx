@@ -34,7 +34,7 @@ export default async function ReworkPage({
   const [assets, people, channels] = await Promise.all([
     getAssetsByStatus(user.workspaceId, "REWORK", filters),
     prisma.person.findMany({
-      where: { workspaceId: user.workspaceId },
+      where: { workspaceId: user.workspaceId, deletedAt: null },
       orderBy: { createdAt: "asc" },
       select: { id: true, name: true },
     }),

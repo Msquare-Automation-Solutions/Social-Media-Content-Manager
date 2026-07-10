@@ -18,9 +18,15 @@ type SelfUser = {
 export async function ensureSelfPerson(user: SelfUser): Promise<string> {
   const existing = await prisma.person.findFirst({
     where: { workspaceId: user.workspaceId, userId: user.id },
-    select: { id: true },
+    select: { id: true, deletedAt: true },
   });
-  if (existing) return existing.id;
+  if (existing) {
+    // An active user needs an assignable creator — un-archive if it was removed.
+    if (existing.deletedAt) {
+      await prisma.person.update({ where: { id: existing.id }, data: { deletedAt: null } });
+    }
+    return existing.id;
+  }
 
   const created = await prisma.person.create({
     data: {

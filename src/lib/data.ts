@@ -263,7 +263,7 @@ export type CreatorRow = {
 /** All Person/creator records with how many (live) assets are attributed. */
 export async function listCreators(workspaceId: string): Promise<CreatorRow[]> {
   const people = await prisma.person.findMany({
-    where: { workspaceId },
+    where: { workspaceId, deletedAt: null },
     orderBy: { createdAt: "asc" },
     include: {
       _count: { select: { assets: { where: { deletedAt: null } } } },

@@ -119,7 +119,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   if (parsedBody.personId !== undefined) {
     const person = await prisma.person.findFirst({
-      where: { id: parsedBody.personId, workspaceId: g.user.workspaceId },
+      where: { id: parsedBody.personId, workspaceId: g.user.workspaceId, deletedAt: null },
       select: { id: true },
     });
     if (!person) return new Response("Person not in workspace", { status: 400 });

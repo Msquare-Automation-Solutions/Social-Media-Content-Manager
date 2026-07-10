@@ -137,6 +137,9 @@ model Person {
   userId      String?
   avatarColor String   @default("#0e9f8f")
   createdAt   DateTime @default(now())
+  // Soft-delete: archived creators disappear from pickers/filters but stay
+  // referenced by past assets (attribution history is preserved).
+  deletedAt   DateTime?
 
   workspace Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   user      User?        @relation(fields: [userId], references: [id])

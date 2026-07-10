@@ -141,7 +141,7 @@ export async function createAsset(
   ctx: { workspaceId: string; userId: string },
 ) {
   const person = await prisma.person.findFirst({
-    where: { id: args.personId, workspaceId: ctx.workspaceId },
+    where: { id: args.personId, workspaceId: ctx.workspaceId, deletedAt: null },
     select: { id: true },
   });
   if (!person) throw new Error("Person not in workspace");

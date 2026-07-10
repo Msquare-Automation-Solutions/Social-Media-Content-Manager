@@ -35,7 +35,7 @@ export default async function ScheduledPage({
   const [assets, people, channels] = await Promise.all([
     getScheduledThisMonthAssets(user.workspaceId, filters),
     prisma.person.findMany({
-      where: { workspaceId: user.workspaceId },
+      where: { workspaceId: user.workspaceId, deletedAt: null },
       orderBy: { createdAt: "asc" },
       select: { id: true, name: true },
     }),
