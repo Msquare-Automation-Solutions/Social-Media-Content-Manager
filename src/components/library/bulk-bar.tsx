@@ -46,26 +46,31 @@ export function BulkBar({
     <div className="pointer-events-none fixed inset-x-0 bottom-6 z-40 flex justify-center px-4">
       <div className="pointer-events-auto flex flex-col gap-2 rounded-xl2 border border-line/70 bg-card/95 p-2 pl-4 shadow-lift backdrop-blur">
         {panel === "creator" && (
-          <div className="flex items-center gap-2 px-1 pt-1">
-            <span className="text-[12px] font-semibold text-slate">Set creator:</span>
-            <select
-              disabled={busy}
-              defaultValue=""
-              onChange={(e) =>
-                e.target.value &&
-                run({ action: "setPerson", personId: e.target.value }, (n) => `Creator set on ${n} item${n === 1 ? "" : "s"} ✓`)
-              }
-              className="rounded-[9px] border border-line px-2.5 py-1.5 text-[12.5px] outline-none focus:border-teal"
-            >
-              <option value="" disabled>
-                Choose person…
-              </option>
-              {people.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
+          <div className="px-1 pt-1">
+            <div className="mb-1 text-[12px] font-semibold text-slate">Set creator</div>
+            {/* Inline scrollable list — grows upward within the panel (above the
+                bar), so it never opens off the bottom of the screen. */}
+            <div className="max-h-56 w-56 overflow-y-auto rounded-[9px] border border-line">
+              {people.length === 0 ? (
+                <div className="px-3 py-2 text-[12px] text-slate">No creators yet</div>
+              ) : (
+                people.map((p) => (
+                  <button
+                    key={p.id}
+                    disabled={busy}
+                    onClick={() =>
+                      run(
+                        { action: "setPerson", personId: p.id },
+                        (n) => `Creator set on ${n} item${n === 1 ? "" : "s"} ✓`,
+                      )
+                    }
+                    className="block w-full px-3 py-1.5 text-left text-[12.5px] transition hover:bg-teal-soft disabled:opacity-50"
+                  >
+                    {p.name}
+                  </button>
+                ))
+              )}
+            </div>
           </div>
         )}
         {panel === "tags" && (
