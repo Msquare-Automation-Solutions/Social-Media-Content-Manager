@@ -7,6 +7,7 @@ import type { CSSProperties } from "react";
 // where the brand color would clash); otherwise brand colors are used.
 
 type BrandKey =
+  | "meta"
   | "instagram"
   | "youtube"
   | "linkedin"
@@ -14,12 +15,16 @@ type BrandKey =
   | "tiktok"
   | "reddit"
   | "skool"
+  | "medium"
   | "x"
   | "blog";
 
 // Normalize a stored channel name to a known brand key.
 function brandKey(name: string): BrandKey | null {
   const n = name.toLowerCase().replace(/[^a-z]/g, "");
+  // Combined Instagram + Facebook platform → the Meta mark. Checked first so the
+  // individual instagram/facebook matches below don't win.
+  if (n.includes("meta") || (n.includes("instagram") && n.includes("facebook"))) return "meta";
   if (n.includes("instagram")) return "instagram";
   if (n.includes("youtube")) return "youtube";
   if (n.includes("linkedin")) return "linkedin";
@@ -27,6 +32,7 @@ function brandKey(name: string): BrandKey | null {
   if (n.includes("tiktok")) return "tiktok";
   if (n.includes("reddit")) return "reddit";
   if (n.includes("skool")) return "skool";
+  if (n.includes("medium")) return "medium";
   if (n === "x" || n.includes("twitter")) return "x";
   if (n.includes("blog") || n.includes("website") || n.includes("web")) return "blog";
   return null;
@@ -34,6 +40,7 @@ function brandKey(name: string): BrandKey | null {
 
 // Brand color for each mark (used when not mono).
 const BRAND_COLOR: Record<BrandKey, string> = {
+  meta: "#0866ff",
   instagram: "#e1306c",
   youtube: "#ff0000",
   linkedin: "#0a66c2",
@@ -41,12 +48,17 @@ const BRAND_COLOR: Record<BrandKey, string> = {
   tiktok: "#010101",
   reddit: "#ff4500",
   skool: "#f59e0b",
+  medium: "#000000",
   x: "#000000",
   blog: "#0e9f8f",
 };
 
 // Single-path brand glyphs (fill = currentColor via the parent's color).
 const PATHS: Record<BrandKey, string> = {
+  meta:
+    "M6.915 4.03c-1.968 0-3.683 1.28-4.871 3.113C.704 9.208 0 11.883 0 14.449c0 .706.07 1.369.21 1.973a6.624 6.624 0 0 0 .265.86 5.297 5.297 0 0 0 .371.761c.696 1.159 1.818 1.927 3.593 1.927 1.497 0 2.633-.671 3.965-2.444.76-1.012 1.144-1.626 2.663-4.32l.756-1.339.186-.325c.061.1.121.196.183.3l2.152 3.595c.724 1.21 1.665 2.556 2.47 3.314 1.046.987 1.992 1.22 3.06 1.22 1.075 0 1.876-.355 2.455-.843a3.743 3.743 0 0 0 .81-.973c.542-.939.861-2.127.861-3.745 0-2.72-.681-5.357-2.084-7.45-1.282-1.912-2.957-2.93-4.716-2.93-1.047 0-2.088.467-3.053 1.308-.652.57-1.257 1.29-1.82 2.05-.69-.875-1.335-1.547-1.958-2.056-1.182-.966-2.315-1.303-3.454-1.303zm10.16 2.053c1.147 0 2.188.758 2.992 1.999 1.132 1.748 1.647 4.195 1.647 6.4 0 1.548-.368 2.9-1.839 2.9-.58 0-1.027-.23-1.664-1.004-.496-.601-1.343-1.878-2.832-4.358l-.617-1.028a44.908 44.908 0 0 0-1.255-1.98c.07-.109.141-.224.211-.327 1.12-1.667 2.118-2.602 3.158-2.602zm-10.201.553c1.265 0 2.058.791 2.675 1.446.307.327.737.871 1.234 1.579l-1.02 1.566c-.757 1.163-1.882 3.017-2.837 4.338-1.191 1.649-1.81 1.817-2.486 1.817-.524 0-1.038-.237-1.383-.794-.263-.426-.464-1.13-.464-2.046 0-2.221.63-4.535 1.66-6.088.454-.687.964-1.226 1.533-1.533a2.264 2.264 0 0 1 1.02-.288z",
+  medium:
+    "M13.54 12a6.8 6.8 0 0 1-6.77 6.82A6.8 6.8 0 0 1 0 12a6.8 6.8 0 0 1 6.77-6.82A6.8 6.8 0 0 1 13.54 12zM20.96 12c0 3.54-1.51 6.42-3.38 6.42-1.87 0-3.39-2.88-3.39-6.42s1.52-6.42 3.39-6.42 3.38 2.88 3.38 6.42M24 12c0 3.17-.53 5.75-1.19 5.75-.66 0-1.19-2.58-1.19-5.75s.53-5.75 1.19-5.75C23.47 6.25 24 8.83 24 12z",
   instagram:
     "M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.16-.42-.36-1.06-.41-2.23C2.17 15.58 2.16 15.2 2.16 12s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41C8.42 2.17 8.8 2.16 12 2.16Zm0 3.68A6.16 6.16 0 1 0 18.16 12 6.16 6.16 0 0 0 12 5.84Zm0 10.16A4 4 0 1 1 16 12a4 4 0 0 1-4 4Zm6.41-10.4a1.44 1.44 0 1 0 1.44 1.44 1.44 1.44 0 0 0-1.44-1.44Z",
   youtube:

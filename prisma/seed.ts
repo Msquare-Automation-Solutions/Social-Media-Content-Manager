@@ -66,16 +66,16 @@ async function main() {
     },
   });
 
-  // ---- Social channels (the prototype's 6) ----
+  // ---- Social channels ----
   const channelDefs = [
-    { name: "Instagram", icon: "📷", color: "#e1306c" },
-    { name: "YouTube", icon: "▶️", color: "#ff0000" },
+    { name: "Instagram & Facebook", icon: "📷", color: "#0866ff" },
     { name: "LinkedIn", icon: "💼", color: "#0a66c2" },
-    { name: "Facebook", icon: "📘", color: "#1877f2" },
-    { name: "TikTok", icon: "🎵", color: "#010101" },
+    { name: "YouTube", icon: "▶️", color: "#ff0000" },
+    { name: "Twitter / X", icon: "🐦", color: "#000000" },
     { name: "Reddit", icon: "👽", color: "#ff4500" },
-    { name: "Skool", icon: "🎓", color: "#f59e0b" },
     { name: "Blog / Website", icon: "🌐", color: "#0e9f8f" },
+    { name: "Medium", icon: "✍️", color: "#000000" },
+    { name: "Skool", icon: "🎓", color: "#f59e0b" },
   ];
   const channels: Record<string, { id: string }> = {};
   for (const c of channelDefs) {
@@ -134,7 +134,7 @@ async function main() {
       person: "Layla",
       createdBy: "Fahila",
       source: "UPLOAD",
-      channels: ["Instagram"],
+      channels: ["Instagram & Facebook"],
       tags: ["autumn-campaign", "q3"],
       filename: "autumn-campaign-01.jpg",
       mimeType: "image/jpeg",
@@ -160,7 +160,7 @@ async function main() {
       person: "Fahila",
       createdBy: "Fahila",
       source: "UPLOAD",
-      channels: ["LinkedIn", "Facebook"],
+      channels: ["LinkedIn", "Instagram & Facebook"],
       tags: ["social-proof"],
       filename: "logo-wall.png",
       mimeType: "image/png",
@@ -173,7 +173,7 @@ async function main() {
       person: "Aron",
       createdBy: "Aron",
       source: "UPLOAD",
-      channels: ["Instagram", "Facebook"],
+      channels: ["Instagram & Facebook"],
       tags: ["culture", "team"],
       filename: "offsite-group.jpg",
       mimeType: "image/jpeg",
@@ -208,7 +208,7 @@ async function main() {
       person: "Layla",
       createdBy: "Aron",
       source: "GENERATED",
-      channels: ["Instagram", "TikTok"],
+      channels: ["Instagram & Facebook", "Twitter / X"],
       tags: ["make", "shorts"],
       thumbnailUrl: "/uploads/thumbs/reel-make-60s.png",
     },
@@ -233,7 +233,7 @@ async function main() {
       person: "Fasil",
       createdBy: "Mira",
       source: "UPLOAD",
-      channels: ["Instagram", "TikTok"],
+      channels: ["Instagram & Facebook", "Twitter / X"],
       tags: ["promo", "q3-campaign"],
       filename: "promo-cut-final.mp4",
       mimeType: "video/mp4",
