@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Icon } from "@/components/ui/icons";
@@ -54,7 +54,7 @@ export function NotificationBell({ initialUnread }: { initialUnread: number }) {
   });
 
   const unread = data?.unread ?? 0;
-  const rows = data?.rows ?? [];
+  const rows = useMemo(() => data?.rows ?? [], [data]);
 
   // Desktop (OS) notifications — poll-driven. `perm` tracks browser permission;
   // `lastTopId` remembers the newest notification we've already seen so we only
@@ -63,11 +63,9 @@ export function NotificationBell({ initialUnread }: { initialUnread: number }) {
   const lastTopId = useRef<string | null>(null);
 
   useEffect(() => {
-    if (typeof window === "undefined" || !("Notification" in window)) {
-      setPerm("unsupported");
-      return;
-    }
-    setPerm(Notification.permission);
+    // Read the browser permission once mounted (unavailable during SSR).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPerm("Notification" in window ? Notification.permission : "unsupported");
   }, []);
 
   useEffect(() => {
