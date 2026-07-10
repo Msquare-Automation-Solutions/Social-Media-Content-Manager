@@ -37,6 +37,7 @@ model User {
   chatSessions   ChatSession[]
   skillUpdates   Skill[]
   resetTokens    PasswordResetToken[]
+  notifications  Notification[]
 }
 
 model Workspace {
@@ -52,6 +53,7 @@ model Workspace {
   sessions    ChatSession[]
   invites     Invite[]
   activity    ActivityLog[]
+  notifications Notification[]
 }
 
 // Immutable audit trail of who did what. Actor fields are denormalized so an
@@ -73,6 +75,30 @@ model ActivityLog {
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@index([workspaceId, createdAt])
+}
+
+// In-app notification (bell). Delivered to a single recipient user. Actor +
+// target fields are denormalized (like ActivityLog) and `message` is a pre-
+// rendered summary so the bell dropdown renders without extra lookups.
+model Notification {
+  id               String    @id @default(cuid())
+  workspaceId      String
+  recipientId      String
+  actorId          String
+  actorName        String
+  actorAvatarColor String
+  action           String // e.g. "asset.approved" | "asset.reworked" | "asset.published"
+  targetType       String?
+  targetId         String?
+  targetLabel      String?
+  message          String // pre-rendered, e.g. "approved “Launch teaser”"
+  readAt           DateTime?
+  createdAt        DateTime  @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  recipient User      @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@index([recipientId, readAt, createdAt])
 }
 
 // role: OWNER | ADMIN | EDITOR | VIEWER  (validated in app)
@@ -147,7 +173,7 @@ model MediaAsset {
   tags          String    @default("[]") // JSON string[]
   source        String
   chatMessageId String?
-  status        String    @default("IN_QUEUE") // IN_QUEUE | REWORK | APPROVED
+  status        String    @default("PENDING") // PENDING | REWORK | APPROVED | PUBLISHED
   reviewNote    String? // admin's rework comment
   reviewedAt    DateTime?
   createdAt     DateTime  @default(now())

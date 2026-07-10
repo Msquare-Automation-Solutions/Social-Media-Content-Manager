@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { CATEGORY_OPTIONS } from "@/lib/library";
 import { useToast } from "@/components/ui/toast";
+import { PlatformIcon } from "@/components/ui/platform-icon";
 
 type Options = {
   people: { id: string; name: string; label?: string | null }[];
@@ -152,7 +153,7 @@ export function EditAssetDialog({
                     : "border-line text-slate hover:border-teal"
                 }`}
               >
-                {c.icon} {c.name}
+                <PlatformIcon name={c.name} icon={c.icon} size={14} className="inline-block shrink-0 align-text-bottom" /> {c.name}
               </button>
             );
           })}
@@ -168,7 +169,7 @@ export function EditAssetDialog({
               .map((c) => (
                 <div key={c.id} className="flex items-center gap-2 text-[12.5px]">
                   <span className="w-28 shrink-0 truncate">
-                    {c.icon} {c.name}
+                    <PlatformIcon name={c.name} icon={c.icon} size={14} className="inline-block shrink-0 align-text-bottom" /> {c.name}
                   </span>
                   <input
                     type="date"

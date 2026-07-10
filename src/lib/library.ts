@@ -1,12 +1,13 @@
 import type { AssetType } from "@/lib/enums";
 
-// The sidebar exposes four library views; VIDEO_SCRIPT assets (generated
-// scripts) live alongside uploaded videos under "Videos".
+// The sidebar exposes four library views. Keys stay stable (IMAGE/THUMBNAIL/
+// VIDEO/BLOGPOST) — only the labels are the client's vocabulary. VIDEO_SCRIPT
+// assets (generated scripts) live alongside uploaded videos under "Video".
 export const LIBRARY_VIEWS = [
-  { key: "IMAGE", label: "Images", icon: "🖼", types: ["IMAGE"] },
-  { key: "THUMBNAIL", label: "Thumbnails", icon: "🎯", types: ["THUMBNAIL"] },
-  { key: "VIDEO", label: "Videos", icon: "🎬", types: ["VIDEO", "VIDEO_SCRIPT"] },
-  { key: "BLOGPOST", label: "Blog posts", icon: "📝", types: ["BLOGPOST"] },
+  { key: "IMAGE", label: "Image/Posts", icon: "🖼", types: ["IMAGE"] },
+  { key: "THUMBNAIL", label: "Carousels", icon: "🗂", types: ["THUMBNAIL"] },
+  { key: "VIDEO", label: "Video", icon: "🎬", types: ["VIDEO", "VIDEO_SCRIPT"] },
+  { key: "BLOGPOST", label: "Articles", icon: "📝", types: ["BLOGPOST"] },
 ] as const;
 
 export type LibraryViewKey = (typeof LIBRARY_VIEWS)[number]["key"];
@@ -31,23 +32,23 @@ export function typesForView(key: LibraryViewKey): AssetType[] {
 
 // Save-dialog categories (the four the spec lists).
 export const CATEGORY_OPTIONS = [
-  { value: "IMAGE", label: "Image" },
-  { value: "THUMBNAIL", label: "Thumbnail" },
+  { value: "IMAGE", label: "Image/Posts" },
+  { value: "THUMBNAIL", label: "Carousels" },
   { value: "VIDEO", label: "Video" },
-  { value: "BLOGPOST", label: "Blog post" },
+  { value: "BLOGPOST", label: "Articles" },
 ] as const;
 
 export const TYPE_LABELS: Record<string, string> = {
-  IMAGE: "Image",
-  THUMBNAIL: "Thumbnail",
+  IMAGE: "Image/Posts",
+  THUMBNAIL: "Carousels",
   VIDEO: "Video",
-  BLOGPOST: "Blog post",
+  BLOGPOST: "Articles",
   VIDEO_SCRIPT: "Video script",
 };
 
 export const TYPE_ICONS: Record<string, string> = {
   IMAGE: "🖼",
-  THUMBNAIL: "🎯",
+  THUMBNAIL: "🗂",
   VIDEO: "🎬",
   BLOGPOST: "📝",
   VIDEO_SCRIPT: "🎬",

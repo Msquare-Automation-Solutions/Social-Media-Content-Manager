@@ -1,10 +1,11 @@
 "use client";
 
 import type { AssetListItem } from "@/lib/data";
-import { TYPE_ICONS } from "@/lib/library";
+import { TYPE_ICONS, TYPE_LABELS } from "@/lib/library";
 import { gradientFor } from "@/lib/artifact-view";
 import { initials } from "@/lib/colors";
 import { StatusBadge } from "@/components/library/status-badge";
+import { PlatformIcon } from "@/components/ui/platform-icon";
 
 export function AssetCard({
   asset,
@@ -50,10 +51,33 @@ export function AssetCard({
         status={asset.status}
         className="absolute right-2 top-2 z-10 shadow-soft"
       />
-      <div className="overflow-hidden">
+      <div className="relative overflow-hidden">
         <div className="transition-transform duration-500 ease-premium group-hover:scale-[1.04]">
           <AssetPreview asset={asset} />
         </div>
+        {/* Content-type label pill (top-left overlay). */}
+        <span className="absolute left-2 top-2 z-10 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur-sm">
+          {TYPE_LABELS[asset.type] ?? asset.type}
+        </span>
+        {/* Platform brand-logo badges (bottom-left overlay). */}
+        {asset.channels.length > 0 && (
+          <div className="absolute bottom-2 left-2 z-10 flex items-center gap-1">
+            {asset.channels.slice(0, 3).map((c) => (
+              <span
+                key={c.id}
+                title={c.name}
+                className="grid h-5 w-5 place-items-center rounded-full bg-white shadow-soft"
+              >
+                <PlatformIcon name={c.name} icon={c.icon} size={13} />
+              </span>
+            ))}
+            {asset.channels.length > 3 && (
+              <span className="grid h-5 min-w-5 place-items-center rounded-full bg-white px-1 text-[9px] font-bold text-slate shadow-soft">
+                +{asset.channels.length - 3}
+              </span>
+            )}
+          </div>
+        )}
       </div>
       <div className="p-3">
         <div className="flex items-center gap-1.5">
@@ -78,15 +102,7 @@ export function AssetCard({
           >
             {initials(asset.person.name)}
           </span>
-          {asset.person.name}
-          {asset.channels.slice(0, 2).map((c) => (
-            <span key={c.id} className="rounded-full bg-bg px-2 py-0.5 text-[10px] font-semibold">
-              {c.icon} {c.name}
-            </span>
-          ))}
-          {asset.channels.length > 2 && (
-            <span className="text-[10px]">+{asset.channels.length - 2}</span>
-          )}
+          <span className="truncate">{asset.person.name}</span>
           <span
             className={`ml-auto rounded-full px-1.5 py-0.5 text-[9.5px] font-bold uppercase ${
               asset.source === "GENERATED"

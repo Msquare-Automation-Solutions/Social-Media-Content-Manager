@@ -32,7 +32,7 @@ const ASSETS: DashAsset[] = [
     id: "a2",
     title: "Cover",
     type: "IMAGE",
-    status: "IN_QUEUE",
+    status: "PENDING",
     channels: [
       { channelId: "ig", scheduledFor: iso(2026, 2, 5) }, // this month (past-in-month)
       { channelId: "yt", scheduledFor: iso(2026, 3, 2) }, // next month
@@ -59,7 +59,7 @@ describe("aggregateDashboard", () => {
 
   it("counts totals and status buckets", () => {
     expect(d.totalAssets).toBe(4);
-    expect(d.statusCounts).toEqual({ IN_QUEUE: 1, REWORK: 1, APPROVED: 2 });
+    expect(d.statusCounts).toEqual({ PENDING: 1, REWORK: 1, APPROVED: 2, PUBLISHED: 0 });
   });
 
   it("counts distinct assets scheduled this month (not per-date)", () => {

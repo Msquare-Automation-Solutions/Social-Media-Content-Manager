@@ -6,6 +6,7 @@ import { TYPE_LABELS } from "@/lib/library";
 import { initials } from "@/lib/colors";
 import { AssetPreview } from "@/components/library/asset-card";
 import { StatusBadge } from "@/components/library/status-badge";
+import { PlatformIcon } from "@/components/ui/platform-icon";
 import { BlogEditor } from "@/components/library/blog-editor";
 import { EditAssetDialog } from "@/components/library/edit-asset-dialog";
 import { VersionHistory } from "@/components/library/version-history";
@@ -39,6 +40,8 @@ type AssetDetail = {
   channelIds: string[];
   versionCount: number;
   canEdit: boolean;
+  canPublish: boolean;
+  canUnpublish: boolean;
 };
 
 export function AssetDrawer({
@@ -62,7 +65,7 @@ export function AssetDrawer({
   const [reworkNote, setReworkNote] = useState("");
   const replaceInput = useRef<HTMLInputElement>(null);
 
-  async function review(status: "APPROVED" | "REWORK", note?: string) {
+  async function review(status: "APPROVED" | "REWORK" | "PUBLISHED", note?: string) {
     setBusy(true);
     const r = await fetch(`/api/assets/${assetId}/status`, {
       method: "PATCH",
@@ -71,7 +74,13 @@ export function AssetDrawer({
     });
     setBusy(false);
     if (r.ok) {
-      toast(status === "APPROVED" ? "Approved ✓" : "Sent back for rework");
+      toast(
+        status === "APPROVED"
+          ? "Approved ✓"
+          : status === "PUBLISHED"
+            ? "Marked as published ✓"
+            : "Sent back for rework",
+      );
       setReworkOpen(false);
       setReworkNote("");
       refetch();
@@ -229,11 +238,37 @@ export function AssetDrawer({
                 ) : (
                   <p className="mt-2 text-[11.5px] text-slate">
                     {asset.status === "APPROVED"
-                      ? "Approved by an admin."
-                      : asset.status === "REWORK"
-                        ? "Edit this item to resubmit it for review."
-                        : "Waiting for an admin to review."}
+                      ? "Approved — queued for publishing."
+                      : asset.status === "PUBLISHED"
+                        ? "Published."
+                        : asset.status === "REWORK"
+                          ? "Edit this item to resubmit it for review."
+                          : "Waiting for an admin to review."}
                   </p>
+                )}
+                {/* Publish workflow: the creator or an admin marks an approved
+                    item as published once it's live. */}
+                {asset.canPublish && (
+                  <div className="mt-3">
+                    <button
+                      onClick={() => review("PUBLISHED")}
+                      disabled={busy}
+                      className="rounded-[9px] bg-[#3f63d0] px-3.5 py-1.5 text-[12.5px] font-semibold text-white hover:brightness-95 disabled:opacity-50"
+                    >
+                      ⬆ Mark as published
+                    </button>
+                  </div>
+                )}
+                {asset.canUnpublish && (
+                  <div className="mt-3">
+                    <button
+                      onClick={() => review("APPROVED")}
+                      disabled={busy}
+                      className="rounded-[9px] border border-line px-3.5 py-1.5 text-[12.5px] font-semibold text-slate hover:border-teal hover:text-teal-dark disabled:opacity-50"
+                    >
+                      ↩ Move back to approved
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -270,7 +305,7 @@ export function AssetDrawer({
                         key={c.id}
                         className="flex items-center gap-1 rounded-full bg-bg px-2 py-0.5 text-[11px] font-semibold"
                       >
-                        {c.icon} {c.name}
+                        <PlatformIcon name={c.name} icon={c.icon} size={14} className="shrink-0" /> {c.name}
                         {c.scheduledFor && (
                           <span className="font-normal text-teal-dark">
                             · 📅 {new Date(c.scheduledFor).toLocaleDateString()}

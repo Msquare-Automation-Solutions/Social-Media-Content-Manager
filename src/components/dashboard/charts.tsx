@@ -3,6 +3,8 @@
 // gap between donut segments, and a direct numeric label on every mark so
 // identity/magnitude is never carried by color alone.
 
+import { PlatformIcon } from "@/components/ui/platform-icon";
+
 export function StatTile({
   label,
   value,
@@ -44,7 +46,9 @@ export function BarChart({ data, empty = "No data yet" }: { data: BarDatum[]; em
       {data.map((d) => (
         <div key={d.label} className="flex items-center gap-3">
           <div className="flex w-32 shrink-0 items-center gap-1.5 truncate text-[12px] text-ink">
-            {d.icon && <span aria-hidden>{d.icon}</span>}
+            {d.icon && (
+              <PlatformIcon name={d.label} icon={d.icon} size={14} className="shrink-0" />
+            )}
             <span className="truncate">{d.label}</span>
           </div>
           <div className="relative h-2.5 flex-1 rounded-full bg-bg">
@@ -137,7 +141,8 @@ export function Donut({
 
 // Reserved status palette (kept distinct from platform/series hues).
 export const STATUS_COLORS: Record<string, string> = {
-  IN_QUEUE: "#e0912b",
+  PENDING: "#e0912b",
   REWORK: "#c23b2a",
   APPROVED: "#0e9f8f",
+  PUBLISHED: "#3f63d0",
 };

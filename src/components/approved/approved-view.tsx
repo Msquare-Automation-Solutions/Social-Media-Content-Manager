@@ -15,11 +15,24 @@ type Props = {
   filters: { person: string; channel: string; type: string; q: string; sort: string };
   canEdit: boolean;
   canReview: boolean;
+  title?: string;
+  subtitle?: string;
+  emptyText?: string;
 };
 
-// A browsable gallery of everything that's been approved — cards with live
-// previews of the media / link, filterable by person, platform, and category.
-export function ApprovedView({ assets, people, channels, filters, canEdit, canReview }: Props) {
+// A browsable gallery of a status bucket (Approved / Published) — cards with
+// live previews of the media / link, filterable by person, platform, category.
+export function ApprovedView({
+  assets,
+  people,
+  channels,
+  filters,
+  canEdit,
+  canReview,
+  title = "Approved",
+  subtitle = "Everything signed off and ready to publish — preview any card to open, download, or edit it.",
+  emptyText = "Nothing approved yet — items show here once an admin approves them from the review queue.",
+}: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const [pending, startTransition] = useTransition();
@@ -46,7 +59,7 @@ export function ApprovedView({ assets, people, channels, filters, canEdit, canRe
         <Link href="/" className="text-[13px] font-semibold text-teal-dark">
           ← Back to chat
         </Link>
-        <h2 className="font-display text-[19px]">Approved</h2>
+        <h2 className="font-display text-[19px]">{title}</h2>
         {assets.length > 0 && (
           <span className="rounded-full bg-teal-soft px-2.5 py-0.5 text-[12px] font-bold text-teal-dark tabular-nums">
             {assets.length}
@@ -54,9 +67,7 @@ export function ApprovedView({ assets, people, channels, filters, canEdit, canRe
         )}
         {pending && <span className="text-[12px] text-slate">Filtering…</span>}
       </div>
-      <p className="mb-4 text-[13px] text-slate">
-        Everything signed off and ready to publish — preview any card to open, download, or edit it.
-      </p>
+      <p className="mb-4 text-[13px] text-slate">{subtitle}</p>
 
       {/* Filter bar */}
       <div className="mb-4 flex flex-wrap items-end gap-2.5">
@@ -118,9 +129,7 @@ export function ApprovedView({ assets, people, channels, filters, canEdit, canRe
 
       {assets.length === 0 ? (
         <div className="grid place-items-center py-20 text-center text-slate">
-          {hasFilters
-            ? "No approved items match — adjust the filters."
-            : "Nothing approved yet — items show here once an admin approves them from the review queue."}
+          {hasFilters ? "No items match — adjust the filters." : emptyText}
         </div>
       ) : (
         <div className="grid grid-cols-[repeat(auto-fill,minmax(215px,1fr))] gap-4 pb-24">

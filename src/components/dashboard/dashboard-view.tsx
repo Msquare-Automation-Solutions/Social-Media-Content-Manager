@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { DashboardData } from "@/lib/data";
 import { STATUS_LABELS } from "@/lib/enums";
 import { initials } from "@/lib/colors";
+import { PlatformIcon } from "@/components/ui/platform-icon";
 import {
   StatTile,
   BarChart,
@@ -39,7 +40,7 @@ export function DashboardView({ data }: { data: DashboardData }) {
       </div>
 
       {/* KPI tiles */}
-      <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-5">
         <StatTile
           label="Scheduled this month"
           value={data.scheduledThisMonth}
@@ -47,10 +48,10 @@ export function DashboardView({ data }: { data: DashboardData }) {
           accent="#7a4fc9"
         />
         <StatTile
-          label={STATUS_LABELS.IN_QUEUE}
-          value={data.statusCounts.IN_QUEUE}
+          label={STATUS_LABELS.PENDING}
+          value={data.statusCounts.PENDING}
           sublabel="Awaiting review"
-          accent={STATUS_COLORS.IN_QUEUE}
+          accent={STATUS_COLORS.PENDING}
         />
         <StatTile
           label={STATUS_LABELS.REWORK}
@@ -61,8 +62,14 @@ export function DashboardView({ data }: { data: DashboardData }) {
         <StatTile
           label={STATUS_LABELS.APPROVED}
           value={data.statusCounts.APPROVED}
-          sublabel={`of ${data.totalAssets} total`}
+          sublabel="Queued to post"
           accent={STATUS_COLORS.APPROVED}
+        />
+        <StatTile
+          label={STATUS_LABELS.PUBLISHED}
+          value={data.statusCounts.PUBLISHED}
+          sublabel={`of ${data.totalAssets} total`}
+          accent={STATUS_COLORS.PUBLISHED}
         />
       </div>
 
@@ -88,7 +95,7 @@ export function DashboardView({ data }: { data: DashboardData }) {
           <h3 className="mb-3 font-display text-[15px]">By status</h3>
           <Donut
             centerLabel="assets"
-            segments={(["APPROVED", "IN_QUEUE", "REWORK"] as const).map((s) => ({
+            segments={(["PUBLISHED", "APPROVED", "PENDING", "REWORK"] as const).map((s) => ({
               label: STATUS_LABELS[s],
               value: data.statusCounts[s],
               color: STATUS_COLORS[s],
@@ -110,11 +117,10 @@ export function DashboardView({ data }: { data: DashboardData }) {
               {data.upcoming.map((u, i) => (
                 <li key={`${u.id}-${i}`} className="flex items-center gap-3 py-2.5">
                   <span
-                    className="grid h-7 w-7 shrink-0 place-items-center rounded-[9px] text-[13px] text-white"
+                    className="grid h-7 w-7 shrink-0 place-items-center rounded-[9px] text-white"
                     style={{ background: u.platformColor }}
-                    aria-hidden
                   >
-                    {u.platformIcon}
+                    <PlatformIcon name={u.platformName} icon={u.platformIcon} size={15} mono />
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-[12.5px] font-semibold text-ink">{u.title}</div>

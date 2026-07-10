@@ -6,6 +6,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSaveDialog, type SaveTarget } from "@/components/save/dialog-context";
 import { useToast } from "@/components/ui/toast";
 import { CATEGORY_OPTIONS, TYPE_LABELS, LIBRARY_SLUGS } from "@/lib/library";
+import { PlatformIcon } from "@/components/ui/platform-icon";
 import { initials } from "@/lib/colors";
 import {
   artifactToHtml,
@@ -454,7 +455,7 @@ function SaveDialogInner({
                     : "border-line text-slate hover:border-teal"
                 }`}
               >
-                {c.icon} {c.name}
+                <PlatformIcon name={c.name} icon={c.icon} size={14} className="inline-block shrink-0 align-text-bottom" /> {c.name}
               </button>
             );
           })}
@@ -494,7 +495,7 @@ function SaveDialogInner({
               .map((c) => (
                 <div key={c.id} className="flex items-center gap-2 text-[12.5px]">
                   <span className="w-28 shrink-0 truncate">
-                    {c.icon} {c.name}
+                    <PlatformIcon name={c.name} icon={c.icon} size={14} className="inline-block shrink-0 align-text-bottom" /> {c.name}
                   </span>
                   <input
                     type="date"

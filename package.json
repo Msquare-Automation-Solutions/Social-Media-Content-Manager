@@ -15,6 +15,7 @@
     "db:seed": "prisma db seed",
     "seed:review": "tsx scripts/seed-review-queue.ts",
     "migrate:thumbs": "tsx scripts/migrate-thumbnails-to-r2.ts",
+    "migrate:status": "tsx scripts/migrate-status.ts",
     "test": "vitest run",
     "e2e": "playwright test",
     "e2e:db": "tsx scripts/e2e-db-setup.ts",

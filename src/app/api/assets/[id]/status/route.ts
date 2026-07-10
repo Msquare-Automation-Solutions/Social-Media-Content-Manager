@@ -1,16 +1,21 @@
 import { z } from "zod";
 import { guard } from "@/lib/api-guard";
 import { prisma } from "@/lib/db";
+import { isAdminRole } from "@/lib/roles";
 import { logActivity } from "@/lib/activity";
+import { createNotifications, reviewNotificationRecipients } from "@/lib/notifications";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Admin review decision (ADMIN+): APPROVE or send back for REWORK with a note.
-// Uploaders can't reach this route — they only ever leave content IN_QUEUE.
+// Review workflow transitions:
+//   PENDING → APPROVED | REWORK   (admins only)
+//   APPROVED → PUBLISHED          (creator of the item, or any admin)
+//   PUBLISHED → APPROVED          (admins only — undo a publish)
+// A note is required for REWORK.
 const schema = z
   .object({
-    status: z.enum(["APPROVED", "REWORK"]),
+    status: z.enum(["APPROVED", "REWORK", "PUBLISHED"]),
     note: z.string().trim().max(1000).optional(),
   })
   .refine((d) => d.status !== "REWORK" || !!d.note, {
@@ -19,7 +24,7 @@ const schema = z
   });
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const g = await guard("ADMIN");
+  const g = await guard("EDITOR");
   if (!g.ok) return g.response;
 
   const parsed = schema.safeParse(await req.json().catch(() => ({})));
@@ -32,21 +37,55 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   });
   if (!asset) return new Response("Not found", { status: 404 });
 
-  const approved = parsed.data.status === "APPROVED";
+  const admin = isAdminRole(g.user.role);
+  const target = parsed.data.status;
+
+  // Permission + valid-transition checks per target status.
+  if (target === "APPROVED" || target === "REWORK") {
+    if (!admin) return new Response("Only admins can review content", { status: 403 });
+  } else if (target === "PUBLISHED") {
+    const isCreator = asset.createdById === g.user.id;
+    if (!admin && !isCreator) {
+      return new Response("Only the creator or an admin can publish", { status: 403 });
+    }
+    if (asset.status !== "APPROVED") {
+      return new Response("Only approved content can be published", { status: 400 });
+    }
+  }
+
   await prisma.mediaAsset.update({
     where: { id: asset.id },
     data: {
-      status: parsed.data.status,
-      reviewNote: approved ? null : parsed.data.note!,
+      status: target,
+      reviewNote: target === "REWORK" ? parsed.data.note! : null,
       reviewedAt: new Date(),
     },
   });
 
+  const action =
+    target === "APPROVED"
+      ? "asset.approved"
+      : target === "REWORK"
+        ? "asset.reworked"
+        : "asset.published";
+
   await logActivity(g.user, {
-    action: approved ? "asset.approved" : "asset.reworked",
+    action,
     targetId: asset.id,
     targetLabel: asset.title,
-    ...(approved ? {} : { metadata: { note: parsed.data.note } }),
+    ...(target === "REWORK" ? { metadata: { note: parsed.data.note } } : {}),
+  });
+
+  // Notify the uploader + other admins (minus the actor) that a decision landed.
+  const verb =
+    target === "APPROVED" ? "approved" : target === "REWORK" ? "requested rework on" : "published";
+  const recipients = await reviewNotificationRecipients(g.user.workspaceId, asset.createdById);
+  await createNotifications(g.user, recipients, {
+    action,
+    message: `${verb} “${asset.title}”`,
+    targetType: "asset",
+    targetId: asset.id,
+    targetLabel: asset.title,
   });
 
   return Response.json({ ok: true });

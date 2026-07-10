@@ -3,6 +3,7 @@ import { z } from "zod";
 import { guard } from "@/lib/api-guard";
 import { prisma } from "@/lib/db";
 import { snapshotAsset, canMutateAsset } from "@/lib/assets";
+import { isAdminRole } from "@/lib/roles";
 import { serializeTags, parseTags } from "@/lib/json";
 import { storage, keyFromUrl } from "@/lib/storage";
 import { makeImageThumbnail, thumbKey } from "@/lib/thumbnails";
@@ -57,6 +58,11 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     channelIds: a.channels.map((c) => c.channelId),
     versionCount: a._count.versions,
     canEdit: canMutateAsset(g.user, a),
+    // Publish workflow (Part C): the creator of an item or any admin may mark an
+    // APPROVED item PUBLISHED; only admins can undo a publish back to APPROVED.
+    canPublish:
+      a.status === "APPROVED" && (isAdminRole(g.user.role) || a.createdById === g.user.id),
+    canUnpublish: a.status === "PUBLISHED" && isAdminRole(g.user.role),
   });
 }
 
@@ -138,8 +144,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     }
   }
 
-  // Any content edit resubmits the item for review (back to In queue).
-  data.status = "IN_QUEUE";
+  // Any content edit resubmits the item for review (back to Pending approval).
+  data.status = "PENDING";
   data.reviewNote = null;
   data.reviewedAt = null;
 

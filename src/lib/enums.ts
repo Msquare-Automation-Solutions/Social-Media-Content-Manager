@@ -24,14 +24,17 @@ export type AssetType = (typeof ASSET_TYPES)[number];
 export const ASSET_SOURCES = ["UPLOAD", "GENERATED", "LINK"] as const;
 export type AssetSource = (typeof ASSET_SOURCES)[number];
 
-// Review workflow: content lands IN_QUEUE; an admin marks it APPROVED or REWORK.
-export const ASSET_STATUSES = ["IN_QUEUE", "REWORK", "APPROVED"] as const;
+// Review workflow: content lands PENDING (pending approval); an admin marks it
+// APPROVED or REWORK; a creator/admin then marks an approved item PUBLISHED once
+// it's live. Editing any item resubmits it to PENDING.
+export const ASSET_STATUSES = ["PENDING", "REWORK", "APPROVED", "PUBLISHED"] as const;
 export type AssetStatus = (typeof ASSET_STATUSES)[number];
 
 export const STATUS_LABELS: Record<AssetStatus, string> = {
-  IN_QUEUE: "In queue",
+  PENDING: "Pending approval",
   REWORK: "Rework",
   APPROVED: "Approved",
+  PUBLISHED: "Published",
 };
 
 export const CHAT_ROLES = ["user", "assistant"] as const;

@@ -2,7 +2,7 @@ import { randomUUID } from "crypto";
 import { PrismaClient } from "@prisma/client";
 
 // Demo data for the Review Queue: fills every platform with all four
-// categories, each holding 2–3 IN_QUEUE items (a mix of AI-generated, uploads,
+// categories, each holding 2–3 PENDING items (a mix of AI-generated, uploads,
 // and external URLs). Idempotent — every item is tagged "review-demo" and
 // re-running deletes the previous batch first, so it never piles up.
 //
@@ -122,7 +122,7 @@ async function main() {
           type: cat.type,
           title,
           source,
-          status: "IN_QUEUE",
+          status: "PENDING",
           url: source === "LINK" ? LINK_URLS[k % LINK_URLS.length] : null,
           html: cat.type === "BLOGPOST" && source !== "LINK" ? blogHtml(title, topic) : null,
           thumbnailUrl: null, // falls back to the branded gradient + glyph preview
@@ -137,7 +137,7 @@ async function main() {
   await withRetry(() => prisma.assetChannel.createMany({ data: links }));
 
   console.log(`Cleared ${cleared.count} previous demo items.`);
-  console.log(`Seeded ${assets.length} IN_QUEUE demo items across ${channels.length} platforms × ${CATEGORIES.length} categories.`);
+  console.log(`Seeded ${assets.length} PENDING demo items across ${channels.length} platforms × ${CATEGORIES.length} categories.`);
 }
 
 main()

@@ -7,11 +7,12 @@ import type { ReviewQueue } from "@/lib/data";
 import { TYPE_ICONS } from "@/lib/library";
 import { initials } from "@/lib/colors";
 import { AssetPreview } from "@/components/library/asset-card";
+import { PlatformIcon } from "@/components/ui/platform-icon";
 import { AssetDrawer } from "@/components/library/asset-drawer";
 
 // Platform → Category → item tree of everything awaiting approval. Clicking an
 // item opens the shared AssetDrawer (preview + Approve / Request rework for
-// admins). Approving/reworking moves it out of IN_QUEUE, so a router.refresh()
+// admins). Approving/reworking moves it out of PENDING, so a router.refresh()
 // drops it from the tree.
 export function ReviewTree({
   queue,
@@ -79,11 +80,10 @@ export function ReviewTree({
                 >
                   <Chevron open={gOpen} />
                   <span
-                    className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[11px] text-[17px] text-white shadow-soft"
+                    className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[11px] text-white shadow-soft"
                     style={{ background: g.color }}
-                    aria-hidden
                   >
-                    {g.icon}
+                    <PlatformIcon name={g.name} icon={g.icon} size={18} mono />
                   </span>
                   <span className="min-w-0">
                     <span className="block font-semibold">{g.name}</span>

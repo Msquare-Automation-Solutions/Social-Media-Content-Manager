@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
 import { getAssetCounts } from "@/lib/data";
+import { unreadNotificationCount } from "@/lib/notifications";
 import { Sidebar } from "@/components/sidebar";
 import { DialogProvider } from "@/components/save/dialog-context";
 import { Dialogs } from "@/components/save/dialogs";
@@ -16,16 +17,21 @@ export default async function AppLayout({
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const [counts, membersCount, queueCount, approvedCount] = await Promise.all([
-    getAssetCounts(user.workspaceId),
-    prisma.membership.count({ where: { workspaceId: user.workspaceId } }),
-    prisma.mediaAsset.count({
-      where: { workspaceId: user.workspaceId, deletedAt: null, status: "IN_QUEUE" },
-    }),
-    prisma.mediaAsset.count({
-      where: { workspaceId: user.workspaceId, deletedAt: null, status: "APPROVED" },
-    }),
-  ]);
+  const [counts, membersCount, queueCount, approvedCount, publishedCount, unreadCount] =
+    await Promise.all([
+      getAssetCounts(user.workspaceId),
+      prisma.membership.count({ where: { workspaceId: user.workspaceId } }),
+      prisma.mediaAsset.count({
+        where: { workspaceId: user.workspaceId, deletedAt: null, status: "PENDING" },
+      }),
+      prisma.mediaAsset.count({
+        where: { workspaceId: user.workspaceId, deletedAt: null, status: "APPROVED" },
+      }),
+      prisma.mediaAsset.count({
+        where: { workspaceId: user.workspaceId, deletedAt: null, status: "PUBLISHED" },
+      }),
+      unreadNotificationCount(user.id),
+    ]);
 
   return (
     <DialogProvider>
@@ -42,6 +48,8 @@ export default async function AppLayout({
           membersCount={membersCount}
           queueCount={queueCount}
           approvedCount={approvedCount}
+          publishedCount={publishedCount}
+          unreadCount={unreadCount}
         />
         <main className="flex h-screen flex-col overflow-hidden">{children}</main>
       </div>

@@ -1,15 +1,17 @@
 import { STATUS_LABELS, type AssetStatus } from "@/lib/enums";
 
 const STYLES: Record<string, string> = {
-  IN_QUEUE: "bg-[#fdeeda] text-[#b07514]",
+  PENDING: "bg-[#fdeeda] text-[#b07514]",
   REWORK: "bg-[#fdecea] text-[#c23b2a]",
   APPROVED: "bg-teal-soft text-teal-dark",
+  PUBLISHED: "bg-[#e7edfb] text-[#3454b4]",
 };
 
 const DOTS: Record<string, string> = {
-  IN_QUEUE: "bg-[#e0a53a]",
+  PENDING: "bg-[#e0a53a]",
   REWORK: "bg-[#c23b2a]",
   APPROVED: "bg-teal",
+  PUBLISHED: "bg-[#3f63d0]",
 };
 
 export function StatusBadge({

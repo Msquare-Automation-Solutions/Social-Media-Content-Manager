@@ -20,6 +20,7 @@ export const ACTIONS = {
   "asset.bulk_addTags": { category: "content", verb: "added tags to" },
   "asset.approved": { category: "content", verb: "approved" },
   "asset.reworked": { category: "content", verb: "requested rework on" },
+  "asset.published": { category: "content", verb: "published" },
   "creator.created": { category: "creator", verb: "added creator" },
   "creator.updated": { category: "creator", verb: "edited creator" },
   "creator.deleted": { category: "creator", verb: "removed creator" },

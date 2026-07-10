@@ -7,6 +7,7 @@ import { LIBRARY_VIEWS, LIBRARY_SLUGS, type LibraryViewKey } from "@/lib/library
 import { initials } from "@/lib/colors";
 import { useUploadDialog } from "@/components/save/dialog-context";
 import { Icon, type IconName } from "@/components/ui/icons";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 
 const VIEW_ICONS: Record<LibraryViewKey, IconName> = {
   IMAGE: "images",
@@ -22,6 +23,8 @@ type Props = {
   membersCount: number;
   queueCount: number;
   approvedCount: number;
+  publishedCount: number;
+  unreadCount: number;
 };
 
 export function Sidebar({
@@ -31,6 +34,8 @@ export function Sidebar({
   membersCount,
   queueCount,
   approvedCount,
+  publishedCount,
+  unreadCount,
 }: Props) {
   const pathname = usePathname();
   const upload = useUploadDialog();
@@ -46,7 +51,8 @@ export function Sidebar({
         <div className="grid h-8 w-8 place-items-center rounded-[10px] bg-brand-teal text-white shadow-glow-sm">
           ◆
         </div>
-        {workspaceName}
+        <span className="min-w-0 flex-1 truncate">{workspaceName}</span>
+        <NotificationBell initialUnread={unreadCount} />
       </div>
 
       {canUpload && (
@@ -66,6 +72,12 @@ export function Sidebar({
         icon="dashboard"
       />
       <NavLink
+        href="/overview"
+        active={isActive("/overview")}
+        label="Workspace overview"
+        icon="overview"
+      />
+      <NavLink
         href="/review"
         active={isActive("/review")}
         label="Review queue"
@@ -79,6 +91,13 @@ export function Sidebar({
         label="Approved"
         icon="approved"
         count={approvedCount || undefined}
+      />
+      <NavLink
+        href="/published"
+        active={isActive("/published")}
+        label="Published"
+        icon="published"
+        count={publishedCount || undefined}
       />
 
       <div className="px-3 pb-1.5 pt-3.5 text-[11px] font-bold uppercase tracking-[0.06em] text-[#9aa7b6]">

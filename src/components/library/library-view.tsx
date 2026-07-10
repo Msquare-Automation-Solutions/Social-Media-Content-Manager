@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import type { AssetListItem } from "@/lib/data";
+import { ASSET_STATUSES, STATUS_LABELS } from "@/lib/enums";
 import { AssetCard } from "@/components/library/asset-card";
 import { AssetDrawer } from "@/components/library/asset-drawer";
 import { BulkBar } from "@/components/library/bulk-bar";
@@ -94,9 +95,7 @@ export function LibraryView({
           onChange={(v) => setParam("status", v)}
           options={[
             { value: "", label: "All statuses" },
-            { value: "IN_QUEUE", label: "In queue" },
-            { value: "REWORK", label: "Rework" },
-            { value: "APPROVED", label: "Approved" },
+            ...ASSET_STATUSES.map((s) => ({ value: s, label: STATUS_LABELS[s] })),
           ]}
         />
         <label className="flex flex-col gap-1 text-[11.5px] font-semibold text-slate">

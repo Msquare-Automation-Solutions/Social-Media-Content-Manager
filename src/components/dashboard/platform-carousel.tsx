@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { PlatformSlice } from "@/lib/data";
 import { STATUS_LABELS } from "@/lib/enums";
+import { PlatformIcon } from "@/components/ui/platform-icon";
 import { BarChart, STATUS_COLORS, type BarDatum } from "@/components/dashboard/charts";
 
 // One platform per slide with its own breakdown. Auto-advances every 5s
@@ -39,11 +40,10 @@ export function PlatformCarousel({ platforms }: { platforms: PlatformSlice[] }) 
       <div className="mb-3 flex items-center gap-3">
         <div className="flex min-w-0 items-center gap-2.5">
           <span
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-[11px] text-[17px] text-white shadow-soft"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-[11px] text-white shadow-soft"
             style={{ background: p.color }}
-            aria-hidden
           >
-            {p.icon}
+            <PlatformIcon name={p.name} icon={p.icon} size={19} mono />
           </span>
           <div className="min-w-0">
             <div className="truncate font-display text-[16px] leading-tight">{p.name}</div>
@@ -81,7 +81,7 @@ export function PlatformCarousel({ platforms }: { platforms: PlatformSlice[] }) 
         </div>
 
         <div className="mt-4 flex flex-wrap gap-2">
-          {(["IN_QUEUE", "REWORK", "APPROVED"] as const).map((s) => (
+          {(["PENDING", "REWORK", "APPROVED", "PUBLISHED"] as const).map((s) => (
             <span
               key={s}
               className="inline-flex items-center gap-1.5 rounded-full bg-bg px-2.5 py-1 text-[11.5px] font-medium text-ink"

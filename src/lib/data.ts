@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { LIBRARY_VIEWS, typesForView, type LibraryViewKey } from "@/lib/library";
+import { LIBRARY_VIEWS, LIBRARY_SLUGS, typesForView, type LibraryViewKey } from "@/lib/library";
 import { parseTags, parseJson } from "@/lib/json";
 import { describeActivity } from "@/lib/activity-format";
 
@@ -310,7 +310,7 @@ export type DashAsset = {
 export type DashChannel = { id: string; name: string; icon: string; color: string };
 
 export type TypeSlice = { key: LibraryViewKey; label: string; count: number };
-export type StatusCounts = { IN_QUEUE: number; REWORK: number; APPROVED: number };
+export type StatusCounts = { PENDING: number; REWORK: number; APPROVED: number; PUBLISHED: number };
 
 export type PlatformSlice = {
   id: string;
@@ -350,9 +350,10 @@ function typeBreakdown(assets: { type: string }[]): TypeSlice[] {
 
 function statusBreakdown(assets: { status: string }[]): StatusCounts {
   return {
-    IN_QUEUE: assets.filter((a) => a.status === "IN_QUEUE").length,
+    PENDING: assets.filter((a) => a.status === "PENDING").length,
     REWORK: assets.filter((a) => a.status === "REWORK").length,
     APPROVED: assets.filter((a) => a.status === "APPROVED").length,
+    PUBLISHED: assets.filter((a) => a.status === "PUBLISHED").length,
   };
 }
 
@@ -508,7 +509,7 @@ export type ReviewQueue = { total: number; groups: ReviewGroup[] };
 
 const UNASSIGNED_ID = "unassigned";
 
-/** Pure: group IN_QUEUE assets into Platform → Category → item, in stable order. */
+/** Pure: group PENDING assets into Platform → Category → item, in stable order. */
 export function buildReviewTree(
   assets: ReviewAsset[],
   channels: { id: string; name: string; icon: string; color: string }[],
@@ -574,11 +575,11 @@ export function buildReviewTree(
   return { total: assets.length, groups };
 }
 
-/** IN_QUEUE assets as a Platform → Category → item tree (workspace-scoped). */
+/** PENDING assets as a Platform → Category → item tree (workspace-scoped). */
 export async function getReviewQueue(workspaceId: string): Promise<ReviewQueue> {
   const [rows, channels] = await Promise.all([
     prisma.mediaAsset.findMany({
-      where: { workspaceId, deletedAt: null, status: "IN_QUEUE" },
+      where: { workspaceId, deletedAt: null, status: "PENDING" },
       orderBy: { createdAt: "desc" },
       include: {
         person: { select: { name: true, avatarColor: true } },
@@ -606,6 +607,128 @@ export async function getReviewQueue(workspaceId: string): Promise<ReviewQueue> 
   }));
 
   return buildReviewTree(assets, channels);
+}
+
+// ── Workspace overview (Platform → content-type cards) ──────────────────────
+export type OverviewLeaf = { id: string; title: string; type: string; thumbnailUrl: string | null };
+export type OverviewCategory = {
+  key: LibraryViewKey;
+  label: string;
+  slug: string;
+  count: number;
+  previews: OverviewLeaf[];
+};
+export type OverviewGroup = {
+  id: string; // channelId, or "unassigned"
+  name: string;
+  icon: string;
+  color: string;
+  count: number; // distinct assets under this platform
+  categories: OverviewCategory[];
+};
+export type WorkspaceOverview = { total: number; groups: OverviewGroup[] };
+
+type OverviewAsset = {
+  id: string;
+  title: string;
+  type: string;
+  thumbnailUrl: string | null;
+  channels: { id: string }[];
+};
+
+/** Pure: group every asset into Platform → content-type cards (all 4 shown). */
+export function buildWorkspaceOverview(
+  assets: OverviewAsset[],
+  channels: { id: string; name: string; icon: string; color: string }[],
+): WorkspaceOverview {
+  const viewFor = (type: string): LibraryViewKey | null =>
+    LIBRARY_VIEWS.find((v) => (v.types as readonly string[]).includes(type))?.key ?? null;
+
+  const byGroup = new Map<string, OverviewAsset[]>();
+  const push = (gid: string, a: OverviewAsset) => {
+    const arr = byGroup.get(gid);
+    if (arr) arr.push(a);
+    else byGroup.set(gid, [a]);
+  };
+  for (const a of assets) {
+    if (a.channels.length === 0) push(UNASSIGNED_ID, a);
+    else for (const c of a.channels) push(c.id, a);
+  }
+
+  const categoriesFor = (list: OverviewAsset[]): OverviewCategory[] =>
+    LIBRARY_VIEWS.map((v) => {
+      const items = list.filter((a) => viewFor(a.type) === v.key);
+      return {
+        key: v.key,
+        label: v.label,
+        slug: LIBRARY_SLUGS[v.key],
+        count: items.length,
+        previews: items.slice(0, 4).map((a) => ({
+          id: a.id,
+          title: a.title,
+          type: a.type,
+          thumbnailUrl: a.thumbnailUrl,
+        })),
+      };
+    });
+
+  const groups: OverviewGroup[] = [];
+  for (const ch of channels) {
+    const list = byGroup.get(ch.id);
+    if (!list || list.length === 0) continue;
+    groups.push({
+      id: ch.id,
+      name: ch.name,
+      icon: ch.icon,
+      color: ch.color,
+      count: list.length,
+      categories: categoriesFor(list),
+    });
+  }
+  const orphans = byGroup.get(UNASSIGNED_ID);
+  if (orphans && orphans.length > 0) {
+    groups.push({
+      id: UNASSIGNED_ID,
+      name: "Unassigned",
+      icon: "—",
+      color: "#9aa7b6",
+      count: orphans.length,
+      categories: categoriesFor(orphans),
+    });
+  }
+
+  return { total: assets.length, groups };
+}
+
+export async function getWorkspaceOverview(workspaceId: string): Promise<WorkspaceOverview> {
+  const [rows, channels] = await Promise.all([
+    prisma.mediaAsset.findMany({
+      where: { workspaceId, deletedAt: null },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        title: true,
+        type: true,
+        thumbnailUrl: true,
+        channels: { select: { channelId: true } },
+      },
+    }),
+    prisma.socialChannel.findMany({
+      where: { workspaceId },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, name: true, icon: true, color: true },
+    }),
+  ]);
+
+  const assets: OverviewAsset[] = rows.map((a) => ({
+    id: a.id,
+    title: a.title,
+    type: a.type,
+    thumbnailUrl: a.thumbnailUrl,
+    channels: a.channels.map((c) => ({ id: c.channelId })),
+  }));
+
+  return buildWorkspaceOverview(assets, channels);
 }
 
 export async function listSessions(workspaceId: string, userId: string) {
@@ -650,20 +773,21 @@ export async function getLibraryAssets(
 }
 
 /**
- * Every APPROVED asset across all types as grid cards (workspace-scoped) — the
- * payoff view: a browsable gallery of published/ready content. Same person /
+ * Every asset in a given status across all types as grid cards (workspace-
+ * scoped) — the payoff gallery views (Approved, Published). Same person /
  * platform / search / sort filters as the library, plus an optional category
  * (type) narrow.
  */
-export async function getApprovedAssets(
+export async function getAssetsByStatus(
   workspaceId: string,
+  status: string,
   filters: LibraryFilters,
 ): Promise<AssetListItem[]> {
   const rows = await prisma.mediaAsset.findMany({
     where: {
       workspaceId,
       deletedAt: null,
-      status: "APPROVED",
+      status,
       ...(filters.type ? { type: { in: typesForView(filters.type as LibraryViewKey) } } : {}),
       ...(filters.personId ? { personId: filters.personId } : {}),
       ...(filters.channelId ? { channels: { some: { channelId: filters.channelId } } } : {}),
@@ -673,6 +797,14 @@ export async function getApprovedAssets(
   });
 
   return filterAndSortAssets(rows.map(mapAssetRow), filters);
+}
+
+export function getApprovedAssets(workspaceId: string, filters: LibraryFilters) {
+  return getAssetsByStatus(workspaceId, "APPROVED", filters);
+}
+
+export function getPublishedAssets(workspaceId: string, filters: LibraryFilters) {
+  return getAssetsByStatus(workspaceId, "PUBLISHED", filters);
 }
 
 /**
