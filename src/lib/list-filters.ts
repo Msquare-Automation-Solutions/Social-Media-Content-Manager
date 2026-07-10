@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/db";
 import type { LibraryFilters } from "@/lib/data";
+import { isAdminRole } from "@/lib/roles";
+import type { Role } from "@/lib/enums";
 
 export type ListSearchParams = {
   person?: string;
@@ -26,22 +28,25 @@ export type ListView = {
 };
 
 /**
- * Shared resolution of gallery/list filters from URL search params. Defaults the
- * Person filter to the logged-in user's own creator (so people land on their own
- * work); an explicit `person=all` clears it. Also maps the from/to date range.
+ * Shared resolution of gallery/list filters from URL search params. For regular
+ * users the Person filter defaults to their own creator (so people land on
+ * their own work); admins (OWNER/ADMIN) default to All people. An explicit
+ * `person=all` always clears it. Also maps the from/to date range.
  */
 export async function resolveListFilters(
-  workspaceId: string,
-  userId: string,
+  user: { workspaceId: string; id: string; role: Role },
   sp: ListSearchParams,
   defaultSort: SortKey = "newest",
 ): Promise<{ filters: LibraryFilters; view: ListView }> {
-  const self = await prisma.person.findFirst({
-    where: { workspaceId, userId, deletedAt: null },
-    select: { id: true },
-  });
-  const selfId = self?.id ?? "";
-  const personValue = sp.person ?? selfId; // the <select> value
+  let selfId = "";
+  if (!isAdminRole(user.role)) {
+    const self = await prisma.person.findFirst({
+      where: { workspaceId: user.workspaceId, userId: user.id, deletedAt: null },
+      select: { id: true },
+    });
+    selfId = self?.id ?? "";
+  }
+  const personValue = sp.person ?? selfId; // the <select> value ("" → All for admins)
   const personId = personValue && personValue !== "all" ? personValue : undefined;
   const sort = (sp.sort as SortKey) || defaultSort;
 

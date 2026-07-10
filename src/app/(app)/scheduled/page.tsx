@@ -17,7 +17,7 @@ export default async function ScheduledPage({
   if (!user) redirect("/login");
   const sp = await searchParams;
   // Default to post-date order — most useful for a schedule.
-  const { filters, view } = await resolveListFilters(user.workspaceId, user.id, sp, "postdate");
+  const { filters, view } = await resolveListFilters({ workspaceId: user.workspaceId, id: user.id, role: user.role }, sp, "postdate");
 
   const [assets, people, channels] = await Promise.all([
     getScheduledThisMonthAssets(user.workspaceId, filters),

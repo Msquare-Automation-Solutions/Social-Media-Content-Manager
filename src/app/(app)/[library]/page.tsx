@@ -24,7 +24,7 @@ export default async function LibraryPage({
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const { filters, view: vf } = await resolveListFilters(user.workspaceId, user.id, sp);
+  const { filters, view: vf } = await resolveListFilters({ workspaceId: user.workspaceId, id: user.id, role: user.role }, sp);
   filters.status = sp.status || undefined;
 
   const [assets, people, channels] = await Promise.all([

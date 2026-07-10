@@ -16,7 +16,7 @@ export default async function ApprovedPage({
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   const sp = await searchParams;
-  const { filters, view } = await resolveListFilters(user.workspaceId, user.id, sp);
+  const { filters, view } = await resolveListFilters({ workspaceId: user.workspaceId, id: user.id, role: user.role }, sp);
 
   const [assets, people, channels] = await Promise.all([
     getApprovedAssets(user.workspaceId, filters),

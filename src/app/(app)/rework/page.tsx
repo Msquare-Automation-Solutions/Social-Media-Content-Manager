@@ -16,7 +16,7 @@ export default async function ReworkPage({
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   const sp = await searchParams;
-  const { filters, view } = await resolveListFilters(user.workspaceId, user.id, sp);
+  const { filters, view } = await resolveListFilters({ workspaceId: user.workspaceId, id: user.id, role: user.role }, sp);
 
   const [assets, people, channels] = await Promise.all([
     getAssetsByStatus(user.workspaceId, "REWORK", filters),
