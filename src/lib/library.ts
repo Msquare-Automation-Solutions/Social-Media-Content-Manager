@@ -4,8 +4,8 @@ import type { AssetType } from "@/lib/enums";
 // VIDEO/BLOGPOST) — only the labels are the client's vocabulary. VIDEO_SCRIPT
 // assets (generated scripts) live alongside uploaded videos under "Video".
 export const LIBRARY_VIEWS = [
-  { key: "IMAGE", label: "Image/Posts", icon: "🖼️", types: ["IMAGE"] },
-  { key: "THUMBNAIL", label: "Carousels", icon: "🎠", types: ["THUMBNAIL"] },
+  { key: "IMAGE", label: "Image/Posts", icon: "📸", types: ["IMAGE"] },
+  { key: "THUMBNAIL", label: "Carousels", icon: "🗂️", types: ["THUMBNAIL"] },
   { key: "VIDEO", label: "Video", icon: "🎬", types: ["VIDEO", "VIDEO_SCRIPT"] },
   { key: "BLOGPOST", label: "Articles", icon: "📰", types: ["BLOGPOST"] },
 ] as const;
@@ -47,8 +47,8 @@ export const TYPE_LABELS: Record<string, string> = {
 };
 
 export const TYPE_ICONS: Record<string, string> = {
-  IMAGE: "🖼️",
-  THUMBNAIL: "🎠",
+  IMAGE: "📸",
+  THUMBNAIL: "🗂️",
   VIDEO: "🎬",
   BLOGPOST: "📰",
   VIDEO_SCRIPT: "🎬",
