@@ -14,6 +14,7 @@
     "db:reset": "prisma migrate reset --force",
     "db:seed": "prisma db seed",
     "seed:review": "tsx scripts/seed-review-queue.ts",
+    "migrate:thumbs": "tsx scripts/migrate-thumbnails-to-r2.ts",
     "test": "vitest run",
     "e2e": "playwright test",
     "e2e:db": "tsx scripts/e2e-db-setup.ts",
