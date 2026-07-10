@@ -24,6 +24,7 @@ type AssetDetail = {
   mimeType: string | null;
   sizeBytes: number | null;
   tags: string[];
+  note: string | null;
   status: string;
   reviewNote: string | null;
   reviewedAt: string | null;
@@ -315,6 +316,11 @@ export function AssetDrawer({
                     ))}
                   </div>
                 </Row>
+                {asset.note && (
+                  <Row label="Note">
+                    <span className="whitespace-pre-wrap">{asset.note}</span>
+                  </Row>
+                )}
                 <Row label="Source">
                   {asset.source === "GENERATED"
                     ? "AI generated"

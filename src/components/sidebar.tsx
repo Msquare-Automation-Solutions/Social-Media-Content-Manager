@@ -14,6 +14,7 @@ const VIEW_ICONS: Record<LibraryViewKey, IconName> = {
   THUMBNAIL: "thumbnails",
   VIDEO: "videos",
   BLOGPOST: "blog",
+  OTHER: "other",
 };
 
 type Props = {

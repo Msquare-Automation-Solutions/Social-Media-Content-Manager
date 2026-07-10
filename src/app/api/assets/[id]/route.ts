@@ -45,6 +45,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     mimeType: a.mimeType,
     sizeBytes: a.sizeBytes,
     tags: parseTags(a.tags),
+    note: a.note,
     status: a.status,
     reviewNote: a.reviewNote,
     reviewedAt: a.reviewedAt ? a.reviewedAt.toISOString() : null,
@@ -81,6 +82,7 @@ const patchSchema = z.object({
     .min(1)
     .optional(),
   tags: z.array(z.string().trim().min(1)).max(30).optional(),
+  note: z.string().trim().max(2000).nullish(),
   html: z.string().optional(),
 });
 
@@ -116,6 +118,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (parsedBody.type !== undefined) data.type = parsedBody.type;
   if (parsedBody.html !== undefined) data.html = parsedBody.html;
   if (parsedBody.tags !== undefined) data.tags = serializeTags(parsedBody.tags);
+  if (parsedBody.note !== undefined) data.note = parsedBody.note || null;
 
   if (parsedBody.personId !== undefined) {
     const person = await prisma.person.findFirst({

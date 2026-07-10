@@ -20,6 +20,7 @@ type EditAsset = {
   channelIds: string[];
   channels: { id: string; scheduledFor: string | null }[];
   tags: string[];
+  note?: string | null;
 };
 
 export function EditAssetDialog({
@@ -49,6 +50,7 @@ export function EditAssetDialog({
     ),
   );
   const [tags, setTags] = useState(asset.tags.join(", "));
+  const [note, setNote] = useState(asset.note ?? "");
   const [saving, setSaving] = useState(false);
 
   const canSave = title.trim().length > 0 && channels.size > 0;
@@ -68,6 +70,7 @@ export function EditAssetDialog({
           scheduledFor: postDates[id] ? new Date(postDates[id]).toISOString() : null,
         })),
         tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
+        note: category === "OTHER" ? note.trim() || null : null,
       }),
     });
     setSaving(false);
@@ -114,7 +117,7 @@ export function EditAssetDialog({
         </select>
 
         <label className="mb-1.5 block text-xs font-semibold text-slate">Category</label>
-        <div className="mb-4 grid grid-cols-4 gap-2">
+        <div className="mb-4 grid grid-cols-5 gap-2">
           {CATEGORY_OPTIONS.map((c) => (
             <button
               key={c.value}
@@ -129,6 +132,18 @@ export function EditAssetDialog({
             </button>
           ))}
         </div>
+        {category === "OTHER" && (
+          <>
+            <label className="mb-1.5 block text-xs font-semibold text-slate">Note</label>
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="What is this? (optional)"
+              rows={2}
+              className="mb-4 w-full rounded-[10px] border border-line px-3 py-2 text-[13px] outline-none focus:border-teal"
+            />
+          </>
+        )}
 
         <label className="mb-1.5 block text-xs font-semibold text-slate">
           Social platform(s)

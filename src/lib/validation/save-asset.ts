@@ -25,6 +25,7 @@ export const saveAssetSchema = z
       .array(channelSelectionSchema)
       .min(1, "Pick at least one social platform"),
     tags: z.array(z.string().trim().min(1)).max(30).default([]),
+    note: z.string().trim().max(2000).nullish(),
     html: z.string().optional(),
     chatMessageId: z.string().optional(),
     // Present for uploads; ignored for generated artifacts.

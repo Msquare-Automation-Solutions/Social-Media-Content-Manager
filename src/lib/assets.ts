@@ -164,6 +164,7 @@ export async function createAsset(
       title: args.title,
       source: args.source,
       tags: serializeTags(args.tags),
+      note: args.note ?? null,
       html: args.html ?? null,
       url: args.url ?? null,
       thumbnailUrl: args.thumbnailUrl,

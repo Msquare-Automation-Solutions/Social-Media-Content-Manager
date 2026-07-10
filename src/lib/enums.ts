@@ -18,6 +18,7 @@ export const ASSET_TYPES = [
   "VIDEO",
   "BLOGPOST",
   "VIDEO_SCRIPT",
+  "OTHER",
 ] as const;
 export type AssetType = (typeof ASSET_TYPES)[number];
 

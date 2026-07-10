@@ -130,6 +130,7 @@ function SaveDialogInner({
   // channelId → post date (yyyy-mm-dd), optional per platform.
   const [postDates, setPostDates] = useState<Record<string, string>>({});
   const [tags, setTags] = useState(draft.tags.join(", "));
+  const [note, setNote] = useState("");
   const [customThumb, setCustomThumb] = useState<File | null>(null);
   const [customThumbUrl, setCustomThumbUrl] = useState<string | null>(null);
   const [dragThumb, setDragThumb] = useState(false);
@@ -255,6 +256,7 @@ function SaveDialogInner({
         .split(",")
         .map((t) => t.trim())
         .filter(Boolean),
+      note: category === "OTHER" ? note.trim() || null : null,
       html: draft.html,
       url: draft.url,
       chatMessageId: draft.chatMessageId,
@@ -461,7 +463,7 @@ function SaveDialogInner({
 
       {/* Category */}
       <Field label="Category" error={errors.type}>
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-5 gap-2">
           {CATEGORY_OPTIONS.map((c) => (
             <button
               key={c.value}
@@ -476,6 +478,15 @@ function SaveDialogInner({
             </button>
           ))}
         </div>
+        {category === "OTHER" && (
+          <textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Note — what is this? (optional)"
+            rows={2}
+            className="mt-2 w-full rounded-[10px] border border-line px-3 py-2 text-[12.5px] outline-none focus:border-teal"
+          />
+        )}
       </Field>
 
       {/* Platforms */}
@@ -641,9 +652,17 @@ function Overlay({
   );
 }
 
-function categoryToView(type: string): "IMAGE" | "THUMBNAIL" | "VIDEO" | "BLOGPOST" {
+function categoryToView(
+  type: string,
+): "IMAGE" | "THUMBNAIL" | "VIDEO" | "BLOGPOST" | "OTHER" {
   if (type === "VIDEO_SCRIPT") return "VIDEO";
-  if (type === "IMAGE" || type === "THUMBNAIL" || type === "VIDEO") return type;
+  if (
+    type === "IMAGE" ||
+    type === "THUMBNAIL" ||
+    type === "VIDEO" ||
+    type === "OTHER"
+  )
+    return type;
   return "BLOGPOST";
 }
 
