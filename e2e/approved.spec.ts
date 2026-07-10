@@ -24,7 +24,8 @@ test("approved gallery renders, filters, and opens a card", async ({ page }) => 
   await expect(page).toHaveURL(/type=BLOGPOST/);
   await expect(cards.first()).toBeVisible();
 
-  // Open a card → detail drawer.
+  // Open a card → detail drawer (blog posts are documents with no Download, so
+  // assert a control present for every asset type).
   await cards.first().click();
-  await expect(page.getByRole("button", { name: /Download/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Edit tags & fields/ })).toBeVisible();
 });

@@ -37,7 +37,7 @@ test("full content lifecycle", async ({ page }) => {
   await page.getByRole("button", { name: "Save", exact: true }).click();
 
   // Toast confirms + card flips to Saved
-  await expect(page.getByText("Saved to Blog posts ✓")).toBeVisible();
+  await expect(page.getByText("Saved to Articles ✓")).toBeVisible();
 
   // 4. Go to Blog posts, filter by the new platform
   await page.goto("/blog-posts");

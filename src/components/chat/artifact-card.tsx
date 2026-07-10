@@ -49,7 +49,7 @@ export function ArtifactCard({ artifact, messageId, saved, savedType, onSaved }:
               Download
             </button>
             <span className="ml-auto text-[11.5px] font-semibold text-teal-dark">
-              ✓ Saved{savedType ? ` to ${TYPE_LABELS[savedType] ?? savedType}s` : ""}
+              ✓ Saved{savedType ? ` to ${TYPE_LABELS[savedType] ?? savedType}` : ""}
             </span>
           </>
         ) : (

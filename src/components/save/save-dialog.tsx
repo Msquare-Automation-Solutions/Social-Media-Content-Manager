@@ -259,7 +259,7 @@ function SaveDialogInner({
       const asset = await r.json();
       const label = TYPE_LABELS[asset.type] ?? asset.type;
       const slug = LIBRARY_SLUGS[categoryToView(asset.type)];
-      toast(`Saved to ${label}s ✓`, {
+      toast(`Saved to ${label} ✓`, {
         label: "View",
         onClick: () => router.push(`/${slug}`),
       });
