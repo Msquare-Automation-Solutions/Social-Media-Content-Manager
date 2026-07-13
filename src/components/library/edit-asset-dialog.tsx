@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { CATEGORY_OPTIONS } from "@/lib/library";
 import { useToast } from "@/components/ui/toast";
 import { PlatformIcon } from "@/components/ui/platform-icon";
+import { gradientFor } from "@/lib/artifact-view";
 
 type Options = {
   people: { id: string; name: string; label?: string | null }[];
@@ -21,6 +22,7 @@ type EditAsset = {
   channels: { id: string; scheduledFor: string | null }[];
   tags: string[];
   note?: string | null;
+  thumbnailUrl?: string | null;
 };
 
 export function EditAssetDialog({
@@ -53,26 +55,56 @@ export function EditAssetDialog({
   const [note, setNote] = useState(asset.note ?? "");
   const [saving, setSaving] = useState(false);
 
+  // Thumbnail editing: a custom image replaces the stored thumbnail on save.
+  const [thumbFile, setThumbFile] = useState<File | null>(null);
+  const [thumbPreview, setThumbPreview] = useState<string | null>(asset.thumbnailUrl ?? null);
+  const thumbInput = useRef<HTMLInputElement>(null);
+
+  function pickThumb(f: File | null) {
+    if (!f) return;
+    if (!f.type.startsWith("image/")) {
+      toast("Pick an image file for the thumbnail.");
+      return;
+    }
+    if (f.size > 2 * 1024 * 1024) {
+      toast("Thumbnail must be ≤ 2 MB.");
+      return;
+    }
+    setThumbFile(f);
+    setThumbPreview(URL.createObjectURL(f));
+  }
+
   const canSave = title.trim().length > 0 && channels.size > 0;
 
   async function save() {
     if (!canSave || saving) return;
     setSaving(true);
-    const r = await fetch(`/api/assets/${asset.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: title.trim(),
-        type: category,
-        personId,
-        channels: [...channels].map((id) => ({
-          channelId: id,
-          scheduledFor: postDates[id] ? new Date(postDates[id]).toISOString() : null,
-        })),
-        tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
-        note: category === "OTHER" ? note.trim() || null : null,
-      }),
-    });
+    const payload = {
+      title: title.trim(),
+      type: category,
+      personId,
+      channels: [...channels].map((id) => ({
+        channelId: id,
+        scheduledFor: postDates[id] ? new Date(postDates[id]).toISOString() : null,
+      })),
+      tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
+      note: category === "OTHER" ? note.trim() || null : null,
+    };
+    // Send multipart (with the thumbnail file) only when a new one was picked;
+    // otherwise a plain JSON PATCH.
+    let r: Response;
+    if (thumbFile) {
+      const form = new FormData();
+      form.set("payload", JSON.stringify(payload));
+      form.set("thumbnail", thumbFile);
+      r = await fetch(`/api/assets/${asset.id}`, { method: "PATCH", body: form });
+    } else {
+      r = await fetch(`/api/assets/${asset.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    }
     setSaving(false);
     if (r.ok) {
       toast("Changes saved · previous kept as a version ✓");
@@ -92,6 +124,44 @@ export function EditAssetDialog({
       </div>
 
       <div className="flex-1 overflow-y-auto px-6 py-5">
+        <label className="mb-1.5 block text-xs font-semibold text-slate">Thumbnail</label>
+        <div className="mb-4 flex items-center gap-3">
+          <div
+            onClick={() => thumbInput.current?.click()}
+            className="grid h-[70px] w-[124px] flex-shrink-0 cursor-pointer overflow-hidden rounded-[10px] border border-line"
+          >
+            {thumbPreview ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={thumbPreview} alt="thumbnail preview" className="h-full w-full object-cover" />
+            ) : (
+              <div
+                className="grid h-full w-full place-items-center px-2 text-center text-[10px] font-semibold leading-tight text-white"
+                style={{ background: `linear-gradient(135deg, ${gradientFor(title || asset.title)[0]}, ${gradientFor(title || asset.title)[1]})` }}
+              >
+                {title || asset.title}
+              </div>
+            )}
+          </div>
+          <div className="text-[12px] text-slate">
+            <button
+              onClick={() => thumbInput.current?.click()}
+              className="rounded-[9px] border border-line px-3 py-1.5 font-semibold text-teal-dark hover:border-teal"
+            >
+              Change thumbnail
+            </button>
+            <div className="mt-1 text-[11px]">
+              {thumbFile ? "New image · cropped to 16:9" : "Click to upload an image (≤ 2 MB)"}
+            </div>
+            <input
+              ref={thumbInput}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => pickThumb(e.target.files?.[0] ?? null)}
+            />
+          </div>
+        </div>
+
         <label className="mb-1.5 block text-xs font-semibold text-slate">Name</label>
         <input
           aria-label="Asset name"

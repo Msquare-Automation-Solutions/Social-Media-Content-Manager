@@ -100,6 +100,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const contentType = req.headers.get("content-type") || "";
   const data: Record<string, unknown> = {};
   let fileReplace: File | null = null;
+  let thumbReplace: File | null = null;
   let parsedBody: z.infer<typeof patchSchema>;
 
   if (contentType.includes("multipart/form-data")) {
@@ -108,6 +109,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     parsedBody = patchSchema.parse(raw ? JSON.parse(String(raw)) : {});
     const f = form.get("file");
     if (f instanceof File) fileReplace = f;
+    const t = form.get("thumbnail");
+    if (t instanceof File) thumbReplace = t;
   } else {
     parsedBody = patchSchema.parse(await req.json());
   }
@@ -146,6 +149,16 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (fileReplace.type.startsWith("image/")) {
       data.thumbnailUrl = await makeImageThumbnail(buf, keyBase);
     }
+  }
+
+  // Custom thumbnail upload — independent of the original file; overrides any
+  // thumbnail derived from a file replace above.
+  if (thumbReplace) {
+    const tbuf = Buffer.from(await thumbReplace.arrayBuffer());
+    data.thumbnailUrl = await makeImageThumbnail(
+      tbuf,
+      thumbKey(String(data.title ?? asset.title), crypto.randomUUID()),
+    );
   }
 
   // Any content edit resubmits the item for review (back to Pending approval).
