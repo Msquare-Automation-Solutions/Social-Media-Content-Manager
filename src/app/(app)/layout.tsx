@@ -36,6 +36,15 @@ export default async function AppLayout({
       unreadNotificationCount(user.id),
     ]);
 
+  // The primary account = the workspace's original owner (oldest OWNER member).
+  // Only they see the "Review queue"; everyone else sees it as "Pending".
+  const primaryOwner = await prisma.membership.findFirst({
+    where: { workspaceId: user.workspaceId, role: "OWNER" },
+    orderBy: { createdAt: "asc" },
+    select: { userId: true },
+  });
+  const isPrimaryOwner = primaryOwner?.userId === user.id;
+
   return (
     <DialogProvider>
       <div className="grid h-screen grid-cols-[242px_1fr] overflow-hidden">
@@ -47,6 +56,7 @@ export default async function AppLayout({
             avatarColor: user.avatarColor ?? "#0e9f8f",
           }}
           workspaceName={user.workspaceName}
+          isPrimaryOwner={isPrimaryOwner}
           counts={counts}
           membersCount={membersCount}
           queueCount={queueCount}

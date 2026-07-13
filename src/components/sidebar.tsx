@@ -21,6 +21,7 @@ const VIEW_ICONS: Record<LibraryViewKey, IconName> = {
 type Props = {
   user: { name: string; email: string; role: string; avatarColor: string };
   workspaceName: string;
+  isPrimaryOwner: boolean;
   counts: Record<LibraryViewKey, number>;
   membersCount: number;
   queueCount: number;
@@ -33,6 +34,7 @@ type Props = {
 export function Sidebar({
   user,
   workspaceName,
+  isPrimaryOwner,
   counts,
   membersCount,
   queueCount,
@@ -86,9 +88,9 @@ export function Sidebar({
       <NavLink
         href="/review"
         active={isActive("/review")}
-        // Only the OWNER (super admin) reviews the queue; for everyone else it's
-        // just their content sitting in "Pending".
-        label={user.role === "OWNER" ? "Review queue" : "Pending"}
+        // Only the primary account (the workspace's original owner) reviews the
+        // queue; for everyone else it's just their content sitting in "Pending".
+        label={isPrimaryOwner ? "Review queue" : "Pending"}
         icon="review"
         count={queueCount || undefined}
         hot={queueCount > 0}
