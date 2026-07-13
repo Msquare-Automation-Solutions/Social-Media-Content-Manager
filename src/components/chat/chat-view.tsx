@@ -222,7 +222,7 @@ export function ChatView({
             >
               📎
             </button>
-            <span className="text-[11.5px] text-[#9aa7b6]">
+            <span className="text-[11.5px] text-slate/80">
               Enter to send · Shift+Enter for a new line
             </span>
             <button

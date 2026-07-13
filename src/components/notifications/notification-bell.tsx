@@ -164,7 +164,7 @@ export function NotificationBell({ initialUnread }: { initialUnread: number }) {
       <button
         onClick={openPanel}
         aria-label="Notifications"
-        className="relative grid h-8 w-8 place-items-center rounded-[9px] text-slate transition hover:bg-black/[0.05] hover:text-ink"
+        className="relative grid h-8 w-8 place-items-center rounded-[9px] text-slate transition hover:bg-wash/[0.06] hover:text-ink"
       >
         <Icon name="bell" size={18} />
         {unread > 0 && (
@@ -209,7 +209,7 @@ export function NotificationBell({ initialUnread }: { initialUnread: number }) {
                   <li key={n.id}>
                     <button
                       onClick={() => onRowClick(n)}
-                      className={`flex w-full items-start gap-2.5 px-4 py-2.5 text-left transition hover:bg-black/[0.03] ${
+                      className={`flex w-full items-start gap-2.5 px-4 py-2.5 text-left transition hover:bg-wash/[0.04] ${
                         n.readAt ? "" : "bg-teal-soft/40"
                       }`}
                     >

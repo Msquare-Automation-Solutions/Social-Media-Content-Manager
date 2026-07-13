@@ -43,8 +43,8 @@ export default async function ScheduledPage({
       canReview={isAdminRole(user.role)}
       initialAssetId={sp.asset ?? null}
       title="Scheduled this month"
-      subtitle="Content with a post date set for this month — sorted by when it goes out."
-      emptyText="Nothing scheduled this month — add post dates in the save dialog."
+      subtitle="Approved content with a post date set for this month — sorted by when it goes out."
+      emptyText="Nothing approved & scheduled this month — approve items and add post dates in the save dialog."
     />
   );
 }

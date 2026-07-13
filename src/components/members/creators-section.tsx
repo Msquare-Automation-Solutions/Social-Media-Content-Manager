@@ -38,7 +38,7 @@ export function CreatorsSection({
     <section className="mt-8">
       <div className="mb-3 flex items-center gap-3">
         <h3 className="font-display text-[15px] font-semibold">Creators</h3>
-        <span className="rounded-full bg-black/[0.05] px-2 py-0.5 text-[11px] font-semibold text-slate">
+        <span className="rounded-full bg-wash/[0.05] px-2 py-0.5 text-[11px] font-semibold text-slate">
           {creators.length}
         </span>
         <p className="text-[12px] text-slate">
@@ -110,7 +110,7 @@ export function CreatorsSection({
                   {c.email ? ` · ${c.email}` : ""}
                 </div>
               </div>
-              <span className="ml-auto rounded-full bg-black/[0.05] px-2.5 py-1 text-[11px] font-semibold text-slate tabular-nums">
+              <span className="ml-auto rounded-full bg-wash/[0.05] px-2.5 py-1 text-[11px] font-semibold text-slate tabular-nums">
                 {c.assetCount} asset{c.assetCount === 1 ? "" : "s"}
               </span>
               {canManage && (

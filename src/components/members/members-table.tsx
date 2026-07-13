@@ -78,7 +78,7 @@ export function MembersTable({
       )}
 
       <div className="overflow-hidden rounded-card border border-line bg-card shadow-soft">
-        <div className="grid grid-cols-[40px_1.3fr_1.5fr_120px_1fr] items-center gap-3 border-b border-line px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-[#9aa7b6]">
+        <div className="grid grid-cols-[40px_1.3fr_1.5fr_120px_1fr] items-center gap-3 border-b border-line px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-slate/80">
           <span />
           <span>Name</span>
           <span>Email</span>

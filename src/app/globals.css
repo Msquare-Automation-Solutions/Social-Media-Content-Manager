@@ -4,6 +4,36 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Semantic surface tokens as RGB channels; `.dark` swaps them. Brand teal /
+   violet DEFAULT stay constant across themes. */
+:root {
+  --c-ink: 20 31 46;
+  --c-slate: 95 110 129;
+  --c-line: 230 235 241;
+  --c-bg: 244 246 249;
+  --c-card: 255 255 255;
+  --c-wash: 20 31 46; /* used at low opacity for hovers/insets */
+  --c-teal-dark: 11 125 113;
+  --c-teal-soft: 220 243 240;
+  --c-violet-soft: 239 230 251;
+  --scroll-thumb: rgba(20, 31, 46, 0.14);
+  --scroll-thumb-hover: rgba(20, 31, 46, 0.26);
+}
+
+.dark {
+  --c-ink: 232 237 243; /* near-white text */
+  --c-slate: 148 162 178; /* muted text */
+  --c-line: 40 50 63; /* borders/dividers */
+  --c-bg: 15 20 28; /* app background */
+  --c-card: 24 31 42; /* raised surfaces */
+  --c-wash: 235 240 246; /* light wash for hovers on dark */
+  --c-teal-dark: 84 220 205; /* light teal for text on teal-soft */
+  --c-teal-soft: 18 52 50; /* dark teal-tinted fill */
+  --c-violet-soft: 46 38 66;
+  --scroll-thumb: rgba(232, 237, 243, 0.16);
+  --scroll-thumb-hover: rgba(232, 237, 243, 0.3);
+}
+
 html,
 body {
   height: 100%;
@@ -16,7 +46,6 @@ body {
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   /* Subtle depth: faint teal + violet light sources over the base bg. */
-  background-color: #f4f6f9;
   background-image:
     radial-gradient(60rem 60rem at 12% -10%, rgba(14, 159, 143, 0.08), transparent 60%),
     radial-gradient(50rem 50rem at 100% 0%, rgba(122, 79, 201, 0.06), transparent 55%),
@@ -73,18 +102,18 @@ body {
 /* App-wide thin, unobtrusive scrollbars. */
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(20, 31, 46, 0.14) transparent;
+  scrollbar-color: var(--scroll-thumb) transparent;
 }
 *::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
 *::-webkit-scrollbar-thumb {
-  background-color: rgba(20, 31, 46, 0.14);
+  background-color: var(--scroll-thumb);
   border-radius: 999px;
   border: 3px solid transparent;
   background-clip: content-box;
 }
 *::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(20, 31, 46, 0.26);
+  background-color: var(--scroll-thumb-hover);
 }

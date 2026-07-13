@@ -802,6 +802,9 @@ export async function getScheduledThisMonthAssets(
     where: {
       workspaceId,
       deletedAt: null,
+      // Only approved content — this list backs the "Scheduled ahead" tile,
+      // which counts approved posts only. Pending/rework aren't cleared to go out.
+      status: "APPROVED",
       channels: { some: { scheduledFor: { gte: monthStart, lt: monthEnd } } },
       ...(filters.type ? { type: { in: typesForView(filters.type as LibraryViewKey) } } : {}),
       ...(filters.personId ? { personId: filters.personId } : {}),

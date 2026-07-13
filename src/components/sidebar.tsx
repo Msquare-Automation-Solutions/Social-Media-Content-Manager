@@ -8,6 +8,7 @@ import { initials } from "@/lib/colors";
 import { useUploadDialog } from "@/components/save/dialog-context";
 import { Icon, type IconName } from "@/components/ui/icons";
 import { NotificationBell } from "@/components/notifications/notification-bell";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 const VIEW_ICONS: Record<LibraryViewKey, IconName> = {
   IMAGE: "images",
@@ -47,7 +48,7 @@ export function Sidebar({
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   return (
-    <aside className="flex h-screen flex-col gap-[3px] border-r border-line/80 bg-gradient-to-b from-white to-[#fafbfc] px-3.5 py-4">
+    <aside className="flex h-screen flex-col gap-[3px] border-r border-line/80 bg-gradient-to-b from-card to-bg px-3.5 py-4">
       <div className="flex items-center gap-2.5 px-2 pb-3.5 pt-0.5 font-display text-[17px] font-bold">
         <div className="grid h-8 w-8 place-items-center rounded-[10px] bg-brand-teal text-white shadow-glow-sm">
           ◆
@@ -101,7 +102,7 @@ export function Sidebar({
         count={publishedCount || undefined}
       />
 
-      <div className="px-3 pb-1.5 pt-3.5 text-[11px] font-bold uppercase tracking-[0.06em] text-[#9aa7b6]">
+      <div className="px-3 pb-1.5 pt-3.5 text-[11px] font-bold uppercase tracking-[0.06em] text-slate/80">
         Library
       </div>
       {LIBRARY_VIEWS.map((v) => {
@@ -140,7 +141,7 @@ export function Sidebar({
       <div className="mt-auto">
         <Link
           href="/account"
-          className="flex items-center gap-2.5 rounded-[12px] bg-black/[0.03] px-3 py-2.5 transition duration-200 hover:bg-black/[0.06]"
+          className="flex items-center gap-2.5 rounded-[12px] bg-wash/[0.03] px-3 py-2.5 transition duration-200 hover:bg-wash/[0.06]"
         >
           <div
             className="grid h-8 w-8 place-items-center rounded-full text-[13px] font-bold text-white shadow-soft"
@@ -155,12 +156,15 @@ export function Sidebar({
             </span>
           </div>
         </Link>
-        <button
-          onClick={() => signOut({ callbackUrl: "/login" })}
-          className="mt-1.5 flex w-full items-center justify-center gap-2 rounded-[10px] border border-line py-2.5 font-medium text-slate hover:bg-bg hover:text-[#c23b2a]"
-        >
-          <Icon name="signout" size={16} /> Sign out
-        </button>
+        <div className="mt-1.5 flex items-center gap-1.5">
+          <button
+            onClick={() => signOut({ callbackUrl: "/login" })}
+            className="flex flex-1 items-center justify-center gap-2 rounded-[10px] border border-line py-2.5 font-medium text-slate hover:bg-bg hover:text-[#c23b2a]"
+          >
+            <Icon name="signout" size={16} /> Sign out
+          </button>
+          <ThemeToggle />
+        </div>
       </div>
     </aside>
   );
@@ -187,7 +191,7 @@ function NavLink({
       className={`group flex items-center gap-2.5 rounded-[10px] px-3 py-2.5 font-medium transition duration-200 ease-premium ${
         active
           ? "bg-teal-soft font-semibold text-teal-dark shadow-[inset_0_0_0_1px_rgba(14,159,143,0.16)]"
-          : "text-slate hover:bg-black/[0.035] hover:text-ink"
+          : "text-slate hover:bg-wash/[0.04] hover:text-ink"
       }`}
     >
       {icon && (
@@ -205,8 +209,8 @@ function NavLink({
             hot
               ? "bg-[#e0912b] text-white shadow-soft"
               : active
-                ? "bg-white text-teal-dark shadow-soft"
-                : "bg-black/[0.05] text-slate"
+                ? "bg-card text-teal-dark shadow-soft"
+                : "bg-wash/[0.05] text-slate"
           }`}
         >
           {count}

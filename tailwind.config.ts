@@ -7,20 +7,27 @@ import type { Config } from "tailwindcss";
  */
 const config: Config = {
   content: ["./src/**/*.{ts,tsx}"],
+  darkMode: "class",
   theme: {
     extend: {
       colors: {
-        ink: "#141f2e",
-        slate: "#5f6e81",
-        line: "#e6ebf1",
-        bg: "#f4f6f9",
-        card: "#ffffff",
+        // Neutral surface tokens are CSS variables (space-separated RGB
+        // channels so Tailwind's /opacity modifiers keep working) — they swap
+        // under the `.dark` class. See globals.css for the light/dark values.
+        ink: "rgb(var(--c-ink) / <alpha-value>)",
+        slate: "rgb(var(--c-slate) / <alpha-value>)",
+        line: "rgb(var(--c-line) / <alpha-value>)",
+        bg: "rgb(var(--c-bg) / <alpha-value>)",
+        card: "rgb(var(--c-card) / <alpha-value>)",
+        // Faint neutral wash for hovers/insets that used bg-black/[0.03] — a
+        // real token so it can lighten instead of darken in dark mode.
+        wash: "rgb(var(--c-wash) / <alpha-value>)",
         teal: {
           DEFAULT: "#0e9f8f",
-          dark: "#0b7d71",
-          soft: "#dcf3f0",
+          dark: "rgb(var(--c-teal-dark) / <alpha-value>)",
+          soft: "rgb(var(--c-teal-soft) / <alpha-value>)",
         },
-        violet: { DEFAULT: "#7a4fc9", soft: "#efe6fb" },
+        violet: { DEFAULT: "#7a4fc9", soft: "rgb(var(--c-violet-soft) / <alpha-value>)" },
       },
       borderRadius: {
         card: "16px",

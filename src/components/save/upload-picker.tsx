@@ -87,7 +87,7 @@ export function UploadPicker() {
           onChange={(e) => e.target.files && handleFiles(e.target.files)}
         />
 
-        <div className="my-3 flex items-center gap-3 text-[10.5px] font-bold uppercase tracking-wide text-[#9aa7b6]">
+        <div className="my-3 flex items-center gap-3 text-[10.5px] font-bold uppercase tracking-wide text-slate/80">
           <div className="h-px flex-1 bg-line" />
           or paste a link
           <div className="h-px flex-1 bg-line" />
