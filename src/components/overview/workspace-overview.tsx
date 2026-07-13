@@ -12,6 +12,7 @@ import { PlatformIcon } from "@/components/ui/platform-icon";
 import { StatusBadge } from "@/components/library/status-badge";
 import { BackButton } from "@/components/ui/back-button";
 import { OverviewFilters } from "@/components/overview/overview-filters";
+import { CenteredScroll } from "@/components/overview/centered-scroll";
 
 // A bird's-eye map of the workspace drawn as a connected org-chart:
 // Workspace → each social platform → its four content-type cards (count + mini
@@ -69,37 +70,38 @@ export function WorkspaceOverview({
             : "Nothing here yet — save or upload content and tag it to a platform."}
         </div>
       ) : (
-        <div>
-          {/* Workspace root sits centered above the scrollable platform row so
-              it stays visible however many platforms there are. */}
-          <div className="flex flex-col items-center">
-            <RootNode total={overview.total} />
-            <div className="h-5 w-px bg-line" />
-          </div>
-          <div className="overflow-x-auto pb-4">
-            <div className="wtree w-max min-w-full">
-              <ul className="!justify-start gap-5">
-                {overview.groups.map((g) => (
-                  <li key={g.id}>
-                    <PlatformNode group={g} />
+        <CenteredScroll className="pb-4">
+          {/* The workspace root and its branch live inside the scroll area so the
+              whole org chart (root → platforms → categories) moves together;
+              CenteredScroll opens centered on the root. */}
+          <div className="wtree w-max min-w-full">
+            <ul>
+              <li>
+                <RootNode total={overview.total} />
 
-                    {/* Only content-type cards that actually have items —
-                        empty categories are hidden until content appears. */}
-                    <ul>
-                      {g.categories
-                        .filter((cat) => cat.count > 0)
-                        .map((cat) => (
-                          <li key={cat.key}>
-                            <CategoryCard channelId={g.id} cat={cat} filters={filters} />
-                          </li>
-                        ))}
-                    </ul>
-                  </li>
-                ))}
-              </ul>
-            </div>
+                <ul className="!justify-start gap-5">
+                  {overview.groups.map((g) => (
+                    <li key={g.id}>
+                      <PlatformNode group={g} />
+
+                      {/* Only content-type cards that actually have items —
+                          empty categories are hidden until content appears. */}
+                      <ul>
+                        {g.categories
+                          .filter((cat) => cat.count > 0)
+                          .map((cat) => (
+                            <li key={cat.key}>
+                              <CategoryCard channelId={g.id} cat={cat} filters={filters} />
+                            </li>
+                          ))}
+                      </ul>
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            </ul>
           </div>
-        </div>
+        </CenteredScroll>
       )}
 
       {/* Recent Content strip */}
