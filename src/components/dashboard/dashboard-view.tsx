@@ -83,7 +83,7 @@ export function DashboardView({
         <StatTile
           label="Scheduled ahead"
           value={data.scheduledAhead}
-          sublabel="Posts going out (today →)"
+          sublabel="Posts going out"
           accent="#7a4fc9"
           href="/scheduled"
         />

@@ -67,10 +67,10 @@ describe("aggregateDashboard", () => {
     expect(d.scheduledThisMonth).toBe(2);
   });
 
-  it("counts assets scheduled from today onward (ignores range end)", () => {
-    // a1 (20 Mar, future) and a2 (its yt date 2 Apr is future, even though its
-    // ig date 5 Mar is past). a4 (10 Feb) is in the past → excluded.
-    expect(d.scheduledAhead).toBe(2);
+  it("counts only approved assets scheduled from today onward (ignores range end)", () => {
+    // a1 (APPROVED, 20 Mar future) counts. a2 has a future date (yt 2 Apr) but
+    // is PENDING → excluded. a4 (10 Feb) is past. a3 has no date.
+    expect(d.scheduledAhead).toBe(1);
   });
 
   it("folds VIDEO_SCRIPT into the VIDEO library view for by-type", () => {
