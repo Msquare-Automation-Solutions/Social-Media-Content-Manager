@@ -212,7 +212,7 @@ export function ChatView({
             }}
             placeholder="Ask me to create a blog post, thumbnail, video script…"
             rows={1}
-            className="max-h-40 min-h-[44px] w-full resize-none outline-none"
+            className="max-h-40 min-h-[44px] w-full resize-none bg-transparent text-ink outline-none placeholder:text-slate"
           />
           <div className="mt-1.5 flex items-center gap-2.5">
             <button

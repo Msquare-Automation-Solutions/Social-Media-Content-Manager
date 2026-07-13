@@ -71,6 +71,29 @@ body {
     box-shadow: 0 0 0 3px rgba(14, 159, 143, 0.28);
     border-radius: 8px;
   }
+
+  /* Form controls default to the theme's text color and a transparent field so
+     they read correctly in dark mode. Explicit bg-* / text-* utilities still
+     win where a component sets them. */
+  input,
+  textarea,
+  select {
+    color: inherit;
+    background-color: transparent;
+  }
+  input::placeholder,
+  textarea::placeholder {
+    color: rgb(var(--c-slate));
+  }
+  /* Native date/time picker indicator is near-invisible on dark; invert it. */
+  .dark input::-webkit-calendar-picker-indicator {
+    filter: invert(0.8);
+  }
+  /* Dropdown option lists render in the OS surface; keep them readable. */
+  .dark option {
+    background-color: rgb(var(--c-card));
+    color: rgb(var(--c-ink));
+  }
 }
 
 @layer components {
