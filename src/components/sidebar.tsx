@@ -48,7 +48,7 @@ export function Sidebar({
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   return (
-    <aside className="flex h-screen flex-col gap-[3px] border-r border-line/80 bg-gradient-to-b from-card to-bg px-3.5 pb-6 pt-4">
+    <aside className="flex h-screen flex-col gap-[3px] overflow-y-auto border-r border-line/80 bg-gradient-to-b from-card to-bg px-3.5 pb-9 pt-4">
       <div className="flex items-center gap-2.5 px-2 pb-3.5 pt-0.5 font-display text-[17px] font-bold">
         <div className="grid h-8 w-8 place-items-center rounded-[10px] bg-brand-teal text-white shadow-glow-sm">
           ◆

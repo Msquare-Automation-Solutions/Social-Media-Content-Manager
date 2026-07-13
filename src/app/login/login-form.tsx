@@ -53,7 +53,7 @@ export function LoginForm({ initialError = false }: { initialError?: boolean }) 
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@company.com"
-          className="w-full rounded-[10px] border border-line px-3 py-2.5 outline-none focus:border-teal"
+          className="w-full rounded-[11px] border border-line bg-bg/60 px-3.5 py-3 text-[14px] text-ink outline-none transition placeholder:text-slate/70 focus:border-teal focus:bg-card focus:ring-4 focus:ring-teal/10"
         />
       </div>
       <div className="mb-3">

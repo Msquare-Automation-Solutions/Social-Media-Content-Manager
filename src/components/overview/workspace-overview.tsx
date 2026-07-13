@@ -26,7 +26,7 @@ export function WorkspaceOverview({
 }) {
   const line = "#e6ebf1";
   return (
-    <div className="flex-1 overflow-y-auto px-7 py-6">
+    <div className="flex flex-1 flex-col overflow-y-auto px-7 py-6">
       {/* Scoped org-chart connector lines (pure CSS, no deps). */}
       <style>{`
         .wtree ul { position: relative; display: flex; justify-content: center; padding-top: 22px; }
@@ -69,38 +69,42 @@ export function WorkspaceOverview({
             : "Nothing here yet — save or upload content and tag it to a platform."}
         </div>
       ) : (
-        <div className="overflow-x-auto pb-4">
-          {/* A single workspace root branches down to each platform subtree
-              (node + its content-type cards); scrolls sideways when wide. */}
-          <div className="wtree w-max min-w-full">
-            <ul>
-              <li>
-                <RootNode total={overview.total} />
+        <div>
+          {/* Workspace root sits centered above the scrollable platform row so
+              it stays visible however many platforms there are. */}
+          <div className="flex flex-col items-center">
+            <RootNode total={overview.total} />
+            <div className="h-5 w-px bg-line" />
+          </div>
+          <div className="overflow-x-auto pb-4">
+            <div className="wtree w-max min-w-full">
+              <ul className="!justify-start gap-5">
+                {overview.groups.map((g) => (
+                  <li key={g.id}>
+                    <PlatformNode group={g} />
 
-                <ul className="!justify-start gap-5">
-                  {overview.groups.map((g) => (
-                    <li key={g.id}>
-                      <PlatformNode group={g} />
-
-                      {/* Content-type cards */}
-                      <ul>
-                        {g.categories.map((cat) => (
+                    {/* Only content-type cards that actually have items —
+                        empty categories are hidden until content appears. */}
+                    <ul>
+                      {g.categories
+                        .filter((cat) => cat.count > 0)
+                        .map((cat) => (
                           <li key={cat.key}>
                             <CategoryCard channelId={g.id} cat={cat} filters={filters} />
                           </li>
                         ))}
-                      </ul>
-                    </li>
-                  ))}
-                </ul>
-              </li>
-            </ul>
+                    </ul>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Recent Content strip */}
-      <section className="surface mt-6 rounded-card border border-line/70 p-5">
+      {/* Recent Content strip — pinned to the bottom of the view (mt-auto) so
+          the tree stays at the top instead of leaving a mid-page gap. */}
+      <section className="surface mt-auto rounded-card border border-line/70 p-5">
         <div className="mb-3.5 flex items-center gap-3">
           <h3 className="font-display text-[15px]">Recent Content</h3>
           <Link
@@ -259,19 +263,19 @@ function RecentCard({ item }: { item: OverviewRecent }) {
     >
       <div className="relative overflow-hidden">
         <RecentThumb title={item.title} type={item.type} thumbnailUrl={item.thumbnailUrl} />
-        {/* Content-type label pill */}
-        <span className="absolute left-2 top-2 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur-sm">
-          {TYPE_LABELS[item.type] ?? item.type}
-        </span>
-        {/* Platform brand-logo badge */}
+        {/* Platform brand-logo badge (top-left, matches library cards) */}
         {item.platform && (
           <span
             title={item.platform.name}
-            className="absolute bottom-2 left-2 grid h-5 w-5 place-items-center rounded-full bg-white shadow-soft"
+            className="absolute left-2 top-2 grid h-6 w-6 place-items-center rounded-full bg-white shadow-soft"
           >
-            <PlatformIcon name={item.platform.name} icon={item.platform.icon} size={13} />
+            <PlatformIcon name={item.platform.name} icon={item.platform.icon} size={15} />
           </span>
         )}
+        {/* Content-type label pill (bottom-left, white chip) */}
+        <span className="absolute bottom-2 left-2 rounded-[8px] bg-white/95 px-2 py-0.5 text-[10.5px] font-semibold text-[#141f2e] shadow-soft backdrop-blur-sm">
+          {TYPE_LABELS[item.type] ?? item.type}
+        </span>
       </div>
       <div className="p-2.5">
         <div className="truncate text-[12px] font-semibold">{item.title}</div>
