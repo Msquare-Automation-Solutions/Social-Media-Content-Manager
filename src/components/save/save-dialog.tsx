@@ -642,10 +642,10 @@ function Overlay({
   }, [onClose]);
   return (
     <div
-      className="fixed inset-0 z-50 grid place-items-center bg-ink/35 p-4 backdrop-blur-[3px]"
+      className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4 backdrop-blur-[3px]"
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="max-h-[92vh] w-[500px] max-w-[94vw] animate-fade-up overflow-y-auto rounded-xl2 border border-white/60 bg-card p-6 shadow-lift">
+      <div className="max-h-[92vh] w-[500px] max-w-[94vw] animate-fade-up overflow-y-auto rounded-xl2 border border-line bg-card p-6 shadow-lift ring-1 ring-black/5">
         {children}
       </div>
     </div>
