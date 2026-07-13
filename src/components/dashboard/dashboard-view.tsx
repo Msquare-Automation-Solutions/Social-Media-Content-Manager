@@ -81,9 +81,9 @@ export function DashboardView({
       {/* KPI tiles */}
       <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-5">
         <StatTile
-          label="Scheduled in range"
-          value={data.scheduledThisMonth}
-          sublabel="Posts going out"
+          label="Scheduled ahead"
+          value={data.scheduledAhead}
+          sublabel="Posts going out (today →)"
           accent="#7a4fc9"
           href="/scheduled"
         />

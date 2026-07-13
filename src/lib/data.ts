@@ -351,6 +351,10 @@ export type DashboardData = {
   totalAssets: number;
   statusCounts: StatusCounts;
   scheduledThisMonth: number;
+  // Posts scheduled from today onward — forward-looking, ignores the range's
+  // To bound (scheduling is inherently future, the range often trails). Powers
+  // the "Scheduled ahead" KPI tile.
+  scheduledAhead: number;
   byType: TypeSlice[];
   perPlatform: PlatformSlice[];
   upcoming: {
@@ -405,6 +409,12 @@ export function aggregateDashboard(
   // # of assets with at least one platform post date this month.
   const scheduledThisMonth = (list: DashAsset[]) =>
     list.filter((a) => a.channels.some((c) => inMonth(c.scheduledFor))).length;
+  // # of assets with at least one platform scheduled from today onward. Unlike
+  // the range-bound metric above this ignores the To bound, so a trailing date
+  // range doesn't hide genuinely-upcoming posts.
+  const scheduledAhead = assets.filter((a) =>
+    a.channels.some((c) => c.scheduledFor && new Date(c.scheduledFor) >= todayStart),
+  ).length;
 
   const perPlatform: PlatformSlice[] = channels.map((ch) => {
     const tagged = assets.filter((a) =>
@@ -454,6 +464,7 @@ export function aggregateDashboard(
     totalAssets: assets.length,
     statusCounts: statusBreakdown(assets),
     scheduledThisMonth: scheduledThisMonth(assets),
+    scheduledAhead,
     byType: typeBreakdown(assets),
     perPlatform,
     upcoming,
