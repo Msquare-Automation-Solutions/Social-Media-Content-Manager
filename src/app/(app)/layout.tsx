@@ -17,12 +17,15 @@ export default async function AppLayout({
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const [counts, membersCount, queueCount, approvedCount, publishedCount, unreadCount] =
+  const [counts, membersCount, queueCount, reworkCount, approvedCount, publishedCount, unreadCount] =
     await Promise.all([
       getAssetCounts(user.workspaceId),
       prisma.membership.count({ where: { workspaceId: user.workspaceId } }),
       prisma.mediaAsset.count({
         where: { workspaceId: user.workspaceId, deletedAt: null, status: "PENDING" },
+      }),
+      prisma.mediaAsset.count({
+        where: { workspaceId: user.workspaceId, deletedAt: null, status: "REWORK" },
       }),
       prisma.mediaAsset.count({
         where: { workspaceId: user.workspaceId, deletedAt: null, status: "APPROVED" },
@@ -47,6 +50,7 @@ export default async function AppLayout({
           counts={counts}
           membersCount={membersCount}
           queueCount={queueCount}
+          reworkCount={reworkCount}
           approvedCount={approvedCount}
           publishedCount={publishedCount}
           unreadCount={unreadCount}

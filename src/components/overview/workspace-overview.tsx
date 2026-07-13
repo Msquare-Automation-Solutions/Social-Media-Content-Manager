@@ -44,6 +44,10 @@ export function WorkspaceOverview({
         .wtree li:only-child::before { display: none; }
         .wtree li:only-child::after { display: block; border: 0 none;
           border-left: 1.5px solid ${line}; border-radius: 0; left: 50%; right: auto; }
+        /* …but the root li is itself an only-child of the top ul — it must never
+           draw a connector (higher specificity than the rule above). */
+        .wtree > ul > li:only-child::before,
+        .wtree > ul > li:only-child::after { display: none; }
         .wtree ul ul::before { content: ''; position: absolute; top: 0; left: 50%;
           width: 0; height: 22px; border-left: 1.5px solid ${line}; }
         /* The single workspace root sits flush at the top with no connector

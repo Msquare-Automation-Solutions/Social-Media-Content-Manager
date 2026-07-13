@@ -24,6 +24,7 @@ type Props = {
   counts: Record<LibraryViewKey, number>;
   membersCount: number;
   queueCount: number;
+  reworkCount: number;
   approvedCount: number;
   publishedCount: number;
   unreadCount: number;
@@ -35,6 +36,7 @@ export function Sidebar({
   counts,
   membersCount,
   queueCount,
+  reworkCount,
   approvedCount,
   publishedCount,
   unreadCount,
@@ -48,7 +50,7 @@ export function Sidebar({
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   return (
-    <aside className="flex h-screen flex-col gap-[3px] overflow-y-auto overscroll-contain border-r border-line/80 bg-gradient-to-b from-card to-bg px-3.5 pb-9 pt-4">
+    <aside className="flex h-screen flex-col border-r border-line/80 bg-gradient-to-b from-card to-bg px-3.5 pb-5 pt-4">
       <div className="flex items-center gap-2.5 px-2 pb-3.5 pt-0.5 font-display text-[17px] font-bold">
         <div className="grid h-8 w-8 place-items-center rounded-[10px] bg-brand-teal text-white shadow-glow-sm">
           ◆
@@ -66,6 +68,9 @@ export function Sidebar({
         </button>
       )}
 
+      {/* Only the nav list scrolls (vertical only) — the header (with the
+          notification dropdown) and footer stay put and aren't clipped. */}
+      <nav className="-mr-2 flex min-h-0 flex-1 flex-col gap-[3px] overflow-y-auto overflow-x-hidden overscroll-contain pr-2">
       <NavLink href="/" active={isActive("/")} label="Home" icon="home" />
       <NavLink
         href="/dashboard"
@@ -86,6 +91,14 @@ export function Sidebar({
         icon="review"
         count={queueCount || undefined}
         hot={queueCount > 0}
+      />
+      <NavLink
+        href="/rework"
+        active={isActive("/rework")}
+        label="Needs rework"
+        icon="rework"
+        count={reworkCount || undefined}
+        hot={reworkCount > 0}
       />
       <NavLink
         href="/approved"
@@ -137,8 +150,9 @@ export function Sidebar({
         />
       )}
       <NavLink href="/trash" active={isActive("/trash")} label="Trash" icon="trash" />
+      </nav>
 
-      <div className="mt-auto">
+      <div className="pt-3">
         <Link
           href="/account"
           className="flex items-center gap-2.5 rounded-[12px] bg-wash/[0.03] px-3 py-2.5 transition duration-200 hover:bg-wash/[0.06]"
