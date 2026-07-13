@@ -18,6 +18,7 @@ export async function POST(
 
   const asset = await prisma.mediaAsset.findFirst({
     where: { id: (await params).id, workspaceId: g.user.workspaceId },
+    include: { person: { select: { userId: true } } },
   });
   if (!asset) return new Response("Not found", { status: 404 });
   if (!canMutateAsset(g.user, asset)) return new Response("Forbidden", { status: 403 });

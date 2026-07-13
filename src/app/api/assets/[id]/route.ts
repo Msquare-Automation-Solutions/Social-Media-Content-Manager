@@ -18,7 +18,7 @@ async function loadOwned(id: string, workspaceId: string) {
   return prisma.mediaAsset.findFirst({
     where: { id, workspaceId },
     include: {
-      person: { select: { id: true, name: true, avatarColor: true } },
+      person: { select: { id: true, name: true, avatarColor: true, userId: true } },
       channels: { include: { channel: true } },
       _count: { select: { versions: true } },
     },
@@ -92,6 +92,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   const asset = await prisma.mediaAsset.findFirst({
     where: { id: (await params).id, workspaceId: g.user.workspaceId },
+    include: { person: { select: { userId: true } } },
   });
   if (!asset || asset.deletedAt) return new Response("Not found", { status: 404 });
   if (!canMutateAsset(g.user, asset)) return new Response("Forbidden", { status: 403 });
@@ -193,6 +194,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
 
   const asset = await prisma.mediaAsset.findFirst({
     where: { id: (await params).id, workspaceId: g.user.workspaceId },
+    include: { person: { select: { userId: true } } },
   });
   if (!asset || asset.deletedAt) return new Response("Not found", { status: 404 });
   if (!canMutateAsset(g.user, asset)) return new Response("Forbidden", { status: 403 });

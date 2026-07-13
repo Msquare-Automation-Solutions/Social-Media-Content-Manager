@@ -26,7 +26,7 @@ export function WorkspaceOverview({
 }) {
   const line = "#e6ebf1";
   return (
-    <div className="flex flex-1 flex-col overflow-y-auto px-7 py-6">
+    <div className="flex-1 overflow-y-auto px-7 pb-4 pt-6">
       {/* Scoped org-chart connector lines (pure CSS, no deps). */}
       <style>{`
         .wtree ul { position: relative; display: flex; justify-content: center; padding-top: 22px; }
@@ -102,9 +102,8 @@ export function WorkspaceOverview({
         </div>
       )}
 
-      {/* Recent Content strip — pinned to the bottom of the view (mt-auto) so
-          the tree stays at the top instead of leaving a mid-page gap. */}
-      <section className="surface mt-auto rounded-card border border-line/70 p-5">
+      {/* Recent Content strip */}
+      <section className="surface mt-6 rounded-card border border-line/70 p-5">
         <div className="mb-3.5 flex items-center gap-3">
           <h3 className="font-display text-[15px]">Recent Content</h3>
           <Link

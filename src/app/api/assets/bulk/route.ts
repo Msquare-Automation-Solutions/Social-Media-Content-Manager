@@ -59,6 +59,7 @@ export async function POST(req: Request) {
       workspaceId: g.user.workspaceId,
       deletedAt: isTrashAction ? { not: null } : null,
     },
+    include: { person: { select: { userId: true } } },
   });
 
   let applied = 0;

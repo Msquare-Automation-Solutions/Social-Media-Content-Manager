@@ -8,15 +8,19 @@ import type { Role } from "@/lib/enums";
 /**
  * Who may mutate (edit / delete / restore) an asset:
  *   ADMIN+ → any asset in the workspace
- *   EDITOR → only assets they created
+ *   EDITOR → assets they created OR are the assigned owner of (the asset's
+ *            Person is linked to their user) — so reassigning someone else's
+ *            content to you grants edit access, including the thumbnail.
  *   VIEWER → none
  */
 export function canMutateAsset(
   actor: { id: string; role: Role },
-  asset: { createdById: string },
+  asset: { createdById: string; person?: { userId: string | null } | null },
 ): boolean {
   if (hasRole(actor.role, "ADMIN")) return true;
-  if (actor.role === "EDITOR") return asset.createdById === actor.id;
+  const isOwner =
+    asset.createdById === actor.id || asset.person?.userId === actor.id;
+  if (actor.role === "EDITOR") return isOwner;
   return false;
 }
 

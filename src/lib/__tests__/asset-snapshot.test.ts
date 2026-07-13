@@ -53,12 +53,42 @@ describe("canMutateAsset (asset ownership rules)", () => {
     expect(canMutateAsset({ id: "u1", role: "OWNER" }, { createdById: "other" })).toBe(true);
   });
 
-  it("EDITOR may mutate only their own", () => {
+  it("EDITOR may mutate their own", () => {
     expect(canMutateAsset({ id: "u1", role: "EDITOR" }, { createdById: "u1" })).toBe(true);
     expect(canMutateAsset({ id: "u1", role: "EDITOR" }, { createdById: "u2" })).toBe(false);
   });
 
-  it("VIEWER may not mutate anything", () => {
+  it("EDITOR may mutate content assigned to them (person linked to their user)", () => {
+    // Created by someone else, but the assigned Person is linked to u1 → allowed.
+    expect(
+      canMutateAsset(
+        { id: "u1", role: "EDITOR" },
+        { createdById: "u2", person: { userId: "u1" } },
+      ),
+    ).toBe(true);
+    // Assigned to a different user's person → not allowed.
+    expect(
+      canMutateAsset(
+        { id: "u1", role: "EDITOR" },
+        { createdById: "u2", person: { userId: "u3" } },
+      ),
+    ).toBe(false);
+    // Standalone person (no linked user) → falls back to creator check.
+    expect(
+      canMutateAsset(
+        { id: "u1", role: "EDITOR" },
+        { createdById: "u2", person: { userId: null } },
+      ),
+    ).toBe(false);
+  });
+
+  it("VIEWER may not mutate anything, even assigned to them", () => {
     expect(canMutateAsset({ id: "u1", role: "VIEWER" }, { createdById: "u1" })).toBe(false);
+    expect(
+      canMutateAsset(
+        { id: "u1", role: "VIEWER" },
+        { createdById: "u2", person: { userId: "u1" } },
+      ),
+    ).toBe(false);
   });
 });
