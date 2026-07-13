@@ -76,7 +76,10 @@ export function WorkspaceOverview({
               platforms' top bus connects up to it. */}
           <CenteredScroll className="pb-4 pt-[64px]">
             <div className="wtree w-max min-w-full">
-              <ul className="!justify-start gap-5">
+              {/* Center when the row fits (so a lone platform sits under the
+                  root); 'safe' falls back to start-align on overflow to avoid
+                  clipping the first platform when many scroll sideways. */}
+              <ul className="![justify-content:safe_center] gap-5">
                 {overview.groups.map((g) => (
                   <li key={g.id}>
                     <PlatformNode group={g} />
