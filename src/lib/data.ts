@@ -97,12 +97,17 @@ function filterAndSortAssets(items: AssetListItem[], filters: LibraryFilters): A
   if (filters.sort === "name") {
     out = [...out].sort((a, b) => a.title.localeCompare(b.title));
   } else if (filters.sort === "postdate") {
-    // Assets with a post date first (soonest → latest); undated last.
+    // Assets with a post date first (soonest → latest); undated last. In the
+    // scheduled-this-month list, sort by the in-month date so order matches the
+    // badge rather than a stray earlier-month schedule.
+    const key = (a: AssetListItem) => a.monthSchedule?.date ?? a.nextPostDate;
     out = [...out].sort((a, b) => {
-      if (!a.nextPostDate && !b.nextPostDate) return 0;
-      if (!a.nextPostDate) return 1;
-      if (!b.nextPostDate) return -1;
-      return a.nextPostDate.localeCompare(b.nextPostDate);
+      const ka = key(a);
+      const kb = key(b);
+      if (!ka && !kb) return 0;
+      if (!ka) return 1;
+      if (!kb) return -1;
+      return ka.localeCompare(kb);
     });
   }
   return out;
@@ -122,6 +127,11 @@ export type AssetListItem = {
   hasHtml: boolean;
   url: string | null;
   nextPostDate: string | null; // earliest platform post date, if any
+  // Populated only by the "Scheduled this month" list: the earliest platform
+  // whose post date actually falls in the queried month, so the card badge can
+  // show *which* platform makes this asset a this-month item (an asset may also
+  // be scheduled on other platforms in other months).
+  monthSchedule?: { name: string; icon: string; date: string; extra: number } | null;
   person: { id: string; name: string; avatarColor: string };
   channels: {
     id: string;
@@ -779,7 +789,26 @@ export async function getScheduledThisMonthAssets(
     include: ASSET_LIST_INCLUDE,
   });
 
-  return filterAndSortAssets(rows.map(mapAssetRow), filters);
+  const items = rows.map(mapAssetRow).map((a) => {
+    // Pick the earliest platform whose post date lands in this month — that's
+    // the reason the asset is in the list, and what the card badge should show.
+    const inMonth = a.channels
+      .filter((c) => {
+        if (!c.scheduledFor) return false;
+        const d = new Date(c.scheduledFor);
+        return d >= monthStart && d < monthEnd;
+      })
+      .sort((x, y) => (x.scheduledFor! < y.scheduledFor! ? -1 : 1));
+    const first = inMonth[0];
+    return {
+      ...a,
+      monthSchedule: first
+        ? { name: first.name, icon: first.icon, date: first.scheduledFor!, extra: inMonth.length - 1 }
+        : null,
+    };
+  });
+
+  return filterAndSortAssets(items, filters);
 }
 
 /**

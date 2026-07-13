@@ -82,17 +82,38 @@ export function AssetCard({
       <div className="p-3">
         <div className="flex items-center gap-1.5">
           <div className="flex-1 truncate text-[12.5px] font-semibold">{asset.title}</div>
-          {asset.nextPostDate && (
+          {asset.monthSchedule ? (
+            // Scheduled-this-month list: show the platform + date that puts this
+            // asset in the month (it may be scheduled elsewhere in other months).
             <span
-              className="shrink-0 rounded-full bg-teal-soft px-1.5 py-0.5 text-[10px] font-semibold text-teal-dark"
-              title={`Post date: ${new Date(asset.nextPostDate).toLocaleDateString()}`}
+              className="flex shrink-0 items-center gap-1 rounded-full bg-teal-soft px-1.5 py-0.5 text-[10px] font-semibold text-teal-dark"
+              title={
+                `${asset.monthSchedule.name} · ${new Date(asset.monthSchedule.date).toLocaleDateString()}` +
+                (asset.monthSchedule.extra > 0 ? ` (+${asset.monthSchedule.extra} more this month)` : "")
+              }
             >
-              📅{" "}
-              {new Date(asset.nextPostDate).toLocaleDateString(undefined, {
+              <PlatformIcon name={asset.monthSchedule.name} icon={asset.monthSchedule.icon} size={11} />
+              {new Date(asset.monthSchedule.date).toLocaleDateString(undefined, {
                 month: "short",
                 day: "numeric",
               })}
+              {asset.monthSchedule.extra > 0 && (
+                <span className="text-teal-dark/70">+{asset.monthSchedule.extra}</span>
+              )}
             </span>
+          ) : (
+            asset.nextPostDate && (
+              <span
+                className="shrink-0 rounded-full bg-teal-soft px-1.5 py-0.5 text-[10px] font-semibold text-teal-dark"
+                title={`Post date: ${new Date(asset.nextPostDate).toLocaleDateString()}`}
+              >
+                📅{" "}
+                {new Date(asset.nextPostDate).toLocaleDateString(undefined, {
+                  month: "short",
+                  day: "numeric",
+                })}
+              </span>
+            )
           )}
         </div>
         <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] text-slate">
