@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { CATEGORY_OPTIONS } from "@/lib/library";
 import { useToast } from "@/components/ui/toast";
@@ -60,7 +60,9 @@ export function EditAssetDialog({
   const [thumbPreview, setThumbPreview] = useState<string | null>(asset.thumbnailUrl ?? null);
   const thumbInput = useRef<HTMLInputElement>(null);
 
-  function pickThumb(f: File | null) {
+  const [dragThumb, setDragThumb] = useState(false);
+
+  function pickThumb(f: File | null | undefined) {
     if (!f) return;
     if (!f.type.startsWith("image/")) {
       toast("Pick an image file for the thumbnail.");
@@ -73,6 +75,27 @@ export function EditAssetDialog({
     setThumbFile(f);
     setThumbPreview(URL.createObjectURL(f));
   }
+
+  // Paste an image from the clipboard (e.g. a screenshot) → thumbnail while the
+  // dialog is open. A ref keeps the listener pointing at the latest pickThumb.
+  const pickThumbRef = useRef(pickThumb);
+  useEffect(() => {
+    pickThumbRef.current = pickThumb;
+  });
+  useEffect(() => {
+    function onPaste(e: ClipboardEvent) {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      const img = Array.from(items).find((it) => it.type.startsWith("image/"));
+      const file = img?.getAsFile();
+      if (file) {
+        e.preventDefault();
+        pickThumbRef.current(file);
+      }
+    }
+    window.addEventListener("paste", onPaste);
+    return () => window.removeEventListener("paste", onPaste);
+  }, []);
 
   const canSave = title.trim().length > 0 && channels.size > 0;
 
@@ -128,7 +151,19 @@ export function EditAssetDialog({
         <div className="mb-4 flex items-center gap-3">
           <div
             onClick={() => thumbInput.current?.click()}
-            className="grid h-[70px] w-[124px] flex-shrink-0 cursor-pointer overflow-hidden rounded-[10px] border border-line"
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragThumb(true);
+            }}
+            onDragLeave={() => setDragThumb(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragThumb(false);
+              pickThumb(Array.from(e.dataTransfer.files).find((x) => x.type.startsWith("image/")));
+            }}
+            className={`relative grid h-[70px] w-[124px] flex-shrink-0 cursor-pointer place-items-center overflow-hidden rounded-[10px] border ${
+              dragThumb ? "border-teal ring-2 ring-teal/40" : "border-line"
+            }`}
           >
             {thumbPreview ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -141,6 +176,11 @@ export function EditAssetDialog({
                 {title || asset.title}
               </div>
             )}
+            {dragThumb && (
+              <div className="absolute inset-0 grid place-items-center bg-teal/20 text-[10px] font-bold text-teal-dark">
+                Drop image
+              </div>
+            )}
           </div>
           <div className="text-[12px] text-slate">
             <button
@@ -150,7 +190,7 @@ export function EditAssetDialog({
               Change thumbnail
             </button>
             <div className="mt-1 text-[11px]">
-              {thumbFile ? "New image · cropped to 16:9" : "Click to upload an image (≤ 2 MB)"}
+              {thumbFile ? "New image · cropped to 16:9" : "Click, drop or paste an image (≤ 2 MB)"}
             </div>
             <input
               ref={thumbInput}
