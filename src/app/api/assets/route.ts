@@ -4,6 +4,7 @@ import { validateSaveAsset } from "@/lib/validation/save-asset";
 import { createAsset } from "@/lib/assets";
 import { storage } from "@/lib/storage";
 import { makeImageThumbnail, generateCover, thumbKey } from "@/lib/thumbnails";
+import { isDocx, htmlFromDocx } from "@/lib/docx";
 import { TYPE_LABELS } from "@/lib/library";
 import { slugify } from "@/lib/artifact-view";
 import { parseTags } from "@/lib/json";
@@ -80,9 +81,15 @@ export async function POST(req: Request) {
   // Uploaded file → its stored URL; otherwise a LINK asset keeps its external URL.
   const finalUrl = url ?? data.url ?? undefined;
 
+  // Uploaded Word (.docx) → HTML so it renders in the in-app reader.
+  const docHtml =
+    fileBuffer && file instanceof File && isDocx(file.type, file.name)
+      ? await htmlFromDocx(fileBuffer)
+      : null;
+
   try {
     const asset = await createAsset(
-      { ...data, thumbnailUrl, url: finalUrl },
+      { ...data, thumbnailUrl, url: finalUrl, ...(docHtml ? { html: docHtml } : {}) },
       { workspaceId: g.user.workspaceId, userId: g.user.id },
     );
     // Link the originating chat message (generated artifacts).

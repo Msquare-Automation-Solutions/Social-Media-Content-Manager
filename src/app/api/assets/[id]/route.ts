@@ -7,6 +7,7 @@ import { isAdminRole } from "@/lib/roles";
 import { serializeTags, parseTags } from "@/lib/json";
 import { storage, keyFromUrl } from "@/lib/storage";
 import { makeImageThumbnail, thumbKey } from "@/lib/thumbnails";
+import { isDocx, htmlFromDocx } from "@/lib/docx";
 import { ASSET_TYPES } from "@/lib/enums";
 import { TYPE_LABELS } from "@/lib/library";
 import { logActivity } from "@/lib/activity";
@@ -148,6 +149,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     data.sizeBytes = buf.length;
     if (fileReplace.type.startsWith("image/")) {
       data.thumbnailUrl = await makeImageThumbnail(buf, keyBase);
+    }
+    // Replaced with a Word doc → re-render its HTML for the reader.
+    if (isDocx(fileReplace.type, fileReplace.name)) {
+      const html = await htmlFromDocx(buf);
+      if (html) data.html = html;
     }
   }
 

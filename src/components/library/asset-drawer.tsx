@@ -297,6 +297,12 @@ export function AssetDrawer({
                   className="prose max-w-none rounded-[12px] border border-line p-5 [&_h2]:mb-2 [&_h2]:font-display [&_h2]:text-lg [&_h3]:mb-1 [&_h3]:mt-3 [&_h3]:font-semibold [&_li]:ml-4 [&_li]:list-disc [&_ol_li]:list-decimal [&_p]:mb-2 [&_p]:leading-relaxed"
                   dangerouslySetInnerHTML={{ __html: asset.html }}
                 />
+              ) : asset.mimeType === "application/pdf" && asset.url ? (
+                <iframe
+                  src={`/api/assets/${asset.id}/download?inline=1`}
+                  title={asset.title}
+                  className="h-[72vh] w-full rounded-[12px] border border-line bg-white"
+                />
               ) : (
                 <AssetPreview asset={asset} className="h-[220px] rounded-[12px]" />
               )}
