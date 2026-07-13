@@ -71,7 +71,12 @@ export function Sidebar({
       {/* Only the nav list scrolls (vertical only) — the header (with the
           notification dropdown) and footer stay put and aren't clipped. */}
       <nav className="-mr-2 flex min-h-0 flex-1 flex-col gap-[3px] overflow-y-auto overflow-x-hidden overscroll-contain pr-2">
-      <NavLink href="/" active={isActive("/")} label="Home" icon="home" />
+      <NavLink
+        href="/"
+        active={isActive("/")}
+        label="Workspace overview"
+        icon="overview"
+      />
       <NavLink
         href="/dashboard"
         active={isActive("/dashboard")}
@@ -79,15 +84,11 @@ export function Sidebar({
         icon="dashboard"
       />
       <NavLink
-        href="/overview"
-        active={isActive("/overview")}
-        label="Workspace overview"
-        icon="overview"
-      />
-      <NavLink
         href="/review"
         active={isActive("/review")}
-        label="Review queue"
+        // Only the OWNER (super admin) reviews the queue; for everyone else it's
+        // just their content sitting in "Pending".
+        label={user.role === "OWNER" ? "Review queue" : "Pending"}
         icon="review"
         count={queueCount || undefined}
         hot={queueCount > 0}
@@ -113,6 +114,12 @@ export function Sidebar({
         label="Published"
         icon="published"
         count={publishedCount || undefined}
+      />
+      <NavLink
+        href="/create"
+        active={isActive("/create")}
+        label="Content Creator"
+        icon="create"
       />
 
       <div className="px-3 pb-1.5 pt-3.5 text-[11px] font-bold uppercase tracking-[0.06em] text-slate/80">

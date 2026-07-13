@@ -1,53 +1,29 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/session";
-import { getSkill, listSessions, getSessionWithMessages } from "@/lib/data";
-import { DEFAULT_SKILL_NAME } from "@/lib/ai/default-skill";
-import { parseJson } from "@/lib/json";
-import type { Artifact } from "@/lib/ai/tools";
-import { ChatView, type UiMessage } from "@/components/chat/chat-view";
+import { getWorkspaceOverview } from "@/lib/data";
+import { WorkspaceOverview } from "@/components/overview/workspace-overview";
 
 export const dynamic = "force-dynamic";
 
-export default async function ChatPage({
+// Home now lands on the workspace overview (the chat studio moved to /create).
+export default async function HomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ s?: string }>;
+  searchParams: Promise<{ status?: string; from?: string; to?: string }>;
 }) {
-  const { s: selectedParam } = await searchParams;
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  const sp = await searchParams;
 
-  const [skill, sessions] = await Promise.all([
-    getSkill(user.workspaceId),
-    listSessions(user.workspaceId, user.id),
-  ]);
-
-  const selectedId = selectedParam ?? null;
-  let initialMessages: UiMessage[] = [];
-  if (selectedId) {
-    const session = await getSessionWithMessages(selectedId, user.workspaceId);
-    if (session) {
-      initialMessages = session.messages
-        .filter((m) => m.content.trim().length > 0 || m.artifactJson)
-        .map((m) => ({
-          id: m.id,
-          dbId: m.id,
-          role: m.role as "user" | "assistant",
-          content: m.content,
-          artifact: m.artifactJson
-            ? parseJson<Artifact | null>(m.artifactJson, null)
-            : null,
-        }));
-    }
-  }
-
+  const overview = await getWorkspaceOverview(user.workspaceId, {
+    status: sp.status || undefined,
+    from: sp.from || undefined,
+    to: sp.to || undefined,
+  });
   return (
-    <ChatView
-      skillName={skill?.name ?? DEFAULT_SKILL_NAME}
-      user={{ name: user.name, avatarColor: user.avatarColor }}
-      sessions={sessions.map((s) => ({ id: s.id, title: s.title }))}
-      initialSessionId={selectedId}
-      initialMessages={initialMessages}
+    <WorkspaceOverview
+      overview={overview}
+      filters={{ status: sp.status ?? "", from: sp.from ?? "", to: sp.to ?? "" }}
     />
   );
 }

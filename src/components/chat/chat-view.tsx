@@ -123,7 +123,7 @@ export function ChatView({
       if (newSessionId && newSessionId !== sessionId) {
         setSessionId(newSessionId);
         // Reflect the new session in the URL + refresh the header list.
-        window.history.replaceState(null, "", `/?s=${newSessionId}`);
+        window.history.replaceState(null, "", `/create?s=${newSessionId}`);
         router.refresh();
       }
     } catch {
@@ -143,7 +143,7 @@ export function ChatView({
   function newChat() {
     setMessages([]);
     setSessionId(null);
-    window.history.replaceState(null, "", "/");
+    window.history.replaceState(null, "", "/create");
   }
 
   const showHello = messages.length === 0;
@@ -161,7 +161,7 @@ export function ChatView({
             value={sessionId ?? ""}
             onChange={(e) => {
               const id = e.target.value;
-              if (id) router.push(`/?s=${id}`);
+              if (id) router.push(`/create?s=${id}`);
             }}
             className="ml-auto rounded-[10px] border border-line px-3 py-1.5 text-[12.5px] text-slate outline-none"
           >

@@ -47,7 +47,7 @@ export default async function ReviewPage({
       filters={view}
       canEdit={user.role !== "VIEWER"}
       canReview={canReview}
-      title="Review queue"
+      title={user.role === "OWNER" ? "Review queue" : "Pending"}
       subtitle={
         canReview
           ? "Everything awaiting approval — open a card to preview it, then approve or send it back for rework."
