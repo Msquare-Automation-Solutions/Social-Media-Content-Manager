@@ -39,6 +39,11 @@ export function WorkspaceOverview({
         .wtree li:first-child::before, .wtree li:last-child::after { border: 0 none; }
         .wtree li:last-child::before { border-right: 1.5px solid ${line}; border-radius: 0 7px 0 0; }
         .wtree li:first-child::after { border-radius: 7px 0 0 0; }
+        /* A lone child gets a straight vertical connector, not the rounded
+           first+last "hook". Must come after the first/last rules to win. */
+        .wtree li:only-child::before { display: none; }
+        .wtree li:only-child::after { display: block; border: 0 none;
+          border-left: 1.5px solid ${line}; border-radius: 0; left: 50%; right: auto; }
         .wtree ul ul::before { content: ''; position: absolute; top: 0; left: 50%;
           width: 0; height: 22px; border-left: 1.5px solid ${line}; }
         /* The single workspace root sits flush at the top with no connector
