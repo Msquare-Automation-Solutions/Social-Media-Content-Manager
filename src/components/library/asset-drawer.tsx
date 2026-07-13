@@ -12,6 +12,19 @@ import { EditAssetDialog } from "@/components/library/edit-asset-dialog";
 import { VersionHistory } from "@/components/library/version-history";
 import { useToast } from "@/components/ui/toast";
 
+// Types browsers render inline (new-tab preview). Office formats (docx/xlsx/…)
+// can't preview natively, so we only offer Download for those.
+function canOpenInline(mimeType: string | null): boolean {
+  if (!mimeType) return false;
+  return (
+    mimeType.startsWith("image/") ||
+    mimeType.startsWith("video/") ||
+    mimeType.startsWith("audio/") ||
+    mimeType.startsWith("text/") ||
+    mimeType === "application/pdf"
+  );
+}
+
 type AssetDetail = {
   id: string;
   title: string;
@@ -400,13 +413,25 @@ export function AssetDrawer({
                     ↗ Open link
                   </a>
                 ) : (
-                  <a
-                    href={`/api/assets/${asset.id}/download`}
-                    download={asset.filename ?? undefined}
-                    className="rounded-[10px] border border-line px-3.5 py-2 text-[13px] font-semibold text-teal-dark hover:border-teal"
-                  >
-                    ⬇ Download
-                  </a>
+                  <>
+                    {canOpenInline(asset.mimeType) && (
+                      <a
+                        href={`/api/assets/${asset.id}/download?inline=1`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="rounded-[10px] border border-line px-3.5 py-2 text-[13px] font-semibold text-teal-dark hover:border-teal"
+                      >
+                        ↗ Open
+                      </a>
+                    )}
+                    <a
+                      href={`/api/assets/${asset.id}/download`}
+                      download={asset.filename ?? undefined}
+                      className="rounded-[10px] border border-line px-3.5 py-2 text-[13px] font-semibold text-teal-dark hover:border-teal"
+                    >
+                      ⬇ Download
+                    </a>
+                  </>
                 ))}
               {canDoEdit && (
                 <>

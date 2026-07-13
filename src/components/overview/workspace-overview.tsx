@@ -5,7 +5,8 @@ import type {
   OverviewCategory,
   OverviewRecent,
 } from "@/lib/data";
-import { TYPE_ICONS, TYPE_LABELS, LIBRARY_SLUGS } from "@/lib/library";
+import { TYPE_ICON_NAMES, TYPE_LABELS, LIBRARY_SLUGS } from "@/lib/library";
+import { Icon } from "@/components/ui/icons";
 import { gradientFor } from "@/lib/artifact-view";
 import { PlatformIcon } from "@/components/ui/platform-icon";
 import { StatusBadge } from "@/components/library/status-badge";
@@ -39,6 +40,8 @@ export function WorkspaceOverview({
         .wtree li:first-child::after { border-radius: 7px 0 0 0; }
         .wtree ul ul::before { content: ''; position: absolute; top: 0; left: 50%;
           width: 0; height: 22px; border-left: 1.5px solid ${line}; }
+        /* The single workspace root sits flush at the top with no connector
+           above it; its children (the platforms) draw the branch below. */
         .wtree > ul { padding-top: 0; }
         .wtree > ul > li { padding-top: 0; }
         .wtree > ul > li::before, .wtree > ul > li::after { display: none; }
@@ -67,24 +70,30 @@ export function WorkspaceOverview({
         </div>
       ) : (
         <div className="overflow-x-auto pb-4">
-          {/* Each platform is its own subtree (node + its content-type cards),
-              laid in a row that scrolls sideways when there are many platforms. */}
+          {/* A single workspace root branches down to each platform subtree
+              (node + its content-type cards); scrolls sideways when wide. */}
           <div className="wtree w-max min-w-full">
-            <ul className="!justify-start gap-5">
-              {overview.groups.map((g) => (
-                <li key={g.id}>
-                  <PlatformNode group={g} />
+            <ul>
+              <li>
+                <RootNode total={overview.total} />
 
-                  {/* Content-type cards */}
-                  <ul>
-                    {g.categories.map((cat) => (
-                      <li key={cat.key}>
-                        <CategoryCard channelId={g.id} cat={cat} filters={filters} />
-                      </li>
-                    ))}
-                  </ul>
-                </li>
-              ))}
+                <ul className="!justify-start gap-5">
+                  {overview.groups.map((g) => (
+                    <li key={g.id}>
+                      <PlatformNode group={g} />
+
+                      {/* Content-type cards */}
+                      <ul>
+                        {g.categories.map((cat) => (
+                          <li key={cat.key}>
+                            <CategoryCard channelId={g.id} cat={cat} filters={filters} />
+                          </li>
+                        ))}
+                      </ul>
+                    </li>
+                  ))}
+                </ul>
+              </li>
             </ul>
           </div>
         </div>
@@ -117,6 +126,20 @@ export function WorkspaceOverview({
   );
 }
 
+function RootNode({ total }: { total: number }) {
+  return (
+    <div className="mb-1 flex items-center gap-2.5 rounded-[14px] bg-brand-teal px-4 py-2.5 text-white shadow-glow-sm">
+      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/20">
+        <Icon name="overview" size={18} />
+      </span>
+      <div className="min-w-0">
+        <div className="font-display text-[13.5px] font-semibold">All platforms</div>
+        <div className="text-[11px] text-white/75">{total} items total</div>
+      </div>
+    </div>
+  );
+}
+
 function PlatformNode({ group: g }: { group: OverviewGroup }) {
   const typeCount = g.categories.filter((c) => c.count > 0).length;
   return (
@@ -124,7 +147,7 @@ function PlatformNode({ group: g }: { group: OverviewGroup }) {
       className="flex w-[192px] items-center gap-2.5 rounded-[14px] border px-3.5 py-2.5"
       style={{ background: `${g.color}0d`, borderColor: `${g.color}30` }}
     >
-      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-card shadow-soft">
+      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white shadow-soft ring-1 ring-black/5">
         <PlatformIcon name={g.name} icon={g.icon} size={19} />
       </span>
       <div className="min-w-0 flex-1">
@@ -160,9 +183,7 @@ function CategoryCard({
   return (
     <div className="flex w-[128px] flex-col items-center rounded-[13px] border border-line/70 bg-card px-2.5 pt-3 text-center">
       <div className="flex items-center gap-1.5">
-        <span aria-hidden className="text-[13px]">
-          {TYPE_ICONS[cat.key] ?? "📄"}
-        </span>
+        <Icon name={TYPE_ICON_NAMES[cat.key] ?? "other"} size={15} className="text-teal-dark" />
         <span className="truncate text-[12px] font-semibold">{cat.label}</span>
       </div>
       <div className="mt-1.5 font-display text-[23px] font-bold tabular-nums leading-none">
@@ -182,16 +203,17 @@ function CategoryCard({
         </div>
       )}
 
-      {cat.count > 0 ? (
-        <Link
-          href={viewAllHref}
-          className="mt-2 w-[calc(100%+20px)] border-t border-line/60 py-2 text-[11px] font-semibold text-teal-dark hover:underline"
-        >
-          View all →
-        </Link>
-      ) : (
-        <div className="pb-3" />
-      )}
+      {/* Always render a footer of equal height so cards stay uniform whether
+          or not they have content. */}
+      <div className="mt-2 w-[calc(100%+20px)] border-t border-line/60 py-2 text-[11px] font-semibold">
+        {cat.count > 0 ? (
+          <Link href={viewAllHref} className="text-teal-dark hover:underline">
+            View all →
+          </Link>
+        ) : (
+          <span className="text-slate/40">—</span>
+        )}
+      </div>
     </div>
   );
 }
@@ -220,10 +242,10 @@ function MiniPreview({
   return (
     <div
       title={title}
-      className="grid h-[48px] min-w-0 flex-1 place-items-center rounded-[8px] text-[14px]"
+      className="grid h-[48px] min-w-0 flex-1 place-items-center rounded-[8px]"
       style={{ background: `linear-gradient(135deg, ${c1}, ${c2})` }}
     >
-      <span>{TYPE_ICONS[type] ?? "📄"}</span>
+      <Icon name={TYPE_ICON_NAMES[type] ?? "other"} size={18} className="text-white/95" />
     </div>
   );
 }
@@ -283,10 +305,10 @@ function RecentThumb({
   const [c1, c2] = gradientFor(title);
   return (
     <div
-      className="grid h-[96px] w-full place-items-center text-2xl"
+      className="grid h-[96px] w-full place-items-center"
       style={{ background: `linear-gradient(135deg, ${c1}, ${c2})` }}
     >
-      <span>{TYPE_ICONS[type] ?? "📄"}</span>
+      <Icon name={TYPE_ICON_NAMES[type] ?? "other"} size={30} className="text-white/95" />
     </div>
   );
 }

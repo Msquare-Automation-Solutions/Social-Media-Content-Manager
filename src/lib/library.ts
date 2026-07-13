@@ -1,4 +1,5 @@
 import type { AssetType } from "@/lib/enums";
+import type { IconName } from "@/components/ui/icons";
 
 // The sidebar exposes four library views. Keys stay stable (IMAGE/THUMBNAIL/
 // VIDEO/BLOGPOST) — only the labels are the client's vocabulary. VIDEO_SCRIPT
@@ -58,4 +59,15 @@ export const TYPE_ICONS: Record<string, string> = {
   BLOGPOST: "📰",
   VIDEO_SCRIPT: "🎬",
   OTHER: "📦",
+};
+
+// Line-icon (SVG) equivalents of the category emojis — the same set the sidebar
+// uses. Prefer these over TYPE_ICONS for a cleaner, consistent look.
+export const TYPE_ICON_NAMES: Record<string, IconName> = {
+  IMAGE: "images",
+  THUMBNAIL: "thumbnails",
+  VIDEO: "videos",
+  BLOGPOST: "blog",
+  VIDEO_SCRIPT: "videos",
+  OTHER: "other",
 };

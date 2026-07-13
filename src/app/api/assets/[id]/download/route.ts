@@ -14,11 +14,15 @@ export const dynamic = "force-dynamic";
 // basename and reads as "I got the thumbnail". Proxying through the app forces
 // a real download carrying the asset's original filename.
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const g = await guard();
   if (!g.ok) return g.response;
+
+  // ?inline=1 serves the file for in-browser viewing (PDF/image/text/video/
+  // audio open in a new tab) instead of forcing a download.
+  const inline = new URL(req.url).searchParams.get("inline") === "1";
 
   const asset = await prisma.mediaAsset.findFirst({
     where: { id: (await params).id, workspaceId: g.user.workspaceId },
@@ -57,7 +61,7 @@ export async function GET(
   const ascii = filename.replace(/[^\x20-\x7e]/g, "_").replace(/"/g, "'");
   const headers = new Headers({
     "Content-Type": asset.mimeType || "application/octet-stream",
-    "Content-Disposition": `attachment; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(filename)}`,
+    "Content-Disposition": `${inline ? "inline" : "attachment"}; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(filename)}`,
     "Cache-Control": "private, no-store",
   });
   if (size) headers.set("Content-Length", String(size));

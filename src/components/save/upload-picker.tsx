@@ -65,8 +65,10 @@ export function UploadPicker() {
             handleFiles(e.dataTransfer.files);
           }}
           onClick={() => inputRef.current?.click()}
-          className={`cursor-pointer rounded-[14px] border-2 border-dashed p-8 text-center text-slate ${
-            dragging ? "border-teal bg-teal-soft" : "border-line"
+          className={`cursor-pointer rounded-[14px] border-2 border-dashed p-8 text-center text-slate transition ${
+            dragging
+              ? "border-teal bg-teal-soft"
+              : "border-slate/40 bg-wash/[0.03] hover:border-teal/60 hover:bg-wash/[0.05]"
           }`}
         >
           ⬆️

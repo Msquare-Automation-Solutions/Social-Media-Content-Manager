@@ -1,7 +1,8 @@
 "use client";
 
 import type { AssetListItem } from "@/lib/data";
-import { TYPE_ICONS, TYPE_LABELS } from "@/lib/library";
+import { TYPE_ICON_NAMES, TYPE_LABELS } from "@/lib/library";
+import { Icon } from "@/components/ui/icons";
 import { gradientFor } from "@/lib/artifact-view";
 import { initials } from "@/lib/colors";
 import { StatusBadge } from "@/components/library/status-badge";
@@ -34,7 +35,7 @@ export function AssetCard({
             onToggleSelect(e);
           }}
           aria-label={selected ? "Deselect" : "Select"}
-          className={`absolute left-2 top-2 z-10 grid h-6 w-6 place-items-center rounded-[7px] border text-white shadow-soft transition ${
+          className={`absolute right-2 top-2 z-20 grid h-6 w-6 place-items-center rounded-[7px] border text-white shadow-soft transition ${
             selected
               ? "border-teal bg-teal"
               : `border-white/80 bg-black/25 ${selecting ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`
@@ -47,37 +48,33 @@ export function AssetCard({
           )}
         </button>
       )}
-      <StatusBadge
-        status={asset.status}
-        className="absolute right-2 top-2 z-10 shadow-soft"
-      />
       <div className="relative overflow-hidden">
         <div className="transition-transform duration-500 ease-premium group-hover:scale-[1.04]">
           <AssetPreview asset={asset} />
         </div>
-        {/* Content-type label pill (top-left overlay). */}
-        <span className="absolute left-2 top-2 z-10 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur-sm">
-          {TYPE_LABELS[asset.type] ?? asset.type}
-        </span>
-        {/* Platform brand-logo badges (bottom-left overlay). */}
+        {/* Platform brand-logo badges (top-left overlay). */}
         {asset.channels.length > 0 && (
-          <div className="absolute bottom-2 left-2 z-10 flex items-center gap-1">
+          <div className="absolute left-2 top-2 z-10 flex items-center gap-1">
             {asset.channels.slice(0, 3).map((c) => (
               <span
                 key={c.id}
                 title={c.name}
-                className="grid h-5 w-5 place-items-center rounded-full bg-white shadow-soft"
+                className="grid h-6 w-6 place-items-center rounded-full bg-white shadow-soft"
               >
-                <PlatformIcon name={c.name} icon={c.icon} size={13} />
+                <PlatformIcon name={c.name} icon={c.icon} size={15} />
               </span>
             ))}
             {asset.channels.length > 3 && (
-              <span className="grid h-5 min-w-5 place-items-center rounded-full bg-white px-1 text-[9px] font-bold text-slate shadow-soft">
+              <span className="grid h-6 min-w-6 place-items-center rounded-full bg-white px-1 text-[10px] font-bold text-[#5f6e81] shadow-soft">
                 +{asset.channels.length - 3}
               </span>
             )}
           </div>
         )}
+        {/* Content-type label pill (bottom-left overlay, white chip). */}
+        <span className="absolute bottom-2 left-2 z-10 rounded-[8px] bg-white/95 px-2 py-0.5 text-[10.5px] font-semibold text-[#141f2e] shadow-soft backdrop-blur-sm">
+          {TYPE_LABELS[asset.type] ?? asset.type}
+        </span>
       </div>
       <div className="p-3">
         <div className="flex items-center gap-1.5">
@@ -136,6 +133,10 @@ export function AssetCard({
             {asset.source === "GENERATED" ? "AI" : asset.source === "LINK" ? "Link" : "Upload"}
           </span>
         </div>
+        {/* Status pill below the meta row (reference-style). */}
+        <div className="mt-2">
+          <StatusBadge status={asset.status} />
+        </div>
       </div>
     </div>
   );
@@ -161,10 +162,10 @@ export function AssetPreview({
   const [c1, c2] = gradientFor(asset.title);
   return (
     <div
-      className={`grid w-full place-items-center px-3 text-center text-2xl ${className}`}
+      className={`grid w-full place-items-center px-3 text-center ${className}`}
       style={{ background: `linear-gradient(135deg, ${c1}, ${c2})` }}
     >
-      <span>{TYPE_ICONS[asset.type] ?? "📄"}</span>
+      <Icon name={TYPE_ICON_NAMES[asset.type] ?? "other"} size={30} className="text-white/95" />
     </div>
   );
 }
