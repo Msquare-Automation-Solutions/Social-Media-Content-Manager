@@ -28,9 +28,11 @@ export function classifyFile(file: File): Classified {
       return { ok: false, name, error: "Videos must be ≤ 512 MB" };
     category = "VIDEO";
   } else if (
-    /\.(md|markdown|html?|docx)$/.test(lower) ||
+    /\.(md|markdown|html?|docx?|pdf)$/.test(lower) ||
     mime === "text/markdown" ||
     mime === "text/html" ||
+    mime === "application/pdf" ||
+    mime === "application/msword" ||
     mime ===
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
   ) {

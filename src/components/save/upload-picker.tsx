@@ -78,7 +78,7 @@ export function UploadPicker() {
           <br />
           or <b className="text-teal-dark">browse your computer</b>
           <div className="mt-2 text-[11px]">
-            Images ≤ 10 MB · Videos ≤ 512 MB · .md / .html / .docx → Blog post
+            Images ≤ 10 MB · Videos ≤ 512 MB · PDF / Word / .md / .html ≤ 25 MB
           </div>
         </div>
         <input
