@@ -44,17 +44,8 @@ export function WorkspaceOverview({
         .wtree li:only-child::before { display: none; }
         .wtree li:only-child::after { display: block; border: 0 none;
           border-left: 1.5px solid ${line}; border-radius: 0; left: 50%; right: auto; }
-        /* …but the root li is itself an only-child of the top ul — it must never
-           draw a connector (higher specificity than the rule above). */
-        .wtree > ul > li:only-child::before,
-        .wtree > ul > li:only-child::after { display: none; }
         .wtree ul ul::before { content: ''; position: absolute; top: 0; left: 50%;
           width: 0; height: 22px; border-left: 1.5px solid ${line}; }
-        /* The single workspace root sits flush at the top with no connector
-           above it; its children (the platforms) draw the branch below. */
-        .wtree > ul { padding-top: 0; }
-        .wtree > ul > li { padding-top: 0; }
-        .wtree > ul > li::before, .wtree > ul > li::after { display: none; }
       `}</style>
 
       <div className="mb-1.5 flex items-center gap-3.5">
@@ -79,38 +70,42 @@ export function WorkspaceOverview({
             : "Nothing here yet — save or upload content and tag it to a platform."}
         </div>
       ) : (
-        <CenteredScroll className="pb-4">
-          {/* The workspace root and its branch live inside the scroll area so the
-              whole org chart (root → platforms → categories) moves together;
-              CenteredScroll opens centered on the root. */}
-          <div className="wtree w-max min-w-full">
-            <ul>
-              <li>
-                <RootNode total={overview.total} />
+        <div className="relative">
+          {/* The platform tree scrolls sideways. The root node is an overlay that
+              stays centered on the page (below) so it's always in view; the
+              platforms' top bus connects up to it. */}
+          <CenteredScroll className="pb-4 pt-[64px]">
+            <div className="wtree w-max min-w-full">
+              <ul className="!justify-start gap-5">
+                {overview.groups.map((g) => (
+                  <li key={g.id}>
+                    <PlatformNode group={g} />
 
-                <ul className="!justify-start gap-5">
-                  {overview.groups.map((g) => (
-                    <li key={g.id}>
-                      <PlatformNode group={g} />
+                    {/* Only content-type cards that actually have items —
+                        empty categories are hidden until content appears. */}
+                    <ul>
+                      {g.categories
+                        .filter((cat) => cat.count > 0)
+                        .map((cat) => (
+                          <li key={cat.key}>
+                            <CategoryCard channelId={g.id} cat={cat} filters={filters} />
+                          </li>
+                        ))}
+                    </ul>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </CenteredScroll>
 
-                      {/* Only content-type cards that actually have items —
-                          empty categories are hidden until content appears. */}
-                      <ul>
-                        {g.categories
-                          .filter((cat) => cat.count > 0)
-                          .map((cat) => (
-                            <li key={cat.key}>
-                              <CategoryCard channelId={g.id} cat={cat} filters={filters} />
-                            </li>
-                          ))}
-                      </ul>
-                    </li>
-                  ))}
-                </ul>
-              </li>
-            </ul>
+          {/* Centered, always-in-view root + a drop line down to the bus. */}
+          <div className="pointer-events-none absolute inset-x-0 top-0 flex flex-col items-center">
+            <div className="pointer-events-auto">
+              <RootNode total={overview.total} />
+            </div>
+            <div className="h-[30px] w-px" style={{ background: line }} />
           </div>
-        </CenteredScroll>
+        </div>
       )}
 
       {/* Recent Content strip */}
@@ -142,7 +137,7 @@ export function WorkspaceOverview({
 
 function RootNode({ total }: { total: number }) {
   return (
-    <div className="mb-1 flex items-center gap-2.5 rounded-[14px] bg-brand-teal px-4 py-2.5 text-white shadow-glow-sm">
+    <div className="flex items-center gap-2.5 rounded-[14px] bg-brand-teal px-4 py-2.5 text-white shadow-glow-sm">
       <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/20">
         <Icon name="overview" size={18} />
       </span>
