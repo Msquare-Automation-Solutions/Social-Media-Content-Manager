@@ -406,6 +406,16 @@ export function aggregateDashboard(
     const d = new Date(iso);
     return d >= winStart && d <= winEnd;
   };
+  // The actual current calendar month — independent of the From/To range (which
+  // scopes createdAt). Anything labeled "this month" must use this, or a
+  // trailing range would hide posts genuinely scheduled later this month.
+  const calMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const calMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const inCalendarMonth = (iso: string | null) => {
+    if (!iso) return false;
+    const d = new Date(iso);
+    return d >= calMonthStart && d < calMonthEnd;
+  };
   // # of assets with at least one platform post date this month.
   const scheduledThisMonth = (list: DashAsset[]) =>
     list.filter((a) => a.channels.some((c) => inMonth(c.scheduledFor))).length;
@@ -428,9 +438,10 @@ export function aggregateDashboard(
       total: tagged.length,
       byType: typeBreakdown(tagged),
       byStatus: statusBreakdown(tagged),
-      // Post dates for *this* platform specifically.
+      // Post dates for *this* platform in the current calendar month (the
+      // spotlight labels it "this month", so it must not follow the range).
       scheduledThisMonth: tagged.filter((a) =>
-        a.channels.some((c) => c.channelId === ch.id && inMonth(c.scheduledFor)),
+        a.channels.some((c) => c.channelId === ch.id && inCalendarMonth(c.scheduledFor)),
       ).length,
     };
   });
