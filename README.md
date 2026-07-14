@@ -147,5 +147,4 @@ scripts/          # one-off migration/seed utilities
 
 ## License
 
-No license file is included — treat this as source-available. Add a `LICENSE` if you
-intend others to reuse it.
+[MIT](LICENSE) — free to use, modify, and distribute. Attribution appreciated but not required.
