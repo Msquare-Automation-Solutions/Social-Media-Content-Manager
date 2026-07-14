@@ -48,9 +48,10 @@ Includes a review/approval workflow, roles, dark mode, and a workspace overview 
 
 ## Quick start
 
-> **New to this / not a developer?** There's a plain-language, click-by-click
-> walkthrough in **[Setup-Guide-For-Everyone.docx](Setup-Guide-For-Everyone.docx)** —
-> download it, no coding knowledge required.
+> **Want a guided, illustrated walkthrough?** Download
+> **[Setup-and-Deployment-Guide.docx](Setup-and-Deployment-Guide.docx)** — a
+> professional step-by-step guide (with screenshots) that takes you from forking
+> the repo → free database → deploying live on Vercel. No experience required.
 
 ```bash
 # 1. Clone and install
