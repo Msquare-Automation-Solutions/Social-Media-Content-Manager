@@ -22,7 +22,7 @@ export function AuthCard({
           <span className="grid h-10 w-10 place-items-center rounded-[13px] bg-white/15 text-lg backdrop-blur-sm">
             ◆
           </span>
-          <span className="font-display text-[18px] font-bold tracking-tight">MediaChat</span>
+          <span className="font-display text-[18px] font-bold tracking-tight">Social Media Content Manager</span>
         </div>
 
         <div className="relative max-w-[26rem]">
@@ -49,7 +49,7 @@ export function AuthCard({
           </ul>
         </div>
 
-        <div className="relative text-[12px] text-white/60">© 2026 MSquare · MediaChat Studio</div>
+        <div className="relative text-[12px] text-white/60">© 2026 MSquare · Social Media Content Manager</div>
       </aside>
 
       {/* Form side */}
@@ -63,7 +63,7 @@ export function AuthCard({
             <span className="grid h-9 w-9 place-items-center rounded-[12px] bg-brand-teal text-white shadow-glow-sm">
               ◆
             </span>
-            <span className="font-display text-[16px] font-bold">MediaChat</span>
+            <span className="font-display text-[16px] font-bold">Social Media Content Manager</span>
           </div>
 
           <div className="rounded-xl2 border border-line/70 bg-card p-8 shadow-card">
