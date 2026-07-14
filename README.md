@@ -48,6 +48,10 @@ Includes a review/approval workflow, roles, dark mode, and a workspace overview 
 
 ## Quick start
 
+> **New to this / not a developer?** There's a plain-language, click-by-click
+> walkthrough in **[Setup-Guide-For-Everyone.docx](Setup-Guide-For-Everyone.docx)** —
+> download it, no coding knowledge required.
+
 ```bash
 # 1. Clone and install
 git clone https://github.com/Msquare-Automation-Solutions/Social-Media-Content-Manager.git
