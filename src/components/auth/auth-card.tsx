@@ -49,7 +49,18 @@ export function AuthCard({
           </ul>
         </div>
 
-        <div className="relative text-[12px] text-white/60">© 2026 MSquare · Social Media Content Manager</div>
+        <div className="relative space-y-0.5 text-[12px] text-white/60">
+          <div>
+            Built by{" "}
+            <span className="font-semibold text-white/85">Msquare Automation Solutions</span>
+          </div>
+          <div>
+            <a href="mailto:admin@msquare.pro" className="hover:text-white/90">admin@msquare.pro</a>
+            {" · "}
+            <a href="tel:+917736507130" className="hover:text-white/90">+91 77365 07130</a>
+          </div>
+          <div className="text-white/45">© 2026 · Social Media Content Manager</div>
+        </div>
       </aside>
 
       {/* Form side */}

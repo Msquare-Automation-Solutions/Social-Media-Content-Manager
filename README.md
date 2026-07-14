@@ -150,6 +150,13 @@ scripts/          # one-off migration/seed utilities
 
 `CLAUDE.md` documents the product spec and conventions in detail.
 
+## Credits
+
+Built by **Msquare Automation Solutions**.
+
+- 📧 Email: [admin@msquare.pro](mailto:admin@msquare.pro)
+- 📞 Phone: [+91 77365 07130](tel:+917736507130)
+
 ## License
 
 [MIT](LICENSE) — free to use, modify, and distribute. Attribution appreciated but not required.

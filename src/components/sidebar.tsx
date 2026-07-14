@@ -188,6 +188,14 @@ export function Sidebar({
           </button>
           <ThemeToggle />
         </div>
+        <a
+          href="https://github.com/Msquare-Automation-Solutions/Social-Media-Content-Manager"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-2 block text-center text-[10.5px] text-slate/60 transition hover:text-slate"
+        >
+          Built by Msquare Automation Solutions
+        </a>
       </div>
     </aside>
   );
