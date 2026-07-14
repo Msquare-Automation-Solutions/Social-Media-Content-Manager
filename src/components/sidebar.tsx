@@ -53,11 +53,11 @@ export function Sidebar({
 
   return (
     <aside className="flex h-screen flex-col border-r border-line/80 bg-gradient-to-b from-card to-bg px-3.5 pb-5 pt-4">
-      <div className="flex items-center gap-2.5 px-2 pb-3.5 pt-0.5 font-display text-[17px] font-bold">
-        <div className="grid h-8 w-8 place-items-center rounded-[10px] bg-brand-teal text-white shadow-glow-sm">
+      <div className="flex items-center gap-2 px-1 pb-3.5 pt-0.5 font-display text-[14px] font-bold">
+        <div className="grid h-7 w-7 shrink-0 place-items-center rounded-[9px] bg-brand-teal text-[13px] text-white shadow-glow-sm">
           ◆
         </div>
-        <span className="min-w-0 flex-1 truncate">{workspaceName}</span>
+        <span className="min-w-0 flex-1 truncate" title={workspaceName}>{workspaceName}</span>
         <NotificationBell initialUnread={unreadCount} />
       </div>
 
