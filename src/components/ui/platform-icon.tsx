@@ -78,6 +78,71 @@ const PATHS: Record<BrandKey, string> = {
     "M4 3h16a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Zm2.5 4a1 1 0 0 0 0 2h11a1 1 0 1 0 0-2h-11Zm0 4a1 1 0 1 0 0 2h11a1 1 0 1 0 0-2h-11Zm0 4a1 1 0 1 0 0 2h7a1 1 0 1 0 0-2h-7Z",
 };
 
+// MSquare AI Lab — a multi-colour mark (not a single-path brand glyph), so it's
+// rendered specially rather than through the PATHS/BRAND_COLOR maps above.
+function isAiLab(name: string): boolean {
+  return name.toLowerCase().replace(/[^a-z]/g, "").includes("ailab");
+}
+
+function AiLabMark({
+  size,
+  className,
+  style,
+  label,
+}: {
+  size: number;
+  className: string;
+  style?: CSSProperties;
+  label: string;
+}) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={size}
+      height={size}
+      viewBox="0 0 48 48"
+      className={className}
+      style={style}
+      role="img"
+      aria-label={label}
+    >
+      <defs>
+        <linearGradient id="ailab-frame" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#7b2ff7" />
+          <stop offset="1" stopColor="#f0179b" />
+        </linearGradient>
+        <linearGradient id="ailab-spark" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#5ad2f4" />
+          <stop offset="1" stopColor="#2f7ef0" />
+        </linearGradient>
+      </defs>
+      <path
+        d="M32 8 H15 A9 9 0 0 0 6 17 V33 A9 9 0 0 0 15 42 H31 A9 9 0 0 0 40 33 V19"
+        fill="none"
+        stroke="url(#ailab-frame)"
+        strokeWidth="3.4"
+        strokeLinecap="round"
+      />
+      <g stroke="#ffffff" strokeWidth="0.6" strokeLinejoin="round">
+        <polygon points="9,30 15,18 18,24" fill="#3ec6b0" />
+        <polygon points="9,30 18,24 18,30" fill="#12a3c9" />
+        <polygon points="18,24 15,18 22,24" fill="#7b3ff2" />
+        <polygon points="18,24 18,30 24,26" fill="#8b3bd6" />
+        <polygon points="15,18 24,26 22,24" fill="#e8318f" />
+        <polygon points="24,26 33,18 27,24" fill="#e8318f" />
+        <polygon points="27,24 33,18 30,24" fill="#7b3ff2" />
+        <polygon points="24,26 27,24 24,30" fill="#12a3c9" />
+        <polygon points="27,24 33,30 24,30" fill="#3ec6b0" />
+        <polygon points="27,24 30,24 33,30" fill="#8b3bd6" />
+      </g>
+      <path
+        d="M37 3 L39.5 8.5 L45 11 L39.5 13.5 L37 19 L34.5 13.5 L29 11 L34.5 8.5 Z"
+        fill="url(#ailab-spark)"
+      />
+    </svg>
+  );
+}
+
 export function PlatformIcon({
   name,
   icon,
@@ -93,6 +158,9 @@ export function PlatformIcon({
   className?: string;
   style?: CSSProperties;
 }) {
+  if (isAiLab(name)) {
+    return <AiLabMark size={size} className={className} style={style} label={name} />;
+  }
   const key = brandKey(name);
   if (!key) {
     // Custom platform — render the stored emoji (or a generic dot).
