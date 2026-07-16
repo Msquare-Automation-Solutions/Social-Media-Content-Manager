@@ -2,6 +2,7 @@ import Link from "next/link";
 import type {
   WorkspaceOverview as Overview,
   OverviewGroup,
+  OverviewAccountGroup,
   OverviewCategory,
   OverviewRecent,
 } from "@/lib/data";
@@ -84,16 +85,27 @@ export function WorkspaceOverview({
                   <li key={g.id}>
                     <PlatformNode group={g} />
 
-                    {/* Only content-type cards that actually have items —
-                        empty categories are hidden until content appears. */}
-                    <ul>
-                      {g.categories
-                        .filter((cat) => cat.count > 0)
-                        .map((cat) => (
-                          <li key={cat.key}>
-                            <CategoryCard channelId={g.id} cat={cat} filters={filters} />
-                          </li>
-                        ))}
+                    {/* Platform → accounts present on it → content-type cards. */}
+                    <ul className="gap-4">
+                      {g.accounts.map((acc) => (
+                        <li key={acc.id}>
+                          <AccountNode account={acc} />
+                          <ul>
+                            {acc.categories
+                              .filter((cat) => cat.count > 0)
+                              .map((cat) => (
+                                <li key={cat.key}>
+                                  <CategoryCard
+                                    channelId={g.id}
+                                    accountId={acc.id}
+                                    cat={cat}
+                                    filters={filters}
+                                  />
+                                </li>
+                              ))}
+                          </ul>
+                        </li>
+                      ))}
                     </ul>
                   </li>
                 ))}
@@ -153,10 +165,10 @@ function RootNode({ total }: { total: number }) {
 }
 
 function PlatformNode({ group: g }: { group: OverviewGroup }) {
-  const typeCount = g.categories.filter((c) => c.count > 0).length;
+  const acctCount = g.accounts.length;
   return (
     <div
-      className="flex w-[192px] items-center gap-2.5 rounded-[14px] border px-3.5 py-2.5"
+      className="flex w-[200px] items-center gap-2.5 rounded-[14px] border px-3.5 py-2.5"
       style={{ background: `${g.color}0d`, borderColor: `${g.color}30` }}
     >
       <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white shadow-soft ring-1 ring-black/5">
@@ -165,6 +177,23 @@ function PlatformNode({ group: g }: { group: OverviewGroup }) {
       <div className="min-w-0 flex-1">
         <div className="truncate font-display text-[13.5px] font-semibold">{g.name}</div>
         <div className="text-[11px] text-slate">
+          {g.count} item{g.count === 1 ? "" : "s"} · {acctCount} account{acctCount === 1 ? "" : "s"}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AccountNode({ account: a }: { account: OverviewAccountGroup }) {
+  const typeCount = a.categories.filter((c) => c.count > 0).length;
+  return (
+    <div className="flex w-[176px] items-center gap-2 rounded-[12px] border border-line/70 bg-card px-3 py-2 shadow-soft">
+      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-white shadow-soft ring-1 ring-black/5">
+        <PlatformIcon name={a.name} icon={a.icon} size={15} />
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-[12.5px] font-semibold">{a.name}</div>
+        <div className="text-[10.5px] text-slate">
           {typeCount} content {typeCount === 1 ? "type" : "types"}
         </div>
       </div>
@@ -174,17 +203,20 @@ function PlatformNode({ group: g }: { group: OverviewGroup }) {
 
 function CategoryCard({
   channelId,
+  accountId,
   cat,
   filters,
 }: {
   channelId: string;
+  accountId: string;
   cat: OverviewCategory;
   filters: { status: string; from: string; to: string };
 }) {
-  // "View all" carries the tree's active filters (status/date) into the library
-  // so the list shows exactly what the card counted.
+  // "View all" carries the tree's active filters (status/date) + this branch's
+  // platform + account into the library so the list matches the card's count.
   const params = new URLSearchParams({
     ...(channelId !== "unassigned" && { channel: channelId }),
+    ...(accountId !== "unassigned" && { account: accountId }),
     ...(filters.status && { status: filters.status }),
     ...(filters.from && { from: filters.from }),
     ...(filters.to && { to: filters.to }),

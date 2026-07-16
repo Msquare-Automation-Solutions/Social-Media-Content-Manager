@@ -580,13 +580,23 @@ export type OverviewCategory = {
   count: number;
   previews: OverviewLeaf[];
 };
+// A platform branches into the accounts present on it; each account branches
+// into content-type cards.
+export type OverviewAccountGroup = {
+  id: string; // accountId, or "unassigned"
+  name: string;
+  icon: string;
+  color: string;
+  count: number;
+  categories: OverviewCategory[];
+};
 export type OverviewGroup = {
   id: string; // channelId, or "unassigned"
   name: string;
   icon: string;
   color: string;
   count: number; // distinct assets under this platform
-  categories: OverviewCategory[];
+  accounts: OverviewAccountGroup[];
 };
 export type OverviewRecent = {
   id: string;
@@ -609,17 +619,21 @@ type OverviewAsset = {
   thumbnailUrl: string | null;
   status: string;
   channels: { id: string }[];
+  accounts: { id: string }[];
 };
+
+type OverviewAccountDef = { id: string; name: string; icon: string; color: string };
 
 // The tree shows the social-media content types; "Other" is a catch-all that
 // isn't platform content, so it stays out of the tree (it still has its own
 // library, filters, and dashboard buckets).
 const TREE_VIEWS = LIBRARY_VIEWS.filter((v) => v.key !== "OTHER");
 
-/** Pure: group platform content into Platform → content-type cards. */
+/** Pure: group platform content into Platform → Account → content-type cards. */
 export function buildWorkspaceOverview(
   assets: OverviewAsset[],
   channels: { id: string; name: string; icon: string; color: string }[],
+  accountDefs: OverviewAccountDef[] = [],
 ): WorkspaceOverview {
   const viewFor = (type: string): LibraryViewKey | null =>
     LIBRARY_VIEWS.find((v) => (v.types as readonly string[]).includes(type))?.key ?? null;
@@ -627,12 +641,13 @@ export function buildWorkspaceOverview(
   // Other-typed items don't belong to a platform tree.
   const treeAssets = assets.filter((a) => viewFor(a.type) !== "OTHER");
 
-  const byGroup = new Map<string, OverviewAsset[]>();
-  const push = (gid: string, a: OverviewAsset) => {
-    const arr = byGroup.get(gid);
+  const push2 = (map: Map<string, OverviewAsset[]>, key: string, a: OverviewAsset) => {
+    const arr = map.get(key);
     if (arr) arr.push(a);
-    else byGroup.set(gid, [a]);
+    else map.set(key, [a]);
   };
+  const byGroup = new Map<string, OverviewAsset[]>();
+  const push = (gid: string, a: OverviewAsset) => push2(byGroup, gid, a);
   for (const a of treeAssets) {
     if (a.channels.length === 0) push(UNASSIGNED_ID, a);
     else for (const c of a.channels) push(c.id, a);
@@ -655,6 +670,41 @@ export function buildWorkspaceOverview(
       };
     });
 
+  // Within a platform's assets, branch by account (an asset with several
+  // accounts appears under each; account-less assets fall under "No account").
+  const accountGroupsFor = (list: OverviewAsset[]): OverviewAccountGroup[] => {
+    const byAcct = new Map<string, OverviewAsset[]>();
+    for (const a of list) {
+      if (a.accounts.length === 0) push2(byAcct, UNASSIGNED_ID, a);
+      else for (const ac of a.accounts) push2(byAcct, ac.id, a);
+    }
+    const out: OverviewAccountGroup[] = [];
+    for (const def of accountDefs) {
+      const l = byAcct.get(def.id);
+      if (!l || l.length === 0) continue;
+      out.push({
+        id: def.id,
+        name: def.name,
+        icon: def.icon,
+        color: def.color,
+        count: l.length,
+        categories: categoriesFor(l),
+      });
+    }
+    const noAcct = byAcct.get(UNASSIGNED_ID);
+    if (noAcct && noAcct.length > 0) {
+      out.push({
+        id: UNASSIGNED_ID,
+        name: "No account",
+        icon: "—",
+        color: "#9aa7b6",
+        count: noAcct.length,
+        categories: categoriesFor(noAcct),
+      });
+    }
+    return out;
+  };
+
   const groups: OverviewGroup[] = [];
   for (const ch of channels) {
     const list = byGroup.get(ch.id);
@@ -665,7 +715,7 @@ export function buildWorkspaceOverview(
       icon: ch.icon,
       color: ch.color,
       count: list.length,
-      categories: categoriesFor(list),
+      accounts: accountGroupsFor(list),
     });
   }
   const orphans = byGroup.get(UNASSIGNED_ID);
@@ -676,7 +726,7 @@ export function buildWorkspaceOverview(
       icon: "—",
       color: "#9aa7b6",
       count: orphans.length,
-      categories: categoriesFor(orphans),
+      accounts: accountGroupsFor(orphans),
     });
   }
 
@@ -703,7 +753,7 @@ export async function getWorkspaceOverview(
   opts: { status?: string; from?: string; to?: string } = {},
 ): Promise<WorkspaceOverview> {
   const range = createdAtRange(opts.from, opts.to);
-  const [rows, channels] = await Promise.all([
+  const [rows, channels, accountDefs] = await Promise.all([
     prisma.mediaAsset.findMany({
       where: {
         workspaceId,
@@ -719,10 +769,16 @@ export async function getWorkspaceOverview(
         thumbnailUrl: true,
         status: true,
         channels: { select: { channelId: true } },
+        accounts: { select: { accountId: true } },
       },
     }),
     prisma.socialChannel.findMany({
       where: { workspaceId },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, name: true, icon: true, color: true },
+    }),
+    prisma.account.findMany({
+      where: { workspaceId, deletedAt: null },
       orderBy: { createdAt: "asc" },
       select: { id: true, name: true, icon: true, color: true },
     }),
@@ -735,9 +791,10 @@ export async function getWorkspaceOverview(
     thumbnailUrl: a.thumbnailUrl,
     status: a.status,
     channels: a.channels.map((c) => ({ id: c.channelId })),
+    accounts: a.accounts.map((x) => ({ id: x.accountId })),
   }));
 
-  return buildWorkspaceOverview(assets, channels);
+  return buildWorkspaceOverview(assets, channels, accountDefs);
 }
 
 export async function listSessions(workspaceId: string, userId: string) {
