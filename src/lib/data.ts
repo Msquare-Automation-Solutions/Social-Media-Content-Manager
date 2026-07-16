@@ -315,6 +315,32 @@ export async function listCreators(workspaceId: string): Promise<CreatorRow[]> {
   }));
 }
 
+export type AccountRow = {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+  assetCount: number;
+};
+
+/** All (non-archived) accounts with how many live assets are assigned. */
+export async function listAccounts(workspaceId: string): Promise<AccountRow[]> {
+  const accounts = await prisma.account.findMany({
+    where: { workspaceId, deletedAt: null },
+    orderBy: { createdAt: "asc" },
+    include: {
+      _count: { select: { assets: { where: { asset: { deletedAt: null } } } } },
+    },
+  });
+  return accounts.map((a) => ({
+    id: a.id,
+    name: a.name,
+    icon: a.icon,
+    color: a.color,
+    assetCount: a._count.assets,
+  }));
+}
+
 export async function getAssetCounts(
   workspaceId: string,
 ): Promise<Record<LibraryViewKey, number>> {
