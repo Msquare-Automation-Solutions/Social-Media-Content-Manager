@@ -2,7 +2,7 @@ import crypto from "crypto";
 import { guard } from "@/lib/api-guard";
 import { validateSaveAsset } from "@/lib/validation/save-asset";
 import { createAsset } from "@/lib/assets";
-import { storage } from "@/lib/storage";
+import { storage, keyFromUrl } from "@/lib/storage";
 import { makeImageThumbnail, generateCover, thumbKey } from "@/lib/thumbnails";
 import { isDocx, htmlFromDocx } from "@/lib/docx";
 import { TYPE_LABELS } from "@/lib/library";
@@ -45,18 +45,22 @@ export async function POST(req: Request) {
   const keyBase = thumbKey(data.title, crypto.randomUUID());
   const label = TYPE_LABELS[data.type] ?? data.type;
 
-  // Store the uploaded original file, if any.
-  let url: string | null = null;
-  const file = form.get("file");
-  let fileBuffer: Buffer | null = null;
-  if (file instanceof File) {
-    fileBuffer = Buffer.from(await file.arrayBuffer());
-    const ext = extFromName(file.name) || extFromMime(file.type);
-    url = await storage.save(
-      `files/${keyBase}${ext ? "." + ext : ""}`,
-      fileBuffer,
-      file.type || "application/octet-stream",
-    );
+  // The original file (if any) was uploaded straight to storage by the browser;
+  // its URL arrives in the payload. Pull the bytes back only when we actually
+  // need them (image thumbnail / docx→html) — never for large videos.
+  const uploadedMime = data.mimeType ?? "";
+  const isImageUpload = Boolean(data.fileUrl) && uploadedMime.startsWith("image/");
+  const isDocxUpload = Boolean(data.fileUrl) && isDocx(uploadedMime, data.filename);
+
+  let fileBytes: Buffer | null = null;
+  async function loadFileBytes(): Promise<Buffer | null> {
+    if (fileBytes || !data.fileUrl) return fileBytes;
+    try {
+      fileBytes = await storage.getBytes(keyFromUrl(data.fileUrl));
+    } catch (err) {
+      console.error("failed to read uploaded file", err);
+    }
+    return fileBytes;
   }
 
   // Resolve the thumbnail: custom upload → uploaded image → generated cover.
@@ -64,12 +68,12 @@ export async function POST(req: Request) {
   const custom = form.get("thumbnail");
   try {
     if (custom instanceof File) {
-      thumbnailUrl = await makeImageThumbnail(
-        Buffer.from(await custom.arrayBuffer()),
-        keyBase,
-      );
-    } else if (fileBuffer && (file as File).type.startsWith("image/")) {
-      thumbnailUrl = await makeImageThumbnail(fileBuffer, keyBase);
+      thumbnailUrl = await makeImageThumbnail(Buffer.from(await custom.arrayBuffer()), keyBase);
+    } else if (isImageUpload) {
+      const buf = await loadFileBytes();
+      thumbnailUrl = buf
+        ? await makeImageThumbnail(buf, keyBase)
+        : await generateCover(data.title, label, keyBase);
     } else {
       thumbnailUrl = await generateCover(data.title, label, keyBase);
     }
@@ -79,13 +83,14 @@ export async function POST(req: Request) {
   }
 
   // Uploaded file → its stored URL; otherwise a LINK asset keeps its external URL.
-  const finalUrl = url ?? data.url ?? undefined;
+  const finalUrl = data.fileUrl ?? data.url ?? undefined;
 
   // Uploaded Word (.docx) → HTML so it renders in the in-app reader.
-  const docHtml =
-    fileBuffer && file instanceof File && isDocx(file.type, file.name)
-      ? await htmlFromDocx(fileBuffer)
-      : null;
+  let docHtml: string | null = null;
+  if (isDocxUpload) {
+    const buf = await loadFileBytes();
+    if (buf) docHtml = await htmlFromDocx(buf);
+  }
 
   try {
     const asset = await createAsset(
@@ -111,22 +116,4 @@ export async function POST(req: Request) {
       { status: 400 },
     );
   }
-}
-
-function extFromName(name: string): string {
-  const m = name.match(/\.([a-z0-9]+)$/i);
-  return m ? m[1].toLowerCase() : "";
-}
-
-function extFromMime(mime: string): string {
-  const map: Record<string, string> = {
-    "image/jpeg": "jpg",
-    "image/png": "png",
-    "image/webp": "webp",
-    "image/gif": "gif",
-    "video/mp4": "mp4",
-    "video/quicktime": "mov",
-    "application/pdf": "pdf",
-  };
-  return map[mime] || "";
 }

@@ -18,6 +18,7 @@
     "migrate:status": "tsx scripts/migrate-status.ts",
     "migrate:platforms": "tsx scripts/migrate-platforms.ts",
     "migrate:accounts": "tsx scripts/migrate-accounts.ts",
+    "set:r2-cors": "tsx scripts/set-r2-cors.ts",
     "test": "vitest run",
     "e2e": "playwright test",
     "e2e:db": "tsx scripts/e2e-db-setup.ts",
@@ -29,6 +30,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.110.0",
     "@aws-sdk/client-s3": "^3.1083.0",
+    "@aws-sdk/s3-request-presigner": "^3.1083.0",
     "@prisma/client": "^5.22.0",
     "@tanstack/react-query": "^5.101.2",
     "bcryptjs": "^2.4.3",

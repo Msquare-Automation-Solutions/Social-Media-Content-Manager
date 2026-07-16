@@ -89,6 +89,11 @@ const patchSchema = z.object({
   tags: z.array(z.string().trim().min(1)).max(30).optional(),
   note: z.string().trim().max(2000).nullish(),
   html: z.string().optional(),
+  // Replace the original file with one already uploaded directly to storage.
+  fileUrl: z.string().optional(),
+  filename: z.string().optional(),
+  mimeType: z.string().optional(),
+  sizeBytes: z.number().int().nonnegative().optional(),
 });
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -158,6 +163,29 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (isDocx(fileReplace.type, fileReplace.name)) {
       const html = await htmlFromDocx(buf);
       if (html) data.html = html;
+    }
+  } else if (parsedBody.fileUrl) {
+    // File was uploaded directly to storage; we only got its URL + metadata.
+    data.url = parsedBody.fileUrl;
+    data.filename = parsedBody.filename ?? null;
+    data.mimeType = parsedBody.mimeType ?? null;
+    data.sizeBytes = parsedBody.sizeBytes ?? null;
+    const mime = parsedBody.mimeType ?? "";
+    if (mime.startsWith("image/") || isDocx(mime, parsedBody.filename)) {
+      try {
+        const buf = await storage.getBytes(keyFromUrl(parsedBody.fileUrl));
+        if (mime.startsWith("image/")) {
+          data.thumbnailUrl = await makeImageThumbnail(
+            buf,
+            thumbKey(String(data.title ?? asset.title), crypto.randomUUID()),
+          );
+        } else {
+          const html = await htmlFromDocx(buf);
+          if (html) data.html = html;
+        }
+      } catch (err) {
+        console.error("post-upload processing failed", err);
+      }
     }
   }
 

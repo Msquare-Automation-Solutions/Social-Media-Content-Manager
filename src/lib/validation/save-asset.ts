@@ -37,6 +37,9 @@ export const saveAssetSchema = z
     sizeBytes: z.number().int().nonnegative().optional(),
     // Present for LINK assets (external file reference).
     url: z.string().url().optional(),
+    // Present for uploads: the URL the file was already uploaded to (R2 direct
+    // upload, or /uploads/... in dev). Not necessarily absolute, so no .url().
+    fileUrl: z.string().optional(),
   })
   .refine((d) => d.source !== "LINK" || !!d.url, {
     message: "A link URL is required",

@@ -4,7 +4,9 @@ import {
   S3Client,
   PutObjectCommand,
   DeleteObjectCommand,
+  GetObjectCommand,
 } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 // StorageProvider abstraction.
 //   - Dev / STORAGE_DRIVER=local → writes to /public/uploads, served by Next at
@@ -16,6 +18,13 @@ import {
 export interface StorageProvider {
   save(key: string, data: Buffer, contentType: string): Promise<string>;
   delete(key: string): Promise<void>;
+  // A short-lived URL the browser can PUT a file to directly (bypasses the
+  // serverless request-body size limit for large uploads).
+  presignUpload(key: string, contentType: string): Promise<string>;
+  // The public URL an object at `key` is served from.
+  publicUrl(key: string): string;
+  // Read an object's bytes back (e.g. to thumbnail an image uploaded directly).
+  getBytes(key: string): Promise<Buffer>;
 }
 
 const UPLOADS_ROOT = path.join(process.cwd(), "public", "uploads");
@@ -31,6 +40,19 @@ class LocalStorage implements StorageProvider {
   async delete(key: string): Promise<void> {
     const dest = path.join(UPLOADS_ROOT, key);
     await fs.rm(dest, { force: true });
+  }
+
+  // Dev: the browser PUTs to a local route that writes into /public/uploads.
+  async presignUpload(key: string): Promise<string> {
+    return `/api/uploads/local?key=${encodeURIComponent(key)}`;
+  }
+
+  publicUrl(key: string): string {
+    return `/uploads/${key}`;
+  }
+
+  async getBytes(key: string): Promise<Buffer> {
+    return fs.readFile(path.join(UPLOADS_ROOT, key));
   }
 }
 
@@ -74,6 +96,26 @@ class S3Storage implements StorageProvider {
     await this.client.send(
       new DeleteObjectCommand({ Bucket: this.bucket, Key: key }),
     );
+  }
+
+  async presignUpload(key: string, contentType: string): Promise<string> {
+    return getSignedUrl(
+      this.client,
+      new PutObjectCommand({ Bucket: this.bucket, Key: key, ContentType: contentType }),
+      { expiresIn: 600 }, // 10 minutes
+    );
+  }
+
+  publicUrl(key: string): string {
+    return `${this.publicBase}/${key}`;
+  }
+
+  async getBytes(key: string): Promise<Buffer> {
+    const res = await this.client.send(
+      new GetObjectCommand({ Bucket: this.bucket, Key: key }),
+    );
+    const bytes = await res.Body!.transformToByteArray();
+    return Buffer.from(bytes);
   }
 }
 

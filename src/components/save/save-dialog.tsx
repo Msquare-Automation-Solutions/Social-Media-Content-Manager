@@ -7,6 +7,7 @@ import { useSaveDialog, type SaveTarget } from "@/components/save/dialog-context
 import { useToast } from "@/components/ui/toast";
 import { CATEGORY_OPTIONS, TYPE_LABELS, LIBRARY_SLUGS } from "@/lib/library";
 import { PlatformIcon } from "@/components/ui/platform-icon";
+import { uploadToStorage } from "@/lib/upload-client";
 import { initials } from "@/lib/colors";
 import {
   artifactToHtml,
@@ -270,10 +271,25 @@ function SaveDialogInner({
     if (!canSave || saving) return;
     setSaving(true);
     setErrors({});
+
+    // Upload the original file straight to storage first (bypasses the
+    // serverless body-size limit); the API then only gets its URL + metadata.
+    let fileUrl: string | undefined;
+    if (draft.file) {
+      try {
+        fileUrl = await uploadToStorage(draft.file);
+      } catch (e) {
+        toast(e instanceof Error && e.message ? e.message : "Upload failed.");
+        setSaving(false);
+        return;
+      }
+    }
+
     const payload = {
       title: title.trim(),
       type: category,
       source: draft.source,
+      fileUrl,
       personId: effectivePersonId,
       channels: [...channels].map((id) => ({
         channelId: id,
@@ -297,7 +313,6 @@ function SaveDialogInner({
     const form = new FormData();
     form.set("payload", JSON.stringify(payload));
     if (customThumb) form.set("thumbnail", customThumb);
-    if (draft.file) form.set("file", draft.file);
 
     try {
       const r = await fetch("/api/assets", { method: "POST", body: form });

@@ -9,6 +9,7 @@ import { StatusBadge } from "@/components/library/status-badge";
 import { PlatformIcon } from "@/components/ui/platform-icon";
 import { BlogEditor } from "@/components/library/blog-editor";
 import { EditAssetDialog } from "@/components/library/edit-asset-dialog";
+import { uploadToStorage } from "@/lib/upload-client";
 import { VersionHistory } from "@/components/library/version-history";
 import { useToast } from "@/components/ui/toast";
 
@@ -145,18 +146,29 @@ export function AssetDrawer({
   async function replaceFile(file: File | null) {
     if (!file || !asset) return;
     setBusy(true);
-    const form = new FormData();
-    form.set("payload", JSON.stringify({}));
-    form.set("file", file);
-    const r = await fetch(`/api/assets/${assetId}`, { method: "PATCH", body: form });
-    setBusy(false);
-    if (r.ok) {
+    try {
+      // Upload directly to storage first (avoids the serverless body limit),
+      // then send just the new file's URL + metadata.
+      const fileUrl = await uploadToStorage(file);
+      const r = await fetch(`/api/assets/${assetId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileUrl,
+          filename: file.name,
+          mimeType: file.type || "application/octet-stream",
+          sizeBytes: file.size,
+        }),
+      });
+      if (!r.ok) throw new Error();
       toast("File replaced · previous kept as a version ✓");
       refetch();
       refreshVersions();
       onChanged();
-    } else {
+    } catch {
       toast("Replace failed.");
+    } finally {
+      setBusy(false);
     }
   }
 
