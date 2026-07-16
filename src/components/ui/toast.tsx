@@ -42,7 +42,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         {toasts.map((t) => (
           <div
             key={t.id}
-            className="flex items-center gap-3 rounded-[11px] bg-ink px-5 py-3 text-white shadow-card"
+            className="flex items-center gap-3 rounded-[11px] bg-ink px-5 py-3 text-bg shadow-card"
           >
             <span className="text-[13px]">{t.message}</span>
             {t.action && (
