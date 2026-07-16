@@ -44,6 +44,7 @@ export function assetSnapshot(
     | "source"
   >,
   channels: { channelId: string; scheduledFor: string | null }[],
+  accountIds: string[] = [],
 ): Record<string, unknown> {
   return {
     title: asset.title,
@@ -58,6 +59,7 @@ export function assetSnapshot(
     sizeBytes: asset.sizeBytes,
     source: asset.source,
     channels,
+    accountIds,
   };
 }
 
@@ -65,7 +67,7 @@ export function assetSnapshot(
 export async function snapshotAsset(assetId: string, editedById: string) {
   const asset = await prisma.mediaAsset.findUnique({
     where: { id: assetId },
-    include: { channels: true },
+    include: { channels: true, accounts: true },
   });
   if (!asset) throw new Error("Asset not found");
   return prisma.assetVersion.create({
@@ -79,6 +81,7 @@ export async function snapshotAsset(assetId: string, editedById: string) {
             channelId: c.channelId,
             scheduledFor: c.scheduledFor ? c.scheduledFor.toISOString() : null,
           })),
+          asset.accounts.map((a) => a.accountId),
         ),
       ),
     },
@@ -127,6 +130,16 @@ export async function applySnapshot(
       })),
     });
   }
+  // Accounts (added in a later version of the snapshot; older ones omit them).
+  const accountIds = Array.isArray(snapshot.accountIds)
+    ? (snapshot.accountIds as string[])
+    : [];
+  await prisma.assetAccount.deleteMany({ where: { assetId } });
+  if (accountIds.length) {
+    await prisma.assetAccount.createMany({
+      data: accountIds.map((accountId) => ({ assetId, accountId })),
+    });
+  }
 }
 
 // ── Creation ────────────────────────────────────────────────────────────────
@@ -159,6 +172,8 @@ export async function createAsset(
     throw new Error("One or more platforms not in workspace");
   }
 
+  const accountIds = await validAccountIds(args.accountIds, ctx.workspaceId);
+
   return prisma.mediaAsset.create({
     data: {
       workspaceId: ctx.workspaceId,
@@ -182,7 +197,24 @@ export async function createAsset(
           scheduledFor: c.scheduledFor ? new Date(c.scheduledFor) : null,
         })),
       },
+      accounts: { create: accountIds.map((accountId) => ({ accountId })) },
     },
     select: { id: true, type: true, title: true },
   });
+}
+
+/** Filter the requested account ids down to ones in this workspace (ignoring
+ *  archived/foreign ids), preserving order and de-duping. */
+export async function validAccountIds(
+  requested: string[] | undefined,
+  workspaceId: string,
+): Promise<string[]> {
+  const unique = [...new Set(requested ?? [])];
+  if (unique.length === 0) return [];
+  const rows = await prisma.account.findMany({
+    where: { id: { in: unique }, workspaceId, deletedAt: null },
+    select: { id: true },
+  });
+  const ok = new Set(rows.map((r) => r.id));
+  return unique.filter((id) => ok.has(id));
 }

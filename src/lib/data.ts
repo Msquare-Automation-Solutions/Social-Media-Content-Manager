@@ -6,6 +6,7 @@ import { describeActivity } from "@/lib/activity-format";
 export type LibraryFilters = {
   personId?: string;
   channelId?: string;
+  accountId?: string;
   status?: string;
   type?: string; // LibraryViewKey — narrow to one category (Approved page)
   q?: string;
@@ -33,6 +34,9 @@ const ASSET_LIST_INCLUDE = {
   channels: {
     include: { channel: { select: { id: true, name: true, icon: true, color: true } } },
   },
+  accounts: {
+    include: { account: { select: { id: true, name: true, icon: true, color: true } } },
+  },
 } as const;
 
 type AssetRow = {
@@ -53,6 +57,9 @@ type AssetRow = {
     scheduledFor: Date | null;
     channel: { id: string; name: string; icon: string; color: string };
   }[];
+  accounts: {
+    account: { id: string; name: string; icon: string; color: string };
+  }[];
 };
 
 function mapAssetRow(a: AssetRow): AssetListItem {
@@ -60,6 +67,7 @@ function mapAssetRow(a: AssetRow): AssetListItem {
     ...c.channel,
     scheduledFor: c.scheduledFor ? c.scheduledFor.toISOString() : null,
   }));
+  const accounts = a.accounts.map((x) => x.account);
   const dates = channels
     .map((c) => c.scheduledFor)
     .filter((d): d is string => Boolean(d))
@@ -80,6 +88,7 @@ function mapAssetRow(a: AssetRow): AssetListItem {
     nextPostDate: dates[0] ?? null,
     person: a.person,
     channels,
+    accounts,
   };
 }
 
@@ -140,6 +149,7 @@ export type AssetListItem = {
     color: string;
     scheduledFor: string | null;
   }[];
+  accounts: { id: string; name: string; icon: string; color: string }[];
 };
 
 // Workspace-scoped reads used across the app. Everything here takes a
@@ -178,6 +188,7 @@ export async function getTrashedAssets(workspaceId: string): Promise<AssetListIt
       ...c.channel,
       scheduledFor: c.scheduledFor ? c.scheduledFor.toISOString() : null,
     })),
+    accounts: [],
   }));
 }
 
@@ -736,6 +747,9 @@ export async function getLibraryAssets(
       ...(filters.channelId
         ? { channels: { some: { channelId: filters.channelId } } }
         : {}),
+      ...(filters.accountId
+        ? { accounts: { some: { accountId: filters.accountId } } }
+        : {}),
       ...(createdAtRange(filters.from, filters.to)
         ? { createdAt: createdAtRange(filters.from, filters.to) }
         : {}),
@@ -766,6 +780,7 @@ export async function getAssetsByStatus(
       ...(filters.type ? { type: { in: typesForView(filters.type as LibraryViewKey) } } : {}),
       ...(filters.personId ? { personId: filters.personId } : {}),
       ...(filters.channelId ? { channels: { some: { channelId: filters.channelId } } } : {}),
+      ...(filters.accountId ? { accounts: { some: { accountId: filters.accountId } } } : {}),
       ...(createdAtRange(filters.from, filters.to)
         ? { createdAt: createdAtRange(filters.from, filters.to) }
         : {}),
@@ -809,6 +824,7 @@ export async function getScheduledThisMonthAssets(
       ...(filters.type ? { type: { in: typesForView(filters.type as LibraryViewKey) } } : {}),
       ...(filters.personId ? { personId: filters.personId } : {}),
       ...(filters.channelId ? { channels: { some: { channelId: filters.channelId } } } : {}),
+      ...(filters.accountId ? { accounts: { some: { accountId: filters.accountId } } } : {}),
       ...(createdAtRange(filters.from, filters.to)
         ? { createdAt: createdAtRange(filters.from, filters.to) }
         : {}),

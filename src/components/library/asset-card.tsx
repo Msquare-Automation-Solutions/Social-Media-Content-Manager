@@ -133,6 +133,21 @@ export function AssetCard({
             {asset.source === "GENERATED" ? "AI" : asset.source === "LINK" ? "Link" : "Upload"}
           </span>
         </div>
+        {/* Account(s) this content is assigned to. */}
+        {asset.accounts.length > 0 && (
+          <div className="mt-1.5 flex flex-wrap items-center gap-1">
+            {asset.accounts.map((a) => (
+              <span
+                key={a.id}
+                title={a.name}
+                className="flex items-center gap-1 rounded-full bg-wash/[0.05] px-1.5 py-0.5 text-[10px] font-semibold text-slate"
+              >
+                <PlatformIcon name={a.name} icon={a.icon} size={11} className="shrink-0" />
+                {a.name}
+              </span>
+            ))}
+          </div>
+        )}
         {/* Status pill below the meta row (reference-style). */}
         <div className="mt-2">
           <StatusBadge status={asset.status} />

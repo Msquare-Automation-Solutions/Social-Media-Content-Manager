@@ -49,6 +49,7 @@ model Workspace {
   skills      Skill[]
   people      Person[]
   channels    SocialChannel[]
+  accounts    Account[]
   assets      MediaAsset[]
   sessions    ChatSession[]
   invites     Invite[]
@@ -158,6 +159,22 @@ model SocialChannel {
   assets    AssetChannel[]
 }
 
+// The account a piece of content is filed under (e.g. Faasil, Jahar, Msquare,
+// AI Lab). Admin-editable taxonomy, many-to-many with assets. Soft-deleted so
+// archiving an account keeps it off pickers without breaking past attribution.
+model Account {
+  id          String    @id @default(cuid())
+  workspaceId String
+  name        String
+  icon        String    @default("✨") // emoji fallback; some names map to a brand mark
+  color       String    @default("#0e9f8f")
+  createdAt   DateTime  @default(now())
+  deletedAt   DateTime?
+
+  workspace Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  assets    AssetAccount[]
+}
+
 // type: IMAGE | THUMBNAIL | VIDEO | BLOGPOST | VIDEO_SCRIPT
 // source: UPLOAD | GENERATED
 model MediaAsset {
@@ -189,6 +206,7 @@ model MediaAsset {
   createdBy User           @relation("AssetCreatedBy", fields: [createdById], references: [id])
   message   ChatMessage?   @relation(fields: [chatMessageId], references: [id])
   channels  AssetChannel[]
+  accounts  AssetAccount[]
   versions  AssetVersion[]
 }
 
@@ -201,6 +219,16 @@ model AssetChannel {
   channel SocialChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
 
   @@id([assetId, channelId])
+}
+
+model AssetAccount {
+  assetId   String
+  accountId String
+
+  asset   MediaAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  account Account    @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@id([assetId, accountId])
 }
 
 model AssetVersion {

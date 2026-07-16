@@ -17,6 +17,7 @@
     "migrate:thumbs": "tsx scripts/migrate-thumbnails-to-r2.ts",
     "migrate:status": "tsx scripts/migrate-status.ts",
     "migrate:platforms": "tsx scripts/migrate-platforms.ts",
+    "migrate:accounts": "tsx scripts/migrate-accounts.ts",
     "test": "vitest run",
     "e2e": "playwright test",
     "e2e:db": "tsx scripts/e2e-db-setup.ts",

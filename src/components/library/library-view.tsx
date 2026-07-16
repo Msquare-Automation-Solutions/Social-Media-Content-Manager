@@ -15,9 +15,11 @@ type Props = {
   assets: AssetListItem[];
   people: { id: string; name: string }[];
   channels: { id: string; name: string; icon: string }[];
+  accounts: { id: string; name: string; icon: string }[];
   filters: {
     person: string;
     channel: string;
+    account: string;
     status: string;
     q: string;
     sort: string;
@@ -33,6 +35,7 @@ export function LibraryView({
   assets,
   people,
   channels,
+  accounts,
   filters,
   canEdit,
   canReview,
@@ -57,6 +60,7 @@ export function LibraryView({
     const params = new URLSearchParams({
       ...(filters.person && { person: filters.person }),
       ...(filters.channel && { channel: filters.channel }),
+      ...(filters.account && { account: filters.account }),
       ...(filters.status && { status: filters.status }),
       ...(filters.q && { q: filters.q }),
       ...(filters.sort && filters.sort !== "newest" && { sort: filters.sort }),
@@ -71,7 +75,7 @@ export function LibraryView({
   }
 
   const hasFilters =
-    filters.person || filters.channel || filters.status || filters.q || filters.from || filters.to;
+    filters.person || filters.channel || filters.account || filters.status || filters.q || filters.from || filters.to;
 
   return (
     <div className="flex-1 overflow-y-auto px-7 py-6">
@@ -88,6 +92,15 @@ export function LibraryView({
           value={filters.person}
           onChange={(v) => setParam("person", v)}
           options={[{ value: "all", label: "All people" }, ...people.map((p) => ({ value: p.id, label: p.name }))]}
+        />
+        <FilterSelect
+          label="Account"
+          value={filters.account}
+          onChange={(v) => setParam("account", v)}
+          options={[
+            { value: "", label: "All accounts" },
+            ...accounts.map((a) => ({ value: a.id, label: `${a.icon} ${a.name}` })),
+          ]}
         />
         <FilterSelect
           label="Social platform"

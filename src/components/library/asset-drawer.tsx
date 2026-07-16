@@ -52,6 +52,8 @@ type AssetDetail = {
     scheduledFor: string | null;
   }[];
   channelIds: string[];
+  accounts: { id: string; name: string; icon: string; color: string }[];
+  accountIds: string[];
   versionCount: number;
   canEdit: boolean;
   canPublish: boolean;
@@ -335,6 +337,20 @@ export function AssetDrawer({
                     ))}
                   </div>
                 </Row>
+                {asset.accounts.length > 0 && (
+                  <Row label="Accounts">
+                    <div className="flex flex-wrap gap-1.5">
+                      {asset.accounts.map((a) => (
+                        <span
+                          key={a.id}
+                          className="flex items-center gap-1 rounded-full bg-bg px-2 py-0.5 text-[11px] font-semibold"
+                        >
+                          <PlatformIcon name={a.name} icon={a.icon} size={14} className="shrink-0" /> {a.name}
+                        </span>
+                      ))}
+                    </div>
+                  </Row>
+                )}
                 {asset.note && (
                   <Row label="Note">
                     <span className="whitespace-pre-wrap">{asset.note}</span>

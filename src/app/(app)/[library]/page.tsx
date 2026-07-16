@@ -27,7 +27,7 @@ export default async function LibraryPage({
   const { filters, view: vf } = await resolveListFilters({ workspaceId: user.workspaceId, id: user.id, role: user.role }, sp);
   filters.status = sp.status || undefined;
 
-  const [assets, people, channels] = await Promise.all([
+  const [assets, people, channels, accounts] = await Promise.all([
     getLibraryAssets(user.workspaceId, view, filters),
     prisma.person.findMany({
       where: { workspaceId: user.workspaceId, deletedAt: null },
@@ -36,6 +36,11 @@ export default async function LibraryPage({
     }),
     prisma.socialChannel.findMany({
       where: { workspaceId: user.workspaceId },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, name: true, icon: true },
+    }),
+    prisma.account.findMany({
+      where: { workspaceId: user.workspaceId, deletedAt: null },
       orderBy: { createdAt: "asc" },
       select: { id: true, name: true, icon: true },
     }),
@@ -49,9 +54,11 @@ export default async function LibraryPage({
       assets={assets}
       people={people}
       channels={channels}
+      accounts={accounts}
       filters={{
         person: vf.person,
         channel: vf.channel,
+        account: vf.account,
         status: sp.status ?? "",
         q: vf.q,
         sort: vf.sort,

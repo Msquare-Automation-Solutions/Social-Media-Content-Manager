@@ -2,7 +2,7 @@ import crypto from "crypto";
 import { z } from "zod";
 import { guard } from "@/lib/api-guard";
 import { prisma } from "@/lib/db";
-import { snapshotAsset, canMutateAsset } from "@/lib/assets";
+import { snapshotAsset, canMutateAsset, validAccountIds } from "@/lib/assets";
 import { isAdminRole } from "@/lib/roles";
 import { serializeTags, parseTags } from "@/lib/json";
 import { storage, keyFromUrl } from "@/lib/storage";
@@ -21,6 +21,7 @@ async function loadOwned(id: string, workspaceId: string) {
     include: {
       person: { select: { id: true, name: true, avatarColor: true, userId: true } },
       channels: { include: { channel: true } },
+      accounts: { include: { account: { select: { id: true, name: true, icon: true, color: true } } } },
       _count: { select: { versions: true } },
     },
   });
@@ -58,6 +59,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       scheduledFor: c.scheduledFor ? c.scheduledFor.toISOString() : null,
     })),
     channelIds: a.channels.map((c) => c.channelId),
+    accounts: a.accounts.map((x) => x.account),
+    accountIds: a.accounts.map((x) => x.accountId),
     versionCount: a._count.versions,
     canEdit: canMutateAsset(g.user, a),
     // Publish workflow (Part C): the creator of an item or any admin may mark an
@@ -82,6 +85,7 @@ const patchSchema = z.object({
     )
     .min(1)
     .optional(),
+  accountIds: z.array(z.string().min(1)).max(30).optional(),
   tags: z.array(z.string().trim().min(1)).max(30).optional(),
   note: z.string().trim().max(2000).nullish(),
   html: z.string().optional(),
@@ -195,6 +199,17 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
           scheduledFor: c.scheduledFor ? new Date(c.scheduledFor) : null,
         })),
     });
+  }
+
+  // Update account tags if provided.
+  if (parsedBody.accountIds) {
+    const accountIds = await validAccountIds(parsedBody.accountIds, g.user.workspaceId);
+    await prisma.assetAccount.deleteMany({ where: { assetId: asset.id } });
+    if (accountIds.length) {
+      await prisma.assetAccount.createMany({
+        data: accountIds.map((accountId) => ({ assetId: asset.id, accountId })),
+      });
+    }
   }
 
   await logActivity(g.user, {

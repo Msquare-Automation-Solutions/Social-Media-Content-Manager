@@ -24,7 +24,7 @@ export default async function ReviewPage({
     sp,
   );
 
-  const [assets, people, channels] = await Promise.all([
+  const [assets, people, channels, accounts] = await Promise.all([
     getAssetsByStatus(user.workspaceId, "PENDING", filters),
     prisma.person.findMany({
       where: { workspaceId: user.workspaceId, deletedAt: null },
@@ -36,6 +36,11 @@ export default async function ReviewPage({
       orderBy: { createdAt: "asc" },
       select: { id: true, name: true, icon: true },
     }),
+    prisma.account.findMany({
+      where: { workspaceId: user.workspaceId, deletedAt: null },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, name: true, icon: true },
+    }),
   ]);
 
   const canReview = isAdminRole(user.role);
@@ -44,6 +49,7 @@ export default async function ReviewPage({
       assets={assets}
       people={people}
       channels={channels}
+      accounts={accounts}
       filters={view}
       canEdit={user.role !== "VIEWER"}
       canReview={canReview}

@@ -17,6 +17,7 @@ import {
 type Options = {
   people: { id: string; name: string; label?: string | null; avatarColor: string }[];
   channels: { id: string; name: string; icon: string; color: string }[];
+  accounts: { id: string; name: string; icon: string; color: string }[];
   canEdit: boolean;
   mePersonId: string | null;
   isAdmin: boolean;
@@ -127,6 +128,8 @@ function SaveDialogInner({
   const [personId, setPersonId] = useState<string>("");
   const [category, setCategory] = useState(draft.category);
   const [channels, setChannels] = useState<Set<string>>(new Set());
+  // Which account(s) the media is assigned to.
+  const [accounts, setAccounts] = useState<Set<string>>(new Set());
   // channelId → post date (yyyy-mm-dd), optional per platform.
   const [postDates, setPostDates] = useState<Record<string, string>>({});
   const [tags, setTags] = useState(draft.tags.join(", "));
@@ -142,6 +145,8 @@ function SaveDialogInner({
   const [newPerson, setNewPerson] = useState({ name: "", email: "", label: "" });
   const [platFormOpen, setPlatFormOpen] = useState(false);
   const [newPlat, setNewPlat] = useState("");
+  const [acctFormOpen, setAcctFormOpen] = useState(false);
+  const [newAcct, setNewAcct] = useState("");
   const [adding, setAdding] = useState(false);
 
   const thumbInput = useRef<HTMLInputElement>(null);
@@ -237,6 +242,30 @@ function SaveDialogInner({
     }
   }
 
+  async function addAccount() {
+    const name = newAcct.trim();
+    if (!name) return;
+    setAdding(true);
+    try {
+      const r = await fetch("/api/accounts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      if (!r.ok) throw new Error();
+      const acc = await r.json();
+      await qc.invalidateQueries({ queryKey: ["options"] });
+      setAccounts((s) => new Set(s).add(acc.id));
+      setAcctFormOpen(false);
+      setNewAcct("");
+      toast(`Account “${acc.name}” added ✓`);
+    } catch {
+      toast("Couldn't add account.");
+    } finally {
+      setAdding(false);
+    }
+  }
+
   async function commit() {
     if (!canSave || saving) return;
     setSaving(true);
@@ -252,6 +281,7 @@ function SaveDialogInner({
           ? new Date(postDates[id]).toISOString()
           : null,
       })),
+      accountIds: [...accounts],
       tags: tags
         .split(",")
         .map((t) => t.trim())
@@ -577,6 +607,60 @@ function SaveDialogInner({
                   )}
                 </div>
               ))}
+          </div>
+        )}
+      </Field>
+
+      {/* Accounts — which social account(s) the media is assigned to */}
+      <Field label="Account(s)" error={errors.accountIds}>
+        <div className="flex flex-wrap gap-2">
+          {(options?.accounts ?? []).map((a) => {
+            const on = accounts.has(a.id);
+            return (
+              <button
+                key={a.id}
+                onClick={() =>
+                  setAccounts((s) => {
+                    const n = new Set(s);
+                    if (n.has(a.id)) n.delete(a.id);
+                    else n.add(a.id);
+                    return n;
+                  })
+                }
+                className={`flex items-center gap-1.5 rounded-full border-[1.5px] px-3.5 py-1.5 text-[12.5px] font-semibold ${
+                  on
+                    ? "border-teal bg-teal-soft text-teal-dark"
+                    : "border-line text-slate hover:border-teal"
+                }`}
+              >
+                <PlatformIcon name={a.name} icon={a.icon} size={14} className="inline-block shrink-0 align-text-bottom" /> {a.name}
+              </button>
+            );
+          })}
+          {canEdit && (
+            <button
+              onClick={() => setAcctFormOpen((v) => !v)}
+              className="rounded-full border-[1.5px] border-dashed border-line px-3.5 py-1.5 text-[12.5px] font-semibold text-teal-dark hover:border-teal"
+            >
+              ＋ Add account
+            </button>
+          )}
+        </div>
+        {acctFormOpen && (
+          <div className="mt-2 flex gap-2 rounded-[11px] bg-bg p-3">
+            <input
+              placeholder="Account name (e.g. Faasil)"
+              value={newAcct}
+              onChange={(e) => setNewAcct(e.target.value)}
+              className="flex-1 rounded-[9px] border border-line px-2.5 py-2 outline-none"
+            />
+            <button
+              onClick={addAccount}
+              disabled={adding || !newAcct.trim()}
+              className="rounded-[9px] bg-teal px-3.5 py-2 text-[12.5px] font-semibold text-white disabled:opacity-50"
+            >
+              Add
+            </button>
           </div>
         )}
       </Field>

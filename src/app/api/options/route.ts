@@ -17,7 +17,7 @@ export async function GET() {
   const mePersonId =
     g.user.role !== "VIEWER" ? await ensureSelfPerson(g.user) : null;
 
-  const [people, channels] = await Promise.all([
+  const [people, channels, accounts] = await Promise.all([
     prisma.person.findMany({
       where: { workspaceId: g.user.workspaceId, deletedAt: null },
       orderBy: { createdAt: "asc" },
@@ -28,11 +28,17 @@ export async function GET() {
       orderBy: { createdAt: "asc" },
       select: { id: true, name: true, icon: true, color: true },
     }),
+    prisma.account.findMany({
+      where: { workspaceId: g.user.workspaceId, deletedAt: null },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, name: true, icon: true, color: true },
+    }),
   ]);
 
   return Response.json({
     people,
     channels,
+    accounts,
     canEdit: g.user.role !== "VIEWER",
     mePersonId,
     // Admins may attribute content to any creator; everyone else is locked to

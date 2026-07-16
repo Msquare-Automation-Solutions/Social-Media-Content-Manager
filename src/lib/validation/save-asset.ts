@@ -24,6 +24,9 @@ export const saveAssetSchema = z
     channels: z
       .array(channelSelectionSchema)
       .min(1, "Pick at least one social platform"),
+    // Which account(s) the media is assigned to (Faasil, Jahar, Msquare, …).
+    // Optional so existing/link content isn't blocked.
+    accountIds: z.array(z.string().min(1)).max(30).default([]),
     tags: z.array(z.string().trim().min(1)).max(30).default([]),
     note: z.string().trim().max(2000).nullish(),
     html: z.string().optional(),

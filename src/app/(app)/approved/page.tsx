@@ -18,7 +18,7 @@ export default async function ApprovedPage({
   const sp = await searchParams;
   const { filters, view } = await resolveListFilters({ workspaceId: user.workspaceId, id: user.id, role: user.role }, sp);
 
-  const [assets, people, channels] = await Promise.all([
+  const [assets, people, channels, accounts] = await Promise.all([
     getApprovedAssets(user.workspaceId, filters),
     prisma.person.findMany({
       where: { workspaceId: user.workspaceId, deletedAt: null },
@@ -30,6 +30,11 @@ export default async function ApprovedPage({
       orderBy: { createdAt: "asc" },
       select: { id: true, name: true, icon: true },
     }),
+    prisma.account.findMany({
+      where: { workspaceId: user.workspaceId, deletedAt: null },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, name: true, icon: true },
+    }),
   ]);
 
   return (
@@ -37,6 +42,7 @@ export default async function ApprovedPage({
       assets={assets}
       people={people}
       channels={channels}
+      accounts={accounts}
       filters={view}
       canEdit={user.role !== "VIEWER"}
       canReview={isAdminRole(user.role)}

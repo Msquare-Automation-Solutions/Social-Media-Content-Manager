@@ -6,6 +6,7 @@ import type { Role } from "@/lib/enums";
 export type ListSearchParams = {
   person?: string;
   channel?: string;
+  account?: string;
   type?: string;
   status?: string;
   q?: string;
@@ -20,6 +21,7 @@ type SortKey = "newest" | "name" | "postdate";
 export type ListView = {
   person: string;
   channel: string;
+  account: string;
   type: string;
   q: string;
   sort: string;
@@ -54,6 +56,7 @@ export async function resolveListFilters(
     filters: {
       personId,
       channelId: sp.channel || undefined,
+      accountId: sp.account || undefined,
       type: sp.type || undefined,
       q: sp.q || undefined,
       from: sp.from || undefined,
@@ -63,6 +66,7 @@ export async function resolveListFilters(
     view: {
       person: personValue,
       channel: sp.channel ?? "",
+      account: sp.account ?? "",
       type: sp.type ?? "",
       q: sp.q ?? "",
       sort,

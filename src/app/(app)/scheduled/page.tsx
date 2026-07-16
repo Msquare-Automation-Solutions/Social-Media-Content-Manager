@@ -19,7 +19,7 @@ export default async function ScheduledPage({
   // Default to post-date order — most useful for a schedule.
   const { filters, view } = await resolveListFilters({ workspaceId: user.workspaceId, id: user.id, role: user.role }, sp, "postdate");
 
-  const [assets, people, channels] = await Promise.all([
+  const [assets, people, channels, accounts] = await Promise.all([
     getScheduledThisMonthAssets(user.workspaceId, filters),
     prisma.person.findMany({
       where: { workspaceId: user.workspaceId, deletedAt: null },
@@ -31,6 +31,11 @@ export default async function ScheduledPage({
       orderBy: { createdAt: "asc" },
       select: { id: true, name: true, icon: true },
     }),
+    prisma.account.findMany({
+      where: { workspaceId: user.workspaceId, deletedAt: null },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, name: true, icon: true },
+    }),
   ]);
 
   return (
@@ -38,6 +43,7 @@ export default async function ScheduledPage({
       assets={assets}
       people={people}
       channels={channels}
+      accounts={accounts}
       filters={view}
       canEdit={user.role !== "VIEWER"}
       canReview={isAdminRole(user.role)}

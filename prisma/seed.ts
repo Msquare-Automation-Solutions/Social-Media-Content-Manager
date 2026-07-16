@@ -15,12 +15,14 @@ async function main() {
 
   // Clean slate (order respects FKs).
   await prisma.assetChannel.deleteMany();
+  await prisma.assetAccount.deleteMany();
   await prisma.assetVersion.deleteMany();
   await prisma.mediaAsset.deleteMany();
   await prisma.chatMessage.deleteMany();
   await prisma.chatSession.deleteMany();
   await prisma.person.deleteMany();
   await prisma.socialChannel.deleteMany();
+  await prisma.account.deleteMany();
   await prisma.skill.deleteMany();
   await prisma.invite.deleteMany();
   await prisma.passwordResetToken.deleteMany();
@@ -83,6 +85,21 @@ async function main() {
       data: { workspaceId: workspace.id, ...c },
     });
     channels[c.name] = { id: ch.id };
+  }
+
+  // ---- Accounts (which account content is filed under) ----
+  const accountDefs = [
+    { name: "Faasil", icon: "🧑", color: "#0e9f8f" },
+    { name: "Jahar", icon: "🧑", color: "#7a4fc9" },
+    { name: "Msquare", icon: "◆", color: "#0866ff" },
+    { name: "AI Lab", icon: "✨", color: "#e8318f" },
+  ];
+  const accounts: { id: string }[] = [];
+  for (const a of accountDefs) {
+    const acc = await prisma.account.create({
+      data: { workspaceId: workspace.id, ...a },
+    });
+    accounts.push({ id: acc.id });
   }
 
   // ---- People (5 records; Person is separate from login User) ----
@@ -296,7 +313,11 @@ async function main() {
     },
   ];
 
+  let i = 0;
   for (const a of assetSeeds) {
+    // Assign each demo asset one account (round-robin) so the filter has data.
+    const acct = accounts[i % accounts.length];
+    i++;
     await prisma.mediaAsset.create({
       data: {
         workspaceId: workspace.id,
@@ -315,6 +336,7 @@ async function main() {
         channels: {
           create: a.channels.map((name) => ({ channelId: channels[name].id })),
         },
+        accounts: { create: [{ accountId: acct.id }] },
       },
     });
   }

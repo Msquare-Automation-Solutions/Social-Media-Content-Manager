@@ -10,6 +10,7 @@ import { gradientFor } from "@/lib/artifact-view";
 type Options = {
   people: { id: string; name: string; label?: string | null }[];
   channels: { id: string; name: string; icon: string }[];
+  accounts: { id: string; name: string; icon: string }[];
 };
 
 type EditAsset = {
@@ -20,6 +21,7 @@ type EditAsset = {
   person: { id: string };
   channelIds: string[];
   channels: { id: string; scheduledFor: string | null }[];
+  accountIds: string[];
   tags: string[];
   note?: string | null;
   thumbnailUrl?: string | null;
@@ -44,6 +46,7 @@ export function EditAssetDialog({
   const [personId, setPersonId] = useState(asset.person.id);
   const [category, setCategory] = useState(asset.type);
   const [channels, setChannels] = useState<Set<string>>(new Set(asset.channelIds));
+  const [accounts, setAccounts] = useState<Set<string>>(new Set(asset.accountIds));
   const [postDates, setPostDates] = useState<Record<string, string>>(() =>
     Object.fromEntries(
       asset.channels
@@ -110,6 +113,7 @@ export function EditAssetDialog({
         channelId: id,
         scheduledFor: postDates[id] ? new Date(postDates[id]).toISOString() : null,
       })),
+      accountIds: [...accounts],
       tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
       note: category === "OTHER" ? note.trim() || null : null,
     };
@@ -322,6 +326,35 @@ export function EditAssetDialog({
               ))}
           </div>
         )}
+
+        <label className="mb-1.5 block text-xs font-semibold text-slate">
+          Account(s)
+        </label>
+        <div className="mb-4 flex flex-wrap gap-2">
+          {(options?.accounts ?? []).map((a) => {
+            const on = accounts.has(a.id);
+            return (
+              <button
+                key={a.id}
+                onClick={() =>
+                  setAccounts((s) => {
+                    const n = new Set(s);
+                    if (n.has(a.id)) n.delete(a.id);
+                    else n.add(a.id);
+                    return n;
+                  })
+                }
+                className={`flex items-center gap-1.5 rounded-full border-[1.5px] px-3.5 py-1.5 text-[12.5px] font-semibold ${
+                  on
+                    ? "border-teal bg-teal-soft text-teal-dark"
+                    : "border-line text-slate hover:border-teal"
+                }`}
+              >
+                <PlatformIcon name={a.name} icon={a.icon} size={14} className="inline-block shrink-0 align-text-bottom" /> {a.name}
+              </button>
+            );
+          })}
+        </div>
 
         <label className="mb-1.5 block text-xs font-semibold text-slate">
           Tags (optional)
