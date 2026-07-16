@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { AccountRow } from "@/lib/data";
 import { AVATAR_COLORS } from "@/lib/colors";
@@ -164,6 +164,26 @@ function AccountForm({
     }
   }
 
+  // Paste an image from the clipboard (e.g. a copied logo) while the form is open.
+  const pickLogoRef = useRef(pickLogo);
+  useEffect(() => {
+    pickLogoRef.current = pickLogo;
+  });
+  useEffect(() => {
+    function onPaste(e: ClipboardEvent) {
+      const img = Array.from(e.clipboardData?.items ?? []).find((it) =>
+        it.type.startsWith("image/"),
+      );
+      const file = img?.getAsFile();
+      if (file) {
+        e.preventDefault();
+        pickLogoRef.current(file);
+      }
+    }
+    window.addEventListener("paste", onPaste);
+    return () => window.removeEventListener("paste", onPaste);
+  }, []);
+
   async function save() {
     if (!name.trim() || saving) return;
     setSaving(true);
@@ -223,9 +243,10 @@ function AccountForm({
             type="button"
             onClick={() => logoInput.current?.click()}
             disabled={uploading}
+            title="Upload an image, or just paste one (⌘/Ctrl+V)"
             className="rounded-[9px] border border-line px-2.5 py-2 text-[11.5px] font-semibold text-teal-dark hover:border-teal disabled:opacity-50"
           >
-            {uploading ? "Uploading…" : "Upload logo"}
+            {uploading ? "Uploading…" : "Upload / paste logo"}
           </button>
           <input
             ref={logoInput}
