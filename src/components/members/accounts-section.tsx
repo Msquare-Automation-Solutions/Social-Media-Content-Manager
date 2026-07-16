@@ -1,11 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { AccountRow } from "@/lib/data";
 import { AVATAR_COLORS } from "@/lib/colors";
 import { PlatformIcon } from "@/components/ui/platform-icon";
+import { uploadToStorage } from "@/lib/upload-client";
 import { useToast } from "@/components/ui/toast";
+
+const isImageIcon = (v: string) => /^(https?:\/\/|\/)/.test(v);
 
 export function AccountsSection({
   accounts,
@@ -138,6 +141,28 @@ function AccountForm({
   const [icon, setIcon] = useState(account?.icon ?? "✨");
   const [color, setColor] = useState(account?.color ?? AVATAR_COLORS[1]);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const logoInput = useRef<HTMLInputElement>(null);
+
+  async function pickLogo(file: File | null | undefined) {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast("Pick an image file for the logo.");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast("Logo must be ≤ 2 MB.");
+      return;
+    }
+    setUploading(true);
+    try {
+      setIcon(await uploadToStorage(file));
+    } catch {
+      toast("Couldn't upload logo.");
+    } finally {
+      setUploading(false);
+    }
+  }
 
   async function save() {
     if (!name.trim() || saving) return;
@@ -174,15 +199,43 @@ function AccountForm({
           className="w-44 rounded-[9px] border border-line bg-card px-2.5 py-2 font-normal text-ink outline-none focus:border-teal"
         />
       </label>
-      <label className="flex flex-col gap-1 text-[11px] font-semibold text-slate">
-        Icon (emoji)
-        <input
-          value={icon}
-          onChange={(e) => setIcon(e.target.value)}
-          placeholder="✨"
-          className="w-20 rounded-[9px] border border-line bg-card px-2.5 py-2 text-center font-normal text-ink outline-none focus:border-teal"
-        />
-      </label>
+      <div className="flex flex-col gap-1 text-[11px] font-semibold text-slate">
+        Icon
+        <div className="flex items-center gap-2">
+          {isImageIcon(icon) ? (
+            <button
+              type="button"
+              onClick={() => setIcon("✨")}
+              className="rounded-[9px] border border-line px-2.5 py-2 text-[11.5px] font-normal text-slate hover:border-teal"
+              title="Use an emoji instead"
+            >
+              Custom logo · ✕
+            </button>
+          ) : (
+            <input
+              value={icon}
+              onChange={(e) => setIcon(e.target.value)}
+              placeholder="✨"
+              className="w-16 rounded-[9px] border border-line bg-card px-2.5 py-2 text-center font-normal text-ink outline-none focus:border-teal"
+            />
+          )}
+          <button
+            type="button"
+            onClick={() => logoInput.current?.click()}
+            disabled={uploading}
+            className="rounded-[9px] border border-line px-2.5 py-2 text-[11.5px] font-semibold text-teal-dark hover:border-teal disabled:opacity-50"
+          >
+            {uploading ? "Uploading…" : "Upload logo"}
+          </button>
+          <input
+            ref={logoInput}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => pickLogo(e.target.files?.[0] ?? null)}
+          />
+        </div>
+      </div>
       <div className="flex flex-col gap-1 text-[11px] font-semibold text-slate">
         Color
         <div className="flex items-center gap-1.5 py-1.5">

@@ -112,7 +112,10 @@ export function ApprovedView({
           onChange={(v) => setParam("account", v)}
           options={[
             { value: "", label: "All accounts" },
-            ...accounts.map((a) => ({ value: a.id, label: `${a.icon} ${a.name}` })),
+            ...accounts.map((a) => ({
+              value: a.id,
+              label: /^(https?:\/\/|\/)/.test(a.icon) ? a.name : `${a.icon} ${a.name}`,
+            })),
           ]}
         />
         <FilterSelect

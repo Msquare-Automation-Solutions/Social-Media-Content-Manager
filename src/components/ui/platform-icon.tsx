@@ -158,6 +158,20 @@ export function PlatformIcon({
   className?: string;
   style?: CSSProperties;
 }) {
+  // A custom uploaded logo — `icon` holds an image URL rather than an emoji.
+  if (icon && /^(https?:\/\/|\/)/.test(icon)) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={icon}
+        alt={name}
+        width={size}
+        height={size}
+        className={`rounded-full object-cover ${className}`}
+        style={{ width: size, height: size, ...style }}
+      />
+    );
+  }
   if (isAiLab(name)) {
     return <AiLabMark size={size} className={className} style={style} label={name} />;
   }
