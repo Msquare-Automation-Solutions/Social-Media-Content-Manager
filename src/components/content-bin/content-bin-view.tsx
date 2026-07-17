@@ -552,7 +552,9 @@ function BinDetail({
 }) {
   const { toast } = useToast();
   const [noteExpanded, setNoteExpanded] = useState(false);
+  const [gallery, setGallery] = useState<number | null>(null);
   const longNote = item.note.length > 320;
+  const shots = item.screenshots;
   async function copyNote() {
     try {
       await navigator.clipboard.writeText(item.note);
@@ -641,24 +643,35 @@ function BinDetail({
           </div>
         )}
 
-        {item.screenshots.length > 0 && (
+        {shots.length > 0 && (
           <div className="mb-4">
             <div className="mb-1.5 text-[11.5px] font-extrabold uppercase tracking-[0.07em] text-ink">
-              Screenshots
+              Screenshots <span className="text-slate">({shots.length})</span>
             </div>
-            <div className="grid grid-cols-2 gap-2.5">
-              {item.screenshots.map((s, i) => (
-                <a key={i} href={s} target="_blank" rel="noopener noreferrer" title="Open full size">
+            {/* Compact thumbnail strip — click any to open the full gallery. */}
+            <div className="flex flex-wrap gap-2">
+              {shots.map((s, i) => (
+                <button
+                  key={i}
+                  onClick={() => setGallery(i)}
+                  title="Open gallery"
+                  className="h-20 w-28 overflow-hidden rounded-[10px] border border-line transition hover:ring-2 hover:ring-teal/40"
+                >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={s}
-                    alt=""
-                    className="max-h-64 w-full rounded-[11px] border border-line object-cover"
-                  />
-                </a>
+                  <img src={s} alt="" className="h-full w-full object-cover" />
+                </button>
               ))}
             </div>
           </div>
+        )}
+
+        {gallery !== null && shots[gallery] && (
+          <Lightbox
+            images={shots}
+            index={gallery}
+            onIndex={setGallery}
+            onClose={() => setGallery(null)}
+          />
         )}
 
         <div className="mb-5 flex flex-wrap items-center gap-1.5">
@@ -751,6 +764,84 @@ function BinDetail({
           )}
         </div>
     </>
+  );
+}
+
+// Full-screen image gallery with prev/next, opened from the screenshot strip.
+function Lightbox({
+  images,
+  index,
+  onIndex,
+  onClose,
+}: {
+  images: string[];
+  index: number;
+  onIndex: (i: number) => void;
+  onClose: () => void;
+}) {
+  const go = (delta: number) => onIndex((index + delta + images.length) % images.length);
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+      else if (e.key === "ArrowRight") go(1);
+      else if (e.key === "ArrowLeft") go(-1);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+  return (
+    <div
+      onClick={(e) => {
+        e.stopPropagation();
+        onClose();
+      }}
+      className="fixed inset-0 z-[90] grid place-items-center bg-black/85 p-6"
+    >
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onClose();
+        }}
+        className="absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20"
+        title="Close"
+      >
+        ✕
+      </button>
+      {images.length > 1 && (
+        <>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              go(-1);
+            }}
+            className="absolute left-4 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/10 text-[20px] text-white hover:bg-white/20"
+            title="Previous"
+          >
+            ‹
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              go(1);
+            }}
+            className="absolute right-4 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/10 text-[20px] text-white hover:bg-white/20"
+            title="Next"
+          >
+            ›
+          </button>
+        </>
+      )}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={images[index]}
+        alt=""
+        onClick={(e) => e.stopPropagation()}
+        className="max-h-[88vh] max-w-[92vw] rounded-[10px] object-contain shadow-card"
+      />
+      <div className="absolute bottom-5 left-1/2 -translate-x-1/2 rounded-full bg-white/10 px-3 py-1 text-[12px] font-semibold text-white tabular-nums">
+        {index + 1} / {images.length}
+      </div>
+    </div>
   );
 }
 
