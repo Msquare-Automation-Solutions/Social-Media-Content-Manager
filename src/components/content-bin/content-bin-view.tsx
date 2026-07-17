@@ -551,6 +551,8 @@ function BinDetail({
   onDelete: () => void;
 }) {
   const { toast } = useToast();
+  const [noteExpanded, setNoteExpanded] = useState(false);
+  const longNote = item.note.length > 320;
   async function copyNote() {
     try {
       await navigator.clipboard.writeText(item.note);
@@ -605,16 +607,37 @@ function BinDetail({
                 ⧉ Copy
               </button>
             </div>
-            {/* Document-style surface: a padded "page" so a long note reads like
-                a doc rather than a loose text block. */}
-            <div className="rounded-[12px] border border-line bg-bg/50 px-7 py-6 shadow-soft">
+            {/* Document-style surface: a padded "page". A long note stays
+                collapsed with a fade so screenshots/links below stay reachable;
+                click the note (or the toggle) to expand to the full doc. */}
+            <div
+              onClick={() => longNote && !noteExpanded && setNoteExpanded(true)}
+              className={`relative rounded-[12px] border border-line bg-bg/50 px-7 py-6 shadow-soft ${
+                longNote && !noteExpanded ? "cursor-pointer" : ""
+              }`}
+            >
               <p
-                className="whitespace-pre-wrap text-[15px] leading-[1.8] text-ink"
+                className={`whitespace-pre-wrap text-[15px] leading-[1.8] text-ink ${
+                  longNote && !noteExpanded ? "max-h-[220px] overflow-hidden" : ""
+                }`}
                 style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
               >
                 {item.note}
               </p>
+              {longNote && !noteExpanded && (
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 flex h-24 items-end justify-center rounded-b-[12px] bg-gradient-to-t from-card via-card/80 to-transparent pb-2">
+                  <span className="text-[12px] font-semibold text-teal-dark">Click to read full note ▾</span>
+                </div>
+              )}
             </div>
+            {longNote && noteExpanded && (
+              <button
+                onClick={() => setNoteExpanded(false)}
+                className="mt-2 text-[12px] font-semibold text-teal-dark hover:underline"
+              >
+                Show less ▴
+              </button>
+            )}
           </div>
         )}
 
