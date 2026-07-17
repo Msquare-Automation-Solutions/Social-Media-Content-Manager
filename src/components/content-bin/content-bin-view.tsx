@@ -318,7 +318,9 @@ function BinItemRow({
           </div>
         )}
 
-        {item.note && <p className="mt-1.5 text-[13px] text-slate">{item.note}</p>}
+        {item.note && (
+          <p className="mt-1.5 line-clamp-2 text-[13px] text-slate">{item.note}</p>
+        )}
 
         {item.screenshots.length > 1 && (
           <div className="mt-2 flex flex-wrap gap-1.5">
