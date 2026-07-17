@@ -3,8 +3,8 @@ import "./globals.css";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
-  title: "MediaChat — Content Studio",
-  description: "Chat-first content-creation studio.",
+  title: "Social Media Content Manager",
+  description: "Create, tag, review, and manage your social media content.",
 };
 
 export default function RootLayout({
