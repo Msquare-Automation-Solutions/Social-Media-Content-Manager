@@ -612,6 +612,14 @@ function BinDetail({
                 </div>
               )}
             </div>
+            {longNote && noteExpanded && (
+              <button
+                onClick={() => setNoteExpanded(false)}
+                className="mt-2 text-[12px] font-semibold text-teal-dark hover:underline"
+              >
+                ▴ Show less
+              </button>
+            )}
           </div>
         )}
 
