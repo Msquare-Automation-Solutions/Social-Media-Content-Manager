@@ -289,12 +289,15 @@ function BinItemRow({
   }
 
   return (
-    <div className="flex items-start gap-3.5 rounded-card border border-line bg-card p-4 shadow-soft">
-      <button
-        onClick={() => setOpen(true)}
-        title="Open"
-        className="grid h-14 w-14 flex-shrink-0 place-items-center overflow-hidden rounded-[11px] bg-wash/[0.05] text-[20px] transition hover:ring-2 hover:ring-teal/40"
-      >
+    <div
+      onClick={() => setOpen(true)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setOpen(true)}
+      title="Open"
+      className="flex cursor-pointer items-start gap-3.5 rounded-card border border-line bg-card p-4 shadow-soft transition hover:border-teal/50 hover:shadow-lift"
+    >
+      <div className="grid h-14 w-14 flex-shrink-0 place-items-center overflow-hidden rounded-[11px] bg-wash/[0.05] text-[20px]">
         {cover ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={cover} alt="" className="h-full w-full object-cover" />
@@ -303,16 +306,11 @@ function BinItemRow({
         ) : (
           "💡"
         )}
-      </button>
+      </div>
 
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={() => setOpen(true)}
-            className="text-left text-[15px] font-semibold hover:text-teal-dark hover:underline"
-          >
-            {item.title}
-          </button>
+          <h3 className="text-[15px] font-semibold">{item.title}</h3>
           <StatusChip status={item.status} />
           {item.promotedAssetId && item.status === "USED" && (
             <span className="rounded-full bg-violet-soft px-2 py-0.5 text-[10.5px] font-semibold text-violet">
@@ -324,15 +322,11 @@ function BinItemRow({
         {item.links.length > 0 && (
           <div className="mt-1 flex flex-col gap-0.5">
             {item.links.map((l, i) => (
-              <a
-                key={i}
-                href={l.startsWith("http") ? l : `https://${l}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="truncate text-[12px] text-teal-dark hover:underline"
-              >
+              // Plain text in the list — links are only clickable once the item
+              // is opened (avoids a stray click navigating away).
+              <span key={i} className="truncate text-[12px] text-slate">
                 🔗 {hostOf(l)}
-              </a>
+              </span>
             ))}
           </div>
         )}
@@ -390,7 +384,10 @@ function BinItemRow({
       </div>
 
       {canEdit && (
-        <div className="flex flex-shrink-0 flex-col gap-2">
+        <div
+          className="flex flex-shrink-0 flex-col gap-2"
+          onClick={(e) => e.stopPropagation()}
+        >
           {item.status !== "USED" && (
             <button
               onClick={promote}
@@ -479,7 +476,10 @@ function BinItemDrawer({
 }) {
   return (
     <div
-      onClick={onClose}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClose();
+      }}
       className="fixed inset-0 z-[70] grid place-items-center bg-black/55 p-5 backdrop-blur-[3px]"
     >
       <div
