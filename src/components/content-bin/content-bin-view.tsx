@@ -608,6 +608,14 @@ function BinDetail({
               >
                 ⧉ Copy
               </button>
+              {longNote && (
+                <button
+                  onClick={() => setNoteExpanded((v) => !v)}
+                  className="rounded-[7px] border border-line px-2 py-0.5 text-[11px] font-semibold text-teal-dark transition hover:border-teal hover:bg-teal-soft"
+                >
+                  {noteExpanded ? "▴ Collapse" : "▾ Expand"}
+                </button>
+              )}
             </div>
             {/* Document-style surface: a padded "page". A long note stays
                 collapsed with a fade so screenshots/links below stay reachable;
@@ -632,14 +640,6 @@ function BinDetail({
                 </div>
               )}
             </div>
-            {longNote && noteExpanded && (
-              <button
-                onClick={() => setNoteExpanded(false)}
-                className="mt-2 text-[12px] font-semibold text-teal-dark hover:underline"
-              >
-                Show less ▴
-              </button>
-            )}
           </div>
         )}
 
