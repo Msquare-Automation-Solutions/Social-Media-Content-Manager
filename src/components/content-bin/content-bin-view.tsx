@@ -648,20 +648,24 @@ function BinDetail({
             <div className="mb-1.5 text-[11.5px] font-extrabold uppercase tracking-[0.07em] text-ink">
               Screenshots <span className="text-slate">({shots.length})</span>
             </div>
-            {/* Compact thumbnail strip — click any to open the full gallery. */}
-            <div className="flex flex-wrap gap-2">
-              {shots.map((s, i) => (
-                <button
-                  key={i}
-                  onClick={() => setGallery(i)}
-                  title="Open gallery"
-                  className="h-20 w-28 overflow-hidden rounded-[10px] border border-line transition hover:ring-2 hover:ring-teal/40"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={s} alt="" className="h-full w-full object-cover" />
-                </button>
-              ))}
-            </div>
+            {/* A single collection tile — opens the full gallery. Keeps the
+                panel a fixed, compact height no matter how many screenshots. */}
+            <button
+              onClick={() => setGallery(0)}
+              title="Open gallery"
+              className="group relative h-28 w-44 overflow-hidden rounded-[11px] border border-line transition hover:ring-2 hover:ring-teal/40"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={shots[0]} alt="" className="h-full w-full object-cover" />
+              <div className="absolute inset-0 grid place-items-center bg-black/25 opacity-0 transition group-hover:opacity-100">
+                <span className="rounded-full bg-black/60 px-3 py-1 text-[12px] font-semibold text-white">
+                  View gallery
+                </span>
+              </div>
+              <span className="absolute bottom-1.5 right-1.5 rounded-full bg-black/65 px-2 py-0.5 text-[11px] font-semibold text-white tabular-nums">
+                ▦ {shots.length} {shots.length === 1 ? "image" : "images"}
+              </span>
+            </button>
           </div>
         )}
 
