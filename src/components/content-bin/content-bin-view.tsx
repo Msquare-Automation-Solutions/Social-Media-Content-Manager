@@ -605,17 +605,20 @@ function AddBinForm({
           ))}
         </select>
       </label>
-      <label className={labelCls}>
-        Category
-        <select value={category} onChange={(e) => setCategory(e.target.value)} className={inputCls}>
-          <option value="">— none yet —</option>
+      <div className={`col-span-2 ${labelCls}`}>
+        Category <span className="font-normal text-slate">(pick one)</span>
+        <div className="mt-1 flex flex-wrap gap-2">
           {CATEGORY_OPTIONS.map((c) => (
-            <option key={c.value} value={c.value}>
+            <Chip
+              key={c.value}
+              on={category === c.value}
+              onClick={() => setCategory((cur) => (cur === c.value ? "" : c.value))}
+            >
               {c.label}
-            </option>
+            </Chip>
           ))}
-        </select>
-      </label>
+        </div>
+      </div>
 
       <div className={`col-span-2 ${labelCls}`}>
         Account <span className="font-normal text-slate">(one or more)</span>
