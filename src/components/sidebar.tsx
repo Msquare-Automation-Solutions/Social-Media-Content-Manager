@@ -24,6 +24,8 @@ type Props = {
   isPrimaryOwner: boolean;
   counts: Record<LibraryViewKey, number>;
   binCount: number;
+  myTaskCount: number;
+  taskReviewCount: number;
   membersCount: number;
   queueCount: number;
   reworkCount: number;
@@ -38,6 +40,8 @@ export function Sidebar({
   isPrimaryOwner,
   counts,
   binCount,
+  myTaskCount,
+  taskReviewCount,
   membersCount,
   queueCount,
   reworkCount,
@@ -75,18 +79,8 @@ export function Sidebar({
       {/* Only the nav list scrolls (vertical only) — the header (with the
           notification dropdown) and footer stay put and aren't clipped. */}
       <nav className="-mr-2 flex min-h-0 flex-1 flex-col gap-[3px] overflow-y-auto overflow-x-hidden overscroll-contain pr-2">
-      <NavLink
-        href="/"
-        active={isActive("/")}
-        label="Workspace overview"
-        icon="overview"
-      />
-      <NavLink
-        href="/dashboard"
-        active={isActive("/dashboard")}
-        label="Dashboard"
-        icon="dashboard"
-      />
+      <GroupLabel>Create</GroupLabel>
+      <NavLink href="/create" active={isActive("/create")} label="Content Creator" icon="create" />
       <NavLink
         href="/content-bin"
         active={isActive("/content-bin")}
@@ -94,11 +88,43 @@ export function Sidebar({
         icon="bin"
         count={binCount || undefined}
       />
+
+      <GroupLabel>Produce</GroupLabel>
+      <NavLink
+        href="/content-overview"
+        active={isActive("/content-overview")}
+        label="Content Overview"
+        icon="overview"
+      />
+      <NavLink
+        href="/tasks"
+        active={pathname === "/tasks"}
+        label="Tasks board"
+        icon="tasks"
+      />
+      <NavLink
+        href="/my-work"
+        active={isActive("/my-work")}
+        label="My Work"
+        icon="mywork"
+        count={myTaskCount || undefined}
+        hot={myTaskCount > 0}
+      />
+      {isAdmin && (
+        <NavLink
+          href="/tasks/review"
+          active={isActive("/tasks/review")}
+          label="To review"
+          icon="review"
+          count={taskReviewCount || undefined}
+          hot={taskReviewCount > 0}
+        />
+      )}
+
+      <GroupLabel>Review &amp; publish</GroupLabel>
       <NavLink
         href="/review"
         active={isActive("/review")}
-        // Only the primary account (the workspace's original owner) reviews the
-        // queue; for everyone else it's just their content sitting in "Pending".
         label={isPrimaryOwner ? "Review queue" : "Pending"}
         icon="review"
         count={queueCount || undefined}
@@ -112,61 +138,25 @@ export function Sidebar({
         count={reworkCount || undefined}
         hot={reworkCount > 0}
       />
-      <NavLink
-        href="/approved"
-        active={isActive("/approved")}
-        label="Approved"
-        icon="approved"
-        count={approvedCount || undefined}
-      />
-      <NavLink
-        href="/published"
-        active={isActive("/published")}
-        label="Published"
-        icon="published"
-        count={publishedCount || undefined}
-      />
-      <NavLink
-        href="/create"
-        active={isActive("/create")}
-        label="Content Creator"
-        icon="create"
-      />
+      <NavLink href="/approved" active={isActive("/approved")} label="Approved" icon="approved" count={approvedCount || undefined} />
+      <NavLink href="/published" active={isActive("/published")} label="Published" icon="published" count={publishedCount || undefined} />
 
-      <div className="px-3 pb-1.5 pt-3.5 text-[11px] font-bold uppercase tracking-[0.06em] text-slate/80">
-        Library
-      </div>
+      <GroupLabel>Library</GroupLabel>
+      <NavLink href="/" active={isActive("/")} label="Workspace overview" icon="overview" />
       {LIBRARY_VIEWS.map((v) => {
         const href = `/${LIBRARY_SLUGS[v.key]}`;
         return (
-          <NavLink
-            key={v.key}
-            href={href}
-            active={isActive(href)}
-            label={v.label}
-            icon={VIEW_ICONS[v.key]}
-            count={counts[v.key]}
-          />
+          <NavLink key={v.key} href={href} active={isActive(href)} label={v.label} icon={VIEW_ICONS[v.key]} count={counts[v.key]} />
         );
       })}
 
-      <div className="my-3 mx-1 h-px bg-line" />
+      <GroupLabel>Insights</GroupLabel>
+      <NavLink href="/dashboard" active={isActive("/dashboard")} label="Dashboard" icon="dashboard" />
+      <NavLink href="/analytics" active={isActive("/analytics")} label="Analytics" icon="analytics" />
 
-      <NavLink
-        href="/members"
-        active={isActive("/members")}
-        label="Members"
-        icon="members"
-        count={membersCount}
-      />
-      {isAdmin && (
-        <NavLink
-          href="/activity"
-          active={isActive("/activity")}
-          label="Activity"
-          icon="activity"
-        />
-      )}
+      <GroupLabel>Workspace</GroupLabel>
+      <NavLink href="/members" active={isActive("/members")} label="Members" icon="members" count={membersCount} />
+      {isAdmin && <NavLink href="/activity" active={isActive("/activity")} label="Activity" icon="activity" />}
       <NavLink href="/trash" active={isActive("/trash")} label="Trash" icon="trash" />
       </nav>
 
@@ -207,6 +197,14 @@ export function Sidebar({
         </a>
       </div>
     </aside>
+  );
+}
+
+function GroupLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="px-3 pb-1.5 pt-3.5 text-[11px] font-bold uppercase tracking-[0.06em] text-slate/80">
+      {children}
+    </div>
   );
 }
 

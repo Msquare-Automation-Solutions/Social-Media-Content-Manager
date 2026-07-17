@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { LIBRARY_VIEWS, LIBRARY_SLUGS, typesForView, type LibraryViewKey } from "@/lib/library";
 import { parseTags, parseJson } from "@/lib/json";
 import { describeActivity } from "@/lib/activity-format";
+import { contentTypeLabel } from "@/lib/tasks";
 
 export type LibraryFilters = {
   personId?: string;
@@ -452,6 +453,202 @@ export async function getBinCount(workspaceId: string): Promise<number> {
   return prisma.contentBinItem.count({
     where: { workspaceId, deletedAt: null, status: { not: "DISCARDED" } },
   });
+}
+
+// ── Task pipeline ────────────────────────────────────────────────────────────
+// The production workflow (Content Overview → Content/Video/Graphics →
+// Publishing → Analytics). See src/lib/tasks.ts for the stage config.
+
+export type TaskStageRow = {
+  id: string;
+  stage: string;
+  order: number;
+  assigneeId: string | null;
+  assigneeName: string | null;
+  assigneeColor: string | null;
+  targetDate: string | null;
+  workStatus: string;
+  reviewStatus: string;
+  submittedAt: string | null;
+  completedDate: string | null;
+  reviewNote: string | null;
+  remarks: string;
+};
+
+export type TaskRow = {
+  id: string;
+  title: string;
+  brief: string;
+  content: string;
+  remarks: string;
+  contentType: string;
+  contentTypeLabel: string;
+  channel: { id: string; name: string; icon: string; color: string } | null;
+  account: { id: string; name: string; icon: string; color: string } | null;
+  weekLabel: string;
+  currentStage: string;
+  publishStatus: string;
+  publishedDate: string | null;
+  contentLink: string | null;
+  metricClicks: number | null;
+  metricLeads: number | null;
+  metricEng: number | null;
+  metricsNote: string | null;
+  binItemId: string | null;
+  assetIds: string[];
+  createdAt: string;
+  stages: TaskStageRow[];
+};
+
+export type TaskFilters = {
+  stage?: string; // currentStage / board column
+  contentType?: string;
+  accountId?: string;
+  channelId?: string;
+  assigneeId?: string; // tasks with a stage owned by this user
+  publishStatus?: string;
+  week?: string;
+  q?: string;
+};
+
+export async function listTasks(
+  workspaceId: string,
+  filters: TaskFilters = {},
+): Promise<TaskRow[]> {
+  const rows = await prisma.task.findMany({
+    where: {
+      workspaceId,
+      deletedAt: null,
+      ...(filters.stage ? { currentStage: filters.stage } : {}),
+      ...(filters.contentType ? { contentType: filters.contentType } : {}),
+      ...(filters.accountId ? { accountId: filters.accountId } : {}),
+      ...(filters.channelId ? { channelId: filters.channelId } : {}),
+      ...(filters.publishStatus ? { publishStatus: filters.publishStatus } : {}),
+      ...(filters.week ? { weekLabel: filters.week } : {}),
+      ...(filters.assigneeId ? { stages: { some: { assigneeId: filters.assigneeId } } } : {}),
+    },
+    orderBy: { createdAt: "desc" },
+    include: {
+      stages: { orderBy: { order: "asc" } },
+      assets: { select: { assetId: true } },
+    },
+  });
+
+  // Resolve platform/account/assignee labels in bulk (channelId/accountId are
+  // plain string columns, not relations; assignees are login users).
+  const [channels, accounts, users] = await Promise.all([
+    prisma.socialChannel.findMany({
+      where: { workspaceId },
+      select: { id: true, name: true, icon: true, color: true },
+    }),
+    prisma.account.findMany({
+      where: { workspaceId },
+      select: { id: true, name: true, icon: true, color: true },
+    }),
+    prisma.user.findMany({ select: { id: true, name: true, avatarColor: true } }),
+  ]);
+  const chById = new Map(channels.map((c) => [c.id, c]));
+  const acById = new Map(accounts.map((a) => [a.id, a]));
+  const usById = new Map(users.map((u) => [u.id, u]));
+
+  const items: TaskRow[] = rows.map((t) => ({
+    id: t.id,
+    title: t.title,
+    brief: t.brief,
+    content: t.content,
+    remarks: t.remarks,
+    contentType: t.contentType,
+    contentTypeLabel: contentTypeLabel(t.contentType),
+    channel: (t.channelId && chById.get(t.channelId)) || null,
+    account: (t.accountId && acById.get(t.accountId)) || null,
+    weekLabel: t.weekLabel,
+    currentStage: t.currentStage,
+    publishStatus: t.publishStatus,
+    publishedDate: t.publishedDate ? t.publishedDate.toISOString() : null,
+    contentLink: t.contentLink,
+    metricClicks: t.metricClicks,
+    metricLeads: t.metricLeads,
+    metricEng: t.metricEng,
+    metricsNote: t.metricsNote,
+    binItemId: t.binItemId,
+    assetIds: t.assets.map((a) => a.assetId),
+    createdAt: t.createdAt.toISOString(),
+    stages: t.stages.map((s) => {
+      const u = s.assigneeId ? usById.get(s.assigneeId) : null;
+      return {
+        id: s.id,
+        stage: s.stage,
+        order: s.order,
+        assigneeId: s.assigneeId,
+        assigneeName: u?.name ?? null,
+        assigneeColor: u?.avatarColor ?? null,
+        targetDate: s.targetDate ? s.targetDate.toISOString() : null,
+        workStatus: s.workStatus,
+        reviewStatus: s.reviewStatus,
+        submittedAt: s.submittedAt ? s.submittedAt.toISOString() : null,
+        completedDate: s.completedDate ? s.completedDate.toISOString() : null,
+        reviewNote: s.reviewNote,
+        remarks: s.remarks,
+      };
+    }),
+  }));
+
+  const q = filters.q?.trim().toLowerCase();
+  if (!q) return items;
+  return items.filter(
+    (t) =>
+      t.title.toLowerCase().includes(q) ||
+      t.brief.toLowerCase().includes(q) ||
+      t.content.toLowerCase().includes(q),
+  );
+}
+
+/** Open tasks assigned to a user (their My Work badge) — stages they own that
+ * aren't yet approved. */
+export async function getMyOpenTaskCount(workspaceId: string, userId: string): Promise<number> {
+  return prisma.task.count({
+    where: {
+      workspaceId,
+      deletedAt: null,
+      stages: { some: { assigneeId: userId, reviewStatus: { not: "APPROVED" } } },
+    },
+  });
+}
+
+/** Stages awaiting admin review (the To-review badge). */
+export async function getPendingReviewCount(workspaceId: string): Promise<number> {
+  return prisma.task.count({
+    where: {
+      workspaceId,
+      deletedAt: null,
+      stages: { some: { reviewStatus: "PENDING" } },
+    },
+  });
+}
+
+/** Dropdown data for the task views: assignable members (login users) +
+ * platforms + accounts. */
+export async function getTaskOptions(workspaceId: string) {
+  const [members, channels, accounts] = await Promise.all([
+    listMembers(workspaceId),
+    prisma.socialChannel.findMany({
+      where: { workspaceId },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, name: true, icon: true },
+    }),
+    prisma.account.findMany({
+      where: { workspaceId, deletedAt: null },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, name: true, icon: true },
+    }),
+  ]);
+  return {
+    members: members
+      .filter((m) => !m.disabled)
+      .map((m) => ({ id: m.userId, name: m.name, avatarColor: m.avatarColor })),
+    channels,
+    accounts,
+  };
 }
 
 export async function getAssetCounts(

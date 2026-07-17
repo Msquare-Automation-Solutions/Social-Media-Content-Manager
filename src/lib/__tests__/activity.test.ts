@@ -3,7 +3,7 @@ import { ACTIONS, describeActivity } from "@/lib/activity-format";
 
 describe("activity catalog + describeActivity", () => {
   it("every action maps to a valid category", () => {
-    const cats = new Set(["content", "account", "creator", "platform"]);
+    const cats = new Set(["content", "account", "creator", "platform", "task"]);
     for (const def of Object.values(ACTIONS)) {
       expect(cats.has(def.category)).toBe(true);
       expect(def.verb.length).toBeGreaterThan(0);

@@ -24,6 +24,12 @@ type Feed = { rows: NotificationRow[]; nextCursor: string | null; unread: number
 // Where a notification takes you when clicked — the gallery its status lives in,
 // with the specific asset's drawer opened via ?asset=<id>.
 function hrefFor(action: string, targetId: string | null): string | null {
+  // Task notifications: assign/rework land the assignee in My Work; submit lands
+  // the admin in the review queue. Deep-link the specific task via ?task=<id>.
+  if (action.startsWith("task.")) {
+    const base = action === "task.submitted" ? "/tasks/review" : "/my-work";
+    return targetId ? `${base}?task=${encodeURIComponent(targetId)}` : base;
+  }
   const base =
     action === "asset.approved"
       ? "/approved"

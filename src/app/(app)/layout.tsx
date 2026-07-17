@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
-import { getAssetCounts, getBinCount } from "@/lib/data";
+import { getAssetCounts, getBinCount, getMyOpenTaskCount, getPendingReviewCount } from "@/lib/data";
 import { unreadNotificationCount } from "@/lib/notifications";
 import { Sidebar } from "@/components/sidebar";
 import { DialogProvider } from "@/components/save/dialog-context";
@@ -17,10 +17,12 @@ export default async function AppLayout({
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const [counts, binCount, membersCount, queueCount, reworkCount, approvedCount, publishedCount, unreadCount] =
+  const [counts, binCount, myTaskCount, taskReviewCount, membersCount, queueCount, reworkCount, approvedCount, publishedCount, unreadCount] =
     await Promise.all([
       getAssetCounts(user.workspaceId),
       getBinCount(user.workspaceId),
+      getMyOpenTaskCount(user.workspaceId, user.id),
+      getPendingReviewCount(user.workspaceId),
       prisma.membership.count({ where: { workspaceId: user.workspaceId } }),
       prisma.mediaAsset.count({
         where: { workspaceId: user.workspaceId, deletedAt: null, status: "PENDING" },
@@ -60,6 +62,8 @@ export default async function AppLayout({
           isPrimaryOwner={isPrimaryOwner}
           counts={counts}
           binCount={binCount}
+          myTaskCount={myTaskCount}
+          taskReviewCount={taskReviewCount}
           membersCount={membersCount}
           queueCount={queueCount}
           reworkCount={reworkCount}

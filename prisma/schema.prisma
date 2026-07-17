@@ -19,25 +19,25 @@ datasource db {
 }
 
 model User {
-  id                String   @id @default(cuid())
-  email             String   @unique
+  id                String    @id @default(cuid())
+  email             String    @unique
   name              String
   passwordHash      String
-  avatarColor       String   @default("#0e9f8f")
-  createdAt         DateTime @default(now())
+  avatarColor       String    @default("#0e9f8f")
+  createdAt         DateTime  @default(now())
   // Bumped on password reset/change to invalidate older JWT sessions.
-  passwordChangedAt DateTime @default(now())
+  passwordChangedAt DateTime  @default(now())
   // Set when an admin deactivates the account — login + active sessions blocked.
   disabledAt        DateTime?
 
-  memberships    Membership[]
-  person         Person[]
-  createdAssets  MediaAsset[]        @relation("AssetCreatedBy")
-  assetVersions  AssetVersion[]
-  chatSessions   ChatSession[]
-  skillUpdates   Skill[]
-  resetTokens    PasswordResetToken[]
-  notifications  Notification[]
+  memberships   Membership[]
+  person        Person[]
+  createdAssets MediaAsset[]         @relation("AssetCreatedBy")
+  assetVersions AssetVersion[]
+  chatSessions  ChatSession[]
+  skillUpdates  Skill[]
+  resetTokens   PasswordResetToken[]
+  notifications Notification[]
 }
 
 model Workspace {
@@ -45,17 +45,18 @@ model Workspace {
   name      String
   createdAt DateTime @default(now())
 
-  memberships Membership[]
-  skills      Skill[]
-  people      Person[]
-  channels    SocialChannel[]
-  accounts    Account[]
-  assets      MediaAsset[]
-  sessions    ChatSession[]
-  invites     Invite[]
-  activity    ActivityLog[]
+  memberships   Membership[]
+  skills        Skill[]
+  people        Person[]
+  channels      SocialChannel[]
+  accounts      Account[]
+  assets        MediaAsset[]
+  sessions      ChatSession[]
+  invites       Invite[]
+  activity      ActivityLog[]
   notifications Notification[]
-  binItems    ContentBinItem[]
+  binItems      ContentBinItem[]
+  tasks         Task[]
 }
 
 // Immutable audit trail of who did what. Actor fields are denormalized so an
@@ -131,14 +132,14 @@ model Skill {
 
 // A creator/company person. May link to a login User, or stand alone.
 model Person {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   workspaceId String
   name        String
   email       String?
   label       String?
   userId      String?
-  avatarColor String   @default("#0e9f8f")
-  createdAt   DateTime @default(now())
+  avatarColor String    @default("#0e9f8f")
+  createdAt   DateTime  @default(now())
   // Soft-delete: archived creators disappear from pickers/filters but stay
   // referenced by past assets (attribution history is preserved).
   deletedAt   DateTime?
@@ -239,6 +240,7 @@ model MediaAsset {
   channels  AssetChannel[]
   accounts  AssetAccount[]
   versions  AssetVersion[]
+  taskLinks TaskAsset[]
 }
 
 model AssetChannel {
@@ -320,4 +322,78 @@ model PasswordResetToken {
   usedAt    DateTime?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// A planned content piece from the weekly calendar (see MSQ content calendar).
+// Created in "Content Overview" (theme/brief/content), then it runs through
+// production stages (Content/Video/Graphics — decided by contentType), then
+// Publishing then Analytics. See src/lib/tasks.ts for the stage config.
+// currentStage: CONTENT|VIDEO|GRAPHICS|PUBLISHING|ANALYTICS|DONE
+// publishStatus: NOT_PUBLISHED|PENDING|PUBLISHED_ON_TIME|PUBLISHED_DELAY
+model Task {
+  id            String    @id @default(cuid())
+  workspaceId   String
+  createdById   String
+  title         String // content theme
+  brief         String    @default("")
+  content       String    @default("") // drafted copy/script
+  remarks       String    @default("")
+  contentType   String
+  channelId     String? // SocialChannel (platform)
+  accountId     String? // Account
+  weekLabel     String    @default("")
+  plannedDate   DateTime?
+  currentStage  String    @default("CONTENT")
+  publishStatus String    @default("NOT_PUBLISHED")
+  publishedDate DateTime?
+  contentLink   String?
+  metricClicks  Int?
+  metricLeads   Int?
+  metricEng     Int?
+  metricsNote   String?
+  binItemId     String? // linked Content Bin idea
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @default(now()) @updatedAt
+  deletedAt     DateTime?
+
+  workspace Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  stages    TaskStage[]
+  assets    TaskAsset[]
+
+  @@index([workspaceId, currentStage, deletedAt])
+}
+
+// One production stage of a task, owned by a member (login user) who is
+// notified on assignment. workStatus: YTI|WIP_ON_TRACK|WIP_DELAY|
+// COMPLETED_ON_TIME|COMPLETED_DELAY. reviewStatus: NOT_SUBMITTED|PENDING|
+// APPROVED|REWORK.
+model TaskStage {
+  id            String    @id @default(cuid())
+  taskId        String
+  stage         String
+  order         Int       @default(0)
+  assigneeId    String? // User.id
+  targetDate    DateTime?
+  workStatus    String    @default("YTI")
+  reviewStatus  String    @default("NOT_SUBMITTED")
+  submittedAt   DateTime?
+  completedDate DateTime?
+  reviewNote    String?
+  reviewedAt    DateTime?
+  remarks       String    @default("")
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@index([assigneeId, reviewStatus])
+}
+
+model TaskAsset {
+  taskId  String
+  assetId String
+
+  task  Task       @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  asset MediaAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, assetId])
 }

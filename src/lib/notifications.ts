@@ -74,6 +74,21 @@ export async function reviewNotificationRecipients(
   }
 }
 
+// Every workspace admin (OWNER/ADMIN) — recipients when a task stage is
+// submitted for review (admins-only review). Never throws.
+export async function adminRecipients(workspaceId: string): Promise<string[]> {
+  try {
+    const admins = await prisma.membership.findMany({
+      where: { workspaceId, role: { in: ["OWNER", "ADMIN"] } },
+      select: { userId: true },
+    });
+    return admins.map((a) => a.userId);
+  } catch (err) {
+    console.error("adminRecipients failed", err);
+    return [];
+  }
+}
+
 export type NotificationRow = {
   id: string;
   actorName: string;

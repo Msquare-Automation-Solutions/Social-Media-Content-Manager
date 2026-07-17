@@ -23,6 +23,9 @@ export type IconName =
   | "overview"
   | "other"
   | "bin"
+  | "tasks"
+  | "mywork"
+  | "analytics"
   | "bell";
 
 const PATHS: Record<IconName, string> = {
@@ -62,6 +65,14 @@ const PATHS: Record<IconName, string> = {
   activity: "M22 12h-4l-3 9L9 3l-3 9H2",
   // Inbox / bin — a tray with an opening at the top (captured ideas land here).
   bin: "M2.25 12h4.5l1.5 3h7.5l1.5-3h4.5M2.25 12l2.7-7.2A2.25 2.25 0 0 1 7.06 3.3h9.88a2.25 2.25 0 0 1 2.11 1.5L21.75 12M2.25 12v6.75A2.25 2.25 0 0 0 4.5 21h15a2.25 2.25 0 0 0 2.25-2.25V12",
+  // Kanban board — three columns.
+  tasks:
+    "M3.75 4.5h4.5v15h-4.5zM9.75 4.5h4.5v9h-4.5zM15.75 4.5h4.5v12h-4.5z",
+  // My work — a checklist / clipboard with a tick.
+  mywork:
+    "M9 12l2 2 4-4M9 5h6a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z",
+  // Analytics — bar chart.
+  analytics: "M3 3v18h18M8 16V9m4 7V6m4 10v-4",
 };
 
 export function Icon({
