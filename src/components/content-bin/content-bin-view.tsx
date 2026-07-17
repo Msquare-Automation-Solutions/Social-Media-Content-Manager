@@ -545,7 +545,7 @@ function BinDetail({
 }) {
   const { toast } = useToast();
   const [noteExpanded, setNoteExpanded] = useState(false);
-  const [gallery, setGallery] = useState<number | null>(null);
+  const [galleryOpen, setGalleryOpen] = useState(false);
   const longNote = item.note.length > 320;
   const shots = item.screenshots;
   async function copyNote() {
@@ -631,7 +631,7 @@ function BinDetail({
             {/* A single collection tile — opens the full gallery. Keeps the
                 panel a fixed, compact height no matter how many screenshots. */}
             <button
-              onClick={() => setGallery(0)}
+              onClick={() => setGalleryOpen(true)}
               title="Open gallery"
               className="group relative h-28 w-44 overflow-hidden rounded-[11px] border border-line transition hover:ring-2 hover:ring-teal/40"
             >
@@ -670,13 +670,8 @@ function BinDetail({
           </div>
         )}
 
-        {gallery !== null && shots[gallery] && (
-          <Lightbox
-            images={shots}
-            index={gallery}
-            onIndex={setGallery}
-            onClose={() => setGallery(null)}
-          />
+        {galleryOpen && shots.length > 0 && (
+          <GalleryModal images={shots} onClose={() => setGalleryOpen(false)} />
         )}
 
         <div className="mb-5 flex flex-wrap items-center gap-1.5">
@@ -772,79 +767,131 @@ function BinDetail({
   );
 }
 
-// Full-screen image gallery with prev/next, opened from the screenshot strip.
-function Lightbox({
-  images,
-  index,
-  onIndex,
-  onClose,
-}: {
-  images: string[];
-  index: number;
-  onIndex: (i: number) => void;
-  onClose: () => void;
-}) {
-  const go = (delta: number) => onIndex((index + delta + images.length) % images.length);
+// Two-level gallery: opens to a grid of every screenshot; click one to expand
+// it to a full-screen single view with prev/next. Esc / back returns to the
+// grid, then closes.
+function GalleryModal({ images, onClose }: { images: string[]; onClose: () => void }) {
+  const [active, setActive] = useState<number | null>(null);
+  const go = (delta: number) =>
+    setActive((i) => (i === null ? i : (i + delta + images.length) % images.length));
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
-      else if (e.key === "ArrowRight") go(1);
-      else if (e.key === "ArrowLeft") go(-1);
+      if (e.key === "Escape") {
+        if (active === null) onClose();
+        else setActive(null);
+      } else if (active !== null && e.key === "ArrowRight") go(1);
+      else if (active !== null && e.key === "ArrowLeft") go(-1);
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   });
+
+  // Single-image view.
+  if (active !== null) {
+    return (
+      <div
+        onClick={(e) => {
+          e.stopPropagation();
+          setActive(null);
+        }}
+        className="fixed inset-0 z-[90] grid place-items-center bg-black/90 p-6"
+      >
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setActive(null);
+          }}
+          className="absolute left-4 top-4 flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-[12.5px] font-semibold text-white hover:bg-white/20"
+          title="Back to gallery"
+        >
+          ‹ Gallery
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onClose();
+          }}
+          className="absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20"
+          title="Close"
+        >
+          ✕
+        </button>
+        {images.length > 1 && (
+          <>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                go(-1);
+              }}
+              className="absolute left-4 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/10 text-[20px] text-white hover:bg-white/20"
+              title="Previous"
+            >
+              ‹
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                go(1);
+              }}
+              className="absolute right-4 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/10 text-[20px] text-white hover:bg-white/20"
+              title="Next"
+            >
+              ›
+            </button>
+          </>
+        )}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={images[active]}
+          alt=""
+          onClick={(e) => e.stopPropagation()}
+          className="max-h-[88vh] max-w-[92vw] rounded-[10px] object-contain shadow-card"
+        />
+        <div className="absolute bottom-5 left-1/2 -translate-x-1/2 rounded-full bg-white/10 px-3 py-1 text-[12px] font-semibold text-white tabular-nums">
+          {active + 1} / {images.length}
+        </div>
+      </div>
+    );
+  }
+
+  // Grid view (default).
   return (
     <div
       onClick={(e) => {
         e.stopPropagation();
         onClose();
       }}
-      className="fixed inset-0 z-[90] grid place-items-center bg-black/85 p-6"
+      className="fixed inset-0 z-[90] grid place-items-center bg-black/80 p-6"
     >
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onClose();
-        }}
-        className="absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20"
-        title="Close"
-      >
-        ✕
-      </button>
-      {images.length > 1 && (
-        <>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              go(-1);
-            }}
-            className="absolute left-4 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/10 text-[20px] text-white hover:bg-white/20"
-            title="Previous"
-          >
-            ‹
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              go(1);
-            }}
-            className="absolute right-4 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/10 text-[20px] text-white hover:bg-white/20"
-            title="Next"
-          >
-            ›
-          </button>
-        </>
-      )}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={images[index]}
-        alt=""
+      <div
         onClick={(e) => e.stopPropagation()}
-        className="max-h-[88vh] max-w-[92vw] rounded-[10px] object-contain shadow-card"
-      />
-      <div className="absolute bottom-5 left-1/2 -translate-x-1/2 rounded-full bg-white/10 px-3 py-1 text-[12px] font-semibold text-white tabular-nums">
-        {index + 1} / {images.length}
+        className="max-h-[88vh] w-[min(920px,95vw)] overflow-y-auto rounded-xl2 border border-line bg-card p-6 shadow-card"
+      >
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="font-display text-[18px]">
+            Gallery <span className="text-slate">({images.length})</span>
+          </h2>
+          <button
+            onClick={onClose}
+            className="grid h-8 w-8 place-items-center rounded-full text-slate hover:bg-wash/[0.06]"
+            title="Close"
+          >
+            ✕
+          </button>
+        </div>
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-3">
+          {images.map((s, i) => (
+            <button
+              key={i}
+              onClick={() => setActive(i)}
+              title="Expand image"
+              className="aspect-video overflow-hidden rounded-[10px] border border-line transition hover:ring-2 hover:ring-teal/40"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={s} alt="" className="h-full w-full object-cover" />
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
