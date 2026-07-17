@@ -306,34 +306,27 @@ function BinItemRow({
           <StatusChip status={item.status} />
         </div>
 
-        {item.links.length > 0 && (
-          <div className="mt-1 flex flex-col gap-0.5">
-            {item.links.map((l, i) => (
-              // Plain text in the list — links are only clickable once the item
-              // is opened (avoids a stray click navigating away).
-              <span key={i} className="truncate text-[12px] text-slate">
-                🔗 {hostOf(l)}
+        {/* One-line summary so the row stays a constant height regardless of how
+            many links/screenshots the idea has. The full list + gallery show
+            when the item is opened. */}
+        {(item.links.length > 0 || item.screenshots.length > 0) && (
+          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[12px] text-slate">
+            {item.links.length > 0 && (
+              <span className="truncate">
+                🔗 {hostOf(item.links[0])}
+                {item.links.length > 1 ? ` +${item.links.length - 1} more` : ""}
               </span>
-            ))}
+            )}
+            {item.screenshots.length > 0 && (
+              <span>
+                🖼 {item.screenshots.length} image{item.screenshots.length === 1 ? "" : "s"}
+              </span>
+            )}
           </div>
         )}
 
         {item.note && (
           <p className="mt-1.5 line-clamp-2 text-[13px] text-slate">{item.note}</p>
-        )}
-
-        {item.screenshots.length > 1 && (
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {item.screenshots.slice(1).map((s, i) => (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                key={i}
-                src={s}
-                alt=""
-                className="h-11 w-16 rounded-[7px] border border-line object-cover"
-              />
-            ))}
-          </div>
         )}
 
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
@@ -577,27 +570,6 @@ function BinDetail({
           </button>
         </div>
 
-        {item.links.length > 0 && (
-          <div className="mb-4">
-            <div className="mb-1.5 text-[11.5px] font-extrabold uppercase tracking-[0.07em] text-ink">
-              Reference links
-            </div>
-            <div className="flex flex-col gap-1">
-              {item.links.map((l, i) => (
-                <a
-                  key={i}
-                  href={l.startsWith("http") ? l : `https://${l}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="break-all text-[13px] text-teal-dark hover:underline"
-                >
-                  🔗 {l}
-                </a>
-              ))}
-            </div>
-          </div>
-        )}
-
         {item.note && (
           <div className="mb-5">
             <div className="mb-2 flex items-center gap-3">
@@ -666,6 +638,27 @@ function BinDetail({
                 ▦ {shots.length} {shots.length === 1 ? "image" : "images"}
               </span>
             </button>
+          </div>
+        )}
+
+        {item.links.length > 0 && (
+          <div className="mb-4">
+            <div className="mb-1.5 text-[11.5px] font-extrabold uppercase tracking-[0.07em] text-ink">
+              Reference links
+            </div>
+            <div className="flex flex-col gap-1">
+              {item.links.map((l, i) => (
+                <a
+                  key={i}
+                  href={l.startsWith("http") ? l : `https://${l}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="break-all text-[13px] text-teal-dark hover:underline"
+                >
+                  🔗 {l}
+                </a>
+              ))}
+            </div>
           </div>
         )}
 
