@@ -596,16 +596,25 @@ function BinDetail({
 
         {item.note && (
           <div className="mb-5">
-            <div className="mb-1.5 flex items-center gap-3">
+            <div className="mb-2 flex items-center gap-3">
               <div className="text-[11.5px] font-extrabold uppercase tracking-[0.07em] text-ink">Note</div>
               <button
                 onClick={copyNote}
-                className="text-[11px] font-semibold text-teal-dark hover:underline"
+                className="rounded-[7px] border border-line px-2 py-0.5 text-[11px] font-semibold text-teal-dark transition hover:border-teal hover:bg-teal-soft"
               >
                 ⧉ Copy
               </button>
             </div>
-            <p className="whitespace-pre-wrap text-[15px] leading-relaxed text-ink">{item.note}</p>
+            {/* Document-style surface: a padded "page" so a long note reads like
+                a doc rather than a loose text block. */}
+            <div className="rounded-[12px] border border-line bg-bg/50 px-7 py-6 shadow-soft">
+              <p
+                className="whitespace-pre-wrap text-[15px] leading-[1.8] text-ink"
+                style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
+              >
+                {item.note}
+              </p>
+            </div>
           </div>
         )}
 
