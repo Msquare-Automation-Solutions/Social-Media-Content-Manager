@@ -82,16 +82,16 @@ export function ContentBinView({
         {pending && <span className="text-[12px] text-slate">Loading…</span>}
       </div>
       <p className="mb-4 max-w-[64ch] text-[13px] text-slate">
-        Grab a link, thread, or half-formed idea before it slips away. Everything here is raw — when
-        one’s ready, <b>Promote</b> it into a real asset and it flows into your library.
+        Grab a link, thread, or half-formed idea before it slips away. Everything here is raw
+        reference — use it to create your media, then mark it <b>used</b>.
       </p>
 
       {canEdit && (
         <button
           onClick={() => setAddOpen(true)}
-          className="w-full rounded-[12px] border border-dashed border-line px-4 py-3 text-left text-[13px] font-semibold text-teal-dark transition hover:border-teal hover:bg-teal-soft"
+          className="btn-premium mb-1 flex w-full items-center justify-center gap-2 rounded-[12px] px-4 py-3.5 text-[14px] font-bold"
         >
-          ＋ Add to bin — paste a link or jot a thought
+          <span className="text-[18px] leading-none">＋</span> Add to bin — paste a link or jot a thought
         </button>
       )}
 
