@@ -12,7 +12,7 @@ const ids = z.array(z.string()).max(50).optional();
 
 const patchSchema = z.object({
   title: z.string().trim().min(1).max(200).optional(),
-  note: z.string().trim().max(4000).optional(),
+  note: z.string().trim().max(100000).optional(),
   links: urls,
   tags: z.array(z.string().trim().max(40)).max(30).optional(),
   status: z.enum(BIN_STATUSES).optional(),

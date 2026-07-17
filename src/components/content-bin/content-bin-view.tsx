@@ -267,7 +267,6 @@ function BinItemRow({
       role="button"
       tabIndex={0}
       onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setOpen(true)}
-      title="Open"
       className="flex cursor-pointer items-start gap-3.5 rounded-card border border-line bg-card p-4 shadow-soft transition hover:border-teal/50 hover:shadow-lift"
     >
       <div className="grid h-14 w-14 flex-shrink-0 place-items-center overflow-hidden rounded-[11px] bg-wash/[0.05] text-[20px]">
@@ -529,6 +528,15 @@ function BinDetail({
   onStatus: (status: string, msg: string) => void;
   onDelete: () => void;
 }) {
+  const { toast } = useToast();
+  async function copyNote() {
+    try {
+      await navigator.clipboard.writeText(item.note);
+      toast("Note copied ✓");
+    } catch {
+      toast("Couldn’t copy the note.");
+    }
+  }
   return (
     <>
         <div className="mb-3 flex items-start gap-3">
@@ -564,20 +572,38 @@ function BinDetail({
           </div>
         )}
 
-        {item.note && <p className="mb-4 whitespace-pre-wrap text-[13.5px] text-ink">{item.note}</p>}
+        {item.note && (
+          <div className="mb-5">
+            <div className="mb-1.5 flex items-center gap-3">
+              <div className="text-[11px] font-bold uppercase tracking-[0.06em] text-slate">Note</div>
+              <button
+                onClick={copyNote}
+                className="text-[11px] font-semibold text-teal-dark hover:underline"
+              >
+                ⧉ Copy
+              </button>
+            </div>
+            <p className="whitespace-pre-wrap text-[15px] leading-relaxed text-ink">{item.note}</p>
+          </div>
+        )}
 
         {item.screenshots.length > 0 && (
-          <div className="mb-4 grid grid-cols-2 gap-2.5">
-            {item.screenshots.map((s, i) => (
-              <a key={i} href={s} target="_blank" rel="noopener noreferrer" title="Open full size">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={s}
-                  alt=""
-                  className="max-h-64 w-full rounded-[11px] border border-line object-cover"
-                />
-              </a>
-            ))}
+          <div className="mb-4">
+            <div className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-slate">
+              Screenshots
+            </div>
+            <div className="grid grid-cols-2 gap-2.5">
+              {item.screenshots.map((s, i) => (
+                <a key={i} href={s} target="_blank" rel="noopener noreferrer" title="Open full size">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={s}
+                    alt=""
+                    className="max-h-64 w-full rounded-[11px] border border-line object-cover"
+                  />
+                </a>
+              ))}
+            </div>
           </div>
         )}
 
@@ -952,7 +978,7 @@ function BinForm({
           value={note}
           onChange={(e) => setNote(e.target.value)}
           placeholder="Why it caught your eye, what to do with it…"
-          className={`min-h-[52px] resize-y ${inputCls}`}
+          className={`min-h-[140px] resize-y text-[14px] leading-relaxed ${inputCls}`}
         />
       </label>
 
