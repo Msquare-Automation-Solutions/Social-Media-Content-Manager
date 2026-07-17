@@ -227,6 +227,7 @@ function BinItemRow({
   const { toast } = useToast();
   const { openPromote } = useSaveDialog();
   const [busy, setBusy] = useState(false);
+  const [open, setOpen] = useState(false);
 
   const channels = (options?.channels ?? []).filter((c) => item.channelIds.includes(c.id));
   const accounts = (options?.accounts ?? []).filter((a) => item.accountIds.includes(a.id));
@@ -289,7 +290,11 @@ function BinItemRow({
 
   return (
     <div className="flex items-start gap-3.5 rounded-card border border-line bg-card p-4 shadow-soft">
-      <div className="grid h-14 w-14 flex-shrink-0 place-items-center overflow-hidden rounded-[11px] bg-wash/[0.05] text-[20px]">
+      <button
+        onClick={() => setOpen(true)}
+        title="Open"
+        className="grid h-14 w-14 flex-shrink-0 place-items-center overflow-hidden rounded-[11px] bg-wash/[0.05] text-[20px] transition hover:ring-2 hover:ring-teal/40"
+      >
         {cover ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={cover} alt="" className="h-full w-full object-cover" />
@@ -298,11 +303,16 @@ function BinItemRow({
         ) : (
           "💡"
         )}
-      </div>
+      </button>
 
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <h3 className="text-[15px] font-semibold">{item.title}</h3>
+          <button
+            onClick={() => setOpen(true)}
+            className="text-left text-[15px] font-semibold hover:text-teal-dark hover:underline"
+          >
+            {item.title}
+          </button>
           <StatusChip status={item.status} />
           {item.promotedAssetId && item.status === "USED" && (
             <span className="rounded-full bg-violet-soft px-2 py-0.5 text-[10.5px] font-semibold text-violet">
@@ -417,6 +427,189 @@ function BinItemRow({
           </button>
         </div>
       )}
+
+      {open && (
+        <BinItemDrawer
+          item={item}
+          channels={channels}
+          accounts={accounts}
+          personName={person?.name ?? item.createdBy?.name ?? "—"}
+          canEdit={canEdit}
+          busy={busy}
+          onClose={() => setOpen(false)}
+          onPromote={() => {
+            setOpen(false);
+            promote();
+          }}
+          onStatus={(s, msg) => patch({ status: s }, msg)}
+          onDelete={async () => {
+            await remove();
+            setOpen(false);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+// Full-screen detail view of a captured idea: enlarged screenshots, every link,
+// the full note, its tags/taxonomy, and the same actions as the row.
+function BinItemDrawer({
+  item,
+  channels,
+  accounts,
+  personName,
+  canEdit,
+  busy,
+  onClose,
+  onPromote,
+  onStatus,
+  onDelete,
+}: {
+  item: ContentBinRow;
+  channels: { id: string; name: string; icon: string; color: string }[];
+  accounts: { id: string; name: string; icon: string; color: string }[];
+  personName: string;
+  canEdit: boolean;
+  busy: boolean;
+  onClose: () => void;
+  onPromote: () => void;
+  onStatus: (status: string, msg: string) => void;
+  onDelete: () => void;
+}) {
+  return (
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-[70] grid place-items-center bg-black/55 p-5 backdrop-blur-[3px]"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="max-h-[88vh] w-[min(680px,100%)] overflow-y-auto rounded-xl2 border border-line bg-card p-6 shadow-card"
+      >
+        <div className="mb-3 flex items-start gap-3">
+          <h2 className="flex-1 font-display text-[19px] leading-tight">{item.title}</h2>
+          <StatusChip status={item.status} />
+          <button
+            onClick={onClose}
+            className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-full text-slate hover:bg-wash/[0.06]"
+            title="Close"
+          >
+            ✕
+          </button>
+        </div>
+
+        {item.links.length > 0 && (
+          <div className="mb-4">
+            <div className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-slate">
+              Reference links
+            </div>
+            <div className="flex flex-col gap-1">
+              {item.links.map((l, i) => (
+                <a
+                  key={i}
+                  href={l.startsWith("http") ? l : `https://${l}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="break-all text-[13px] text-teal-dark hover:underline"
+                >
+                  🔗 {l}
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {item.note && <p className="mb-4 whitespace-pre-wrap text-[13.5px] text-ink">{item.note}</p>}
+
+        {item.screenshots.length > 0 && (
+          <div className="mb-4 grid grid-cols-2 gap-2.5">
+            {item.screenshots.map((s, i) => (
+              <a key={i} href={s} target="_blank" rel="noopener noreferrer" title="Open full size">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={s}
+                  alt=""
+                  className="max-h-64 w-full rounded-[11px] border border-line object-cover"
+                />
+              </a>
+            ))}
+          </div>
+        )}
+
+        <div className="mb-5 flex flex-wrap items-center gap-1.5">
+          {item.category && (
+            <span className="rounded-full bg-violet-soft px-2 py-0.5 text-[11px] font-semibold text-violet">
+              {TYPE_LABELS[item.category] ?? item.category}
+            </span>
+          )}
+          {accounts.map((a) => (
+            <span
+              key={a.id}
+              className="flex items-center gap-1 rounded-full bg-teal-soft px-2 py-0.5 text-[11px] font-semibold text-teal-dark"
+            >
+              {!isImageIcon(a.icon) && <PlatformIcon name={a.name} icon={a.icon} size={12} />}
+              {a.name}
+            </span>
+          ))}
+          {channels.map((c) => (
+            <span
+              key={c.id}
+              className="flex items-center gap-1 rounded-full bg-wash/[0.06] px-2 py-0.5 text-[11px] font-semibold text-ink"
+            >
+              <PlatformIcon name={c.name} icon={c.icon} size={12} /> {c.name}
+            </span>
+          ))}
+          {item.tags.map((t) => (
+            <span key={t} className="rounded-[7px] bg-wash/[0.05] px-2 py-0.5 text-[11px] text-slate">
+              #{t}
+            </span>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-2 border-t border-line pt-4">
+          <span className="text-[11.5px] text-slate">
+            Added by {personName} · {new Date(item.createdAt).toLocaleDateString()}
+          </span>
+          {canEdit && (
+            <div className="ml-auto flex gap-2">
+              {item.status !== "USED" && (
+                <button
+                  onClick={onPromote}
+                  disabled={busy}
+                  className="btn-premium rounded-[9px] px-3.5 py-1.5 text-[12.5px] font-semibold disabled:opacity-50"
+                >
+                  Promote →
+                </button>
+              )}
+              {item.status === "NEW" && (
+                <button
+                  onClick={() => onStatus("DISCARDED", "Moved to discarded")}
+                  disabled={busy}
+                  className="rounded-[9px] border border-line px-3.5 py-1.5 text-[12.5px] font-semibold text-slate hover:border-teal disabled:opacity-50"
+                >
+                  Discard
+                </button>
+              )}
+              {item.status === "DISCARDED" && (
+                <button
+                  onClick={() => onStatus("NEW", "Restored to bin")}
+                  disabled={busy}
+                  className="rounded-[9px] border border-line px-3.5 py-1.5 text-[12.5px] font-semibold text-teal-dark hover:border-teal disabled:opacity-50"
+                >
+                  Restore
+                </button>
+              )}
+              <button
+                onClick={onDelete}
+                disabled={busy}
+                className="rounded-[9px] border border-line px-3.5 py-1.5 text-[12.5px] font-semibold text-[#c23b2a] hover:border-[#c23b2a] disabled:opacity-50"
+              >
+                Delete
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
