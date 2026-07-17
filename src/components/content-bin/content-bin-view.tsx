@@ -553,7 +553,7 @@ function BinDetail({
 
         {item.links.length > 0 && (
           <div className="mb-4">
-            <div className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-slate">
+            <div className="mb-1.5 text-[11.5px] font-extrabold uppercase tracking-[0.07em] text-ink">
               Reference links
             </div>
             <div className="flex flex-col gap-1">
@@ -575,7 +575,7 @@ function BinDetail({
         {item.note && (
           <div className="mb-5">
             <div className="mb-1.5 flex items-center gap-3">
-              <div className="text-[11px] font-bold uppercase tracking-[0.06em] text-slate">Note</div>
+              <div className="text-[11.5px] font-extrabold uppercase tracking-[0.07em] text-ink">Note</div>
               <button
                 onClick={copyNote}
                 className="text-[11px] font-semibold text-teal-dark hover:underline"
@@ -589,7 +589,7 @@ function BinDetail({
 
         {item.screenshots.length > 0 && (
           <div className="mb-4">
-            <div className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-slate">
+            <div className="mb-1.5 text-[11.5px] font-extrabold uppercase tracking-[0.07em] text-ink">
               Screenshots
             </div>
             <div className="grid grid-cols-2 gap-2.5">
