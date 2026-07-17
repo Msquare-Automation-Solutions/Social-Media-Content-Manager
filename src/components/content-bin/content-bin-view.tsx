@@ -163,7 +163,7 @@ export function ContentBinView({
           value={filters.person}
           onChange={(v) => setParam("person", v)}
           options={[
-            { value: "", label: "All creators" },
+            { value: "all", label: "All creators" },
             ...(options?.people ?? []).map((p) => ({ value: p.id, label: p.name })),
           ]}
         />
