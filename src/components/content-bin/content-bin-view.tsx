@@ -20,7 +20,16 @@ type Options = {
   isAdmin: boolean;
 };
 
-type Filters = { status: string; q: string; from: string; to: string };
+type Filters = {
+  status: string;
+  person: string;
+  account: string;
+  channel: string;
+  type: string;
+  q: string;
+  from: string;
+  to: string;
+};
 
 const isImageIcon = (v: string) => /^(https?:\/\/|\/)/.test(v);
 const hostOf = (u: string) => {
@@ -57,6 +66,10 @@ export function ContentBinView({
   function setParam(key: string, value: string) {
     const params = new URLSearchParams({
       ...(filters.status && { status: filters.status }),
+      ...(filters.person && { person: filters.person }),
+      ...(filters.account && { account: filters.account }),
+      ...(filters.channel && { channel: filters.channel }),
+      ...(filters.type && { type: filters.type }),
       ...(filters.q && { q: filters.q }),
       ...(filters.from && { from: filters.from }),
       ...(filters.to && { to: filters.to }),
@@ -66,7 +79,15 @@ export function ContentBinView({
     startTransition(() => router.push(`${pathname}?${params.toString()}`));
   }
 
-  const hasFilters = filters.status || filters.q || filters.from || filters.to;
+  const hasFilters =
+    filters.status ||
+    filters.person ||
+    filters.account ||
+    filters.channel ||
+    filters.type ||
+    filters.q ||
+    filters.from ||
+    filters.to;
   const live = items.filter((i) => i.status !== "DISCARDED").length;
 
   return (
@@ -135,6 +156,45 @@ export function ContentBinView({
           options={[
             { value: "", label: "All statuses" },
             ...BIN_STATUSES.map((s) => ({ value: s, label: BIN_STATUS_LABELS[s] })),
+          ]}
+        />
+        <FilterSelect
+          label="Creator"
+          value={filters.person}
+          onChange={(v) => setParam("person", v)}
+          options={[
+            { value: "", label: "All creators" },
+            ...(options?.people ?? []).map((p) => ({ value: p.id, label: p.name })),
+          ]}
+        />
+        <FilterSelect
+          label="Account"
+          value={filters.account}
+          onChange={(v) => setParam("account", v)}
+          options={[
+            { value: "", label: "All accounts" },
+            ...(options?.accounts ?? []).map((a) => ({
+              value: a.id,
+              label: isImageIcon(a.icon) ? a.name : `${a.icon} ${a.name}`,
+            })),
+          ]}
+        />
+        <FilterSelect
+          label="Social platform"
+          value={filters.channel}
+          onChange={(v) => setParam("channel", v)}
+          options={[
+            { value: "", label: "All platforms" },
+            ...(options?.channels ?? []).map((c) => ({ value: c.id, label: `${c.icon} ${c.name}` })),
+          ]}
+        />
+        <FilterSelect
+          label="Category"
+          value={filters.type}
+          onChange={(v) => setParam("type", v)}
+          options={[
+            { value: "", label: "All categories" },
+            ...CATEGORY_OPTIONS.map((c) => ({ value: c.value, label: c.label })),
           ]}
         />
         <label className="flex flex-col gap-1 text-[11.5px] font-semibold text-slate">

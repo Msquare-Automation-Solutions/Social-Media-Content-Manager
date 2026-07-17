@@ -7,6 +7,10 @@ export const dynamic = "force-dynamic";
 
 type BinSearchParams = {
   status?: string;
+  person?: string;
+  account?: string;
+  channel?: string;
+  type?: string;
   q?: string;
   from?: string;
   to?: string;
@@ -23,6 +27,10 @@ export default async function ContentBinPage({
   const sp = await searchParams;
   const filters: BinFilters = {
     status: sp.status || undefined,
+    personId: sp.person || undefined,
+    accountId: sp.account || undefined,
+    channelId: sp.channel || undefined,
+    category: sp.type || undefined,
     q: sp.q || undefined,
     from: sp.from || undefined,
     to: sp.to || undefined,
@@ -35,6 +43,10 @@ export default async function ContentBinPage({
       canEdit={user.role !== "VIEWER"}
       filters={{
         status: sp.status ?? "",
+        person: sp.person ?? "",
+        account: sp.account ?? "",
+        channel: sp.channel ?? "",
+        type: sp.type ?? "",
         q: sp.q ?? "",
         from: sp.from ?? "",
         to: sp.to ?? "",

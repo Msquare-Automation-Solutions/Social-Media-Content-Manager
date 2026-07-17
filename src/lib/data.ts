@@ -347,6 +347,10 @@ export async function listAccounts(workspaceId: string): Promise<AccountRow[]> {
 
 export type BinFilters = {
   status?: string; // NEW | USED | DISCARDED
+  personId?: string; // creator
+  accountId?: string;
+  channelId?: string; // social platform
+  category?: string; // ASSET_TYPES value
   q?: string; // title / note / tag search
   from?: string; // yyyy-mm-dd createdAt range
   to?: string;
@@ -416,7 +420,15 @@ export async function listContentBin(
     updatedAt: r.updatedAt.toISOString(),
   }));
 
-  return searchBinItems(items, filters.q);
+  // Taxonomy filters (channelIds/accountIds are JSON arrays → match in memory).
+  const filtered = items.filter(
+    (i) =>
+      (!filters.personId || i.personId === filters.personId) &&
+      (!filters.category || i.category === filters.category) &&
+      (!filters.accountId || i.accountIds.includes(filters.accountId)) &&
+      (!filters.channelId || i.channelIds.includes(filters.channelId)),
+  );
+  return searchBinItems(filtered, filters.q);
 }
 
 /** Case-insensitive search over a bin item's title / note / tags / links.
