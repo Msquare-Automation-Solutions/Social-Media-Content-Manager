@@ -39,16 +39,6 @@ type Draft = {
   imagePreviewUrl?: string;
   gradientSeed: string;
   fileMeta?: string;
-  // Promote-from-bin seeds: pre-select the taxonomy the idea was tagged with.
-  seedPersonId?: string;
-  seedChannelIds?: string[];
-  seedAccountIds?: string[];
-  seedNote?: string;
-  // Pre-made cover (a promoted screenshot already in R2) — sent as-is when the
-  // user doesn't replace it with a custom upload.
-  thumbnailUrl?: string;
-  // Bin item this asset was promoted from (so the caller can flip it to Used).
-  binItemId?: string;
 };
 
 function draftFromTarget(
@@ -76,30 +66,6 @@ function draftFromTarget(
       url: l.url,
       gradientSeed: l.url,
       fileMeta: `🔗 ${l.url}`,
-    };
-  }
-  if (target.mode === "promote") {
-    const p = target.promote;
-    const firstLink = p.links[0];
-    const cover = p.screenshots[0];
-    return {
-      title: p.title,
-      category: p.category || "IMAGE",
-      tags: p.tags,
-      // A link becomes a LINK asset; otherwise it's an in-app creation.
-      source: firstLink ? "LINK" : "GENERATED",
-      url: firstLink,
-      seedPersonId: p.personId ?? undefined,
-      seedChannelIds: p.channelIds,
-      seedAccountIds: p.accountIds,
-      seedNote: p.note,
-      thumbnailUrl: cover,
-      imagePreviewUrl: cover,
-      binItemId: p.binItemId,
-      gradientSeed: p.title,
-      fileMeta: firstLink
-        ? `🔗 ${firstLink}${p.links.length > 1 ? ` (+${p.links.length - 1} more)` : ""}`
-        : undefined,
     };
   }
   // upload
@@ -160,16 +126,15 @@ function SaveDialogInner({
 
   const [title, setTitle] = useState(draft.title);
   // Admins may override the creator; for everyone else it stays their own name.
-  // Promote pre-selects the creator the idea was captured for.
-  const [personId, setPersonId] = useState<string>(draft.seedPersonId ?? "");
+  const [personId, setPersonId] = useState<string>("");
   const [category, setCategory] = useState(draft.category);
-  const [channels, setChannels] = useState<Set<string>>(new Set(draft.seedChannelIds ?? []));
+  const [channels, setChannels] = useState<Set<string>>(new Set());
   // Which account(s) the media is assigned to.
-  const [accounts, setAccounts] = useState<Set<string>>(new Set(draft.seedAccountIds ?? []));
+  const [accounts, setAccounts] = useState<Set<string>>(new Set());
   // channelId → post date (yyyy-mm-dd), optional per platform.
   const [postDates, setPostDates] = useState<Record<string, string>>({});
   const [tags, setTags] = useState(draft.tags.join(", "));
-  const [note, setNote] = useState(draft.seedNote ?? "");
+  const [note, setNote] = useState("");
   const [customThumb, setCustomThumb] = useState<File | null>(null);
   const [customThumbUrl, setCustomThumbUrl] = useState<string | null>(null);
   const [dragThumb, setDragThumb] = useState(false);
@@ -340,8 +305,6 @@ function SaveDialogInner({
       note: category === "OTHER" ? note.trim() || null : null,
       html: draft.html,
       url: draft.url,
-      // Promoted screenshot as the cover (only when no custom upload replaces it).
-      thumbnailUrl: !customThumb ? draft.thumbnailUrl : undefined,
       chatMessageId: draft.chatMessageId,
       filename: draft.filename,
       mimeType: draft.mimeType,
@@ -806,7 +769,6 @@ function targetKey(t: SaveTarget): string {
   if (t.mode === "artifact") return "a:" + t.messageId;
   if (t.mode === "upload") return "u:" + t.file.tempId;
   if (t.mode === "link") return "l:" + t.link.url;
-  if (t.mode === "promote") return "p:" + t.promote.binItemId;
   return "e:" + t.assetId;
 }
 

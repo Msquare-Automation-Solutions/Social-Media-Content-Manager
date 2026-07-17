@@ -5,7 +5,6 @@ import { useRouter, usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { BackButton } from "@/components/ui/back-button";
 import { useToast } from "@/components/ui/toast";
-import { useSaveDialog } from "@/components/save/dialog-context";
 import { PlatformIcon } from "@/components/ui/platform-icon";
 import { uploadToStorage } from "@/lib/upload-client";
 import { CATEGORY_OPTIONS, TYPE_LABELS } from "@/lib/library";
@@ -97,7 +96,7 @@ export function ContentBinView({
       )}
 
       {addOpen && options && (
-        <AddBinForm
+        <BinForm
           options={options}
           onClose={() => setAddOpen(false)}
           onSaved={() => {
@@ -225,7 +224,6 @@ function BinItemRow({
   onChanged: () => void;
 }) {
   const { toast } = useToast();
-  const { openPromote } = useSaveDialog();
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
 
@@ -263,31 +261,6 @@ function BinItemRow({
     }
   }
 
-  function promote() {
-    openPromote(
-      {
-        binItemId: item.id,
-        title: item.title,
-        links: item.links,
-        note: item.note,
-        tags: item.tags,
-        personId: item.personId,
-        category: item.category,
-        channelIds: item.channelIds,
-        accountIds: item.accountIds,
-        screenshots: item.screenshots,
-      },
-      async (saved) => {
-        await fetch(`/api/content-bin/${item.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status: "USED", promotedAssetId: saved.id }),
-        });
-        onChanged();
-      },
-    );
-  }
-
   return (
     <div
       onClick={() => setOpen(true)}
@@ -312,11 +285,6 @@ function BinItemRow({
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="text-[15px] font-semibold">{item.title}</h3>
           <StatusChip status={item.status} />
-          {item.promotedAssetId && item.status === "USED" && (
-            <span className="rounded-full bg-violet-soft px-2 py-0.5 text-[10.5px] font-semibold text-violet">
-              → in library
-            </span>
-          )}
         </div>
 
         {item.links.length > 0 && (
@@ -388,13 +356,22 @@ function BinItemRow({
           className="flex flex-shrink-0 flex-col gap-2"
           onClick={(e) => e.stopPropagation()}
         >
-          {item.status !== "USED" && (
+          {item.status === "NEW" && (
             <button
-              onClick={promote}
+              onClick={() => patch({ status: "USED" }, "Marked as used")}
               disabled={busy}
               className="btn-premium rounded-[9px] px-3 py-1.5 text-[12px] font-semibold disabled:opacity-50"
             >
-              Promote →
+              ✓ Mark used
+            </button>
+          )}
+          {item.status === "USED" && (
+            <button
+              onClick={() => patch({ status: "NEW" }, "Marked as unused")}
+              disabled={busy}
+              className="rounded-[9px] border border-line px-3 py-1.5 text-[12px] font-semibold text-teal-dark hover:border-teal disabled:opacity-50"
+            >
+              Mark unused
             </button>
           )}
           {item.status === "NEW" && (
@@ -428,16 +405,14 @@ function BinItemRow({
       {open && (
         <BinItemDrawer
           item={item}
+          options={options}
           channels={channels}
           accounts={accounts}
           personName={person?.name ?? item.createdBy?.name ?? "—"}
           canEdit={canEdit}
           busy={busy}
           onClose={() => setOpen(false)}
-          onPromote={() => {
-            setOpen(false);
-            promote();
-          }}
+          onChanged={onChanged}
           onStatus={(s, msg) => patch({ status: s }, msg)}
           onDelete={async () => {
             await remove();
@@ -450,8 +425,88 @@ function BinItemRow({
 }
 
 // Full-screen detail view of a captured idea: enlarged screenshots, every link,
-// the full note, its tags/taxonomy, and the same actions as the row.
+// the full note, its tags/taxonomy, and the actions (mark used / discard /
+// edit / delete). "Edit" swaps the body for the capture form in edit mode.
 function BinItemDrawer({
+  item,
+  options,
+  channels,
+  accounts,
+  personName,
+  canEdit,
+  busy,
+  onClose,
+  onChanged,
+  onStatus,
+  onDelete,
+}: {
+  item: ContentBinRow;
+  options?: Options;
+  channels: { id: string; name: string; icon: string; color: string }[];
+  accounts: { id: string; name: string; icon: string; color: string }[];
+  personName: string;
+  canEdit: boolean;
+  busy: boolean;
+  onClose: () => void;
+  onChanged: () => void;
+  onStatus: (status: string, msg: string) => void;
+  onDelete: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  return (
+    <div
+      onClick={(e) => {
+        e.stopPropagation();
+        if (!editing) onClose();
+      }}
+      className="fixed inset-0 z-[70] grid place-items-center bg-black/55 p-5 backdrop-blur-[3px]"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="max-h-[88vh] w-[min(680px,100%)] overflow-y-auto rounded-xl2 border border-line bg-card p-6 shadow-card"
+      >
+        {editing && options ? (
+          <>
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="font-display text-[18px]">Edit idea</h2>
+              <button
+                onClick={() => setEditing(false)}
+                className="grid h-8 w-8 place-items-center rounded-full text-slate hover:bg-wash/[0.06]"
+                title="Close"
+              >
+                ✕
+              </button>
+            </div>
+            <BinForm
+              options={options}
+              item={item}
+              onClose={() => setEditing(false)}
+              onSaved={() => {
+                setEditing(false);
+                onChanged();
+              }}
+            />
+          </>
+        ) : (
+          <BinDetail
+            item={item}
+            channels={channels}
+            accounts={accounts}
+            personName={personName}
+            canEdit={canEdit}
+            busy={busy}
+            onClose={onClose}
+            onEdit={() => setEditing(true)}
+            onStatus={onStatus}
+            onDelete={onDelete}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function BinDetail({
   item,
   channels,
   accounts,
@@ -459,7 +514,7 @@ function BinItemDrawer({
   canEdit,
   busy,
   onClose,
-  onPromote,
+  onEdit,
   onStatus,
   onDelete,
 }: {
@@ -470,22 +525,12 @@ function BinItemDrawer({
   canEdit: boolean;
   busy: boolean;
   onClose: () => void;
-  onPromote: () => void;
+  onEdit: () => void;
   onStatus: (status: string, msg: string) => void;
   onDelete: () => void;
 }) {
   return (
-    <div
-      onClick={(e) => {
-        e.stopPropagation();
-        onClose();
-      }}
-      className="fixed inset-0 z-[70] grid place-items-center bg-black/55 p-5 backdrop-blur-[3px]"
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="max-h-[88vh] w-[min(680px,100%)] overflow-y-auto rounded-xl2 border border-line bg-card p-6 shadow-card"
-      >
+    <>
         <div className="mb-3 flex items-start gap-3">
           <h2 className="flex-1 font-display text-[19px] leading-tight">{item.title}</h2>
           <StatusChip status={item.status} />
@@ -571,14 +616,30 @@ function BinItemDrawer({
             Added by {personName} · {new Date(item.createdAt).toLocaleDateString()}
           </span>
           {canEdit && (
-            <div className="ml-auto flex gap-2">
-              {item.status !== "USED" && (
+            <div className="ml-auto flex flex-wrap justify-end gap-2">
+              <button
+                onClick={onEdit}
+                disabled={busy}
+                className="rounded-[9px] border border-line px-3.5 py-1.5 text-[12.5px] font-semibold text-ink hover:border-teal disabled:opacity-50"
+              >
+                Edit
+              </button>
+              {item.status === "NEW" && (
                 <button
-                  onClick={onPromote}
+                  onClick={() => onStatus("USED", "Marked as used")}
                   disabled={busy}
                   className="btn-premium rounded-[9px] px-3.5 py-1.5 text-[12.5px] font-semibold disabled:opacity-50"
                 >
-                  Promote →
+                  ✓ Mark used
+                </button>
+              )}
+              {item.status === "USED" && (
+                <button
+                  onClick={() => onStatus("NEW", "Marked as unused")}
+                  disabled={busy}
+                  className="rounded-[9px] border border-line px-3.5 py-1.5 text-[12.5px] font-semibold text-teal-dark hover:border-teal disabled:opacity-50"
+                >
+                  Mark unused
                 </button>
               )}
               {item.status === "NEW" && (
@@ -609,8 +670,7 @@ function BinItemDrawer({
             </div>
           )}
         </div>
-      </div>
-    </div>
+    </>
   );
 }
 
@@ -631,26 +691,32 @@ function StatusChip({ status }: { status: string }) {
   );
 }
 
-// ── Quick-add capture form ───────────────────────────────────────────────────
-function AddBinForm({
+// ── Capture / edit form ──────────────────────────────────────────────────────
+// Doubles as the quick-add form (no `item`) and the edit form (`item` given →
+// PATCHes instead of POSTing).
+function BinForm({
   options,
+  item,
   onClose,
   onSaved,
 }: {
   options: Options;
+  item?: ContentBinRow;
   onClose: () => void;
   onSaved: () => void;
 }) {
   const { toast } = useToast();
-  const [links, setLinks] = useState<string[]>([""]);
-  const [title, setTitle] = useState("");
-  const [tags, setTags] = useState("");
-  const [personId, setPersonId] = useState(options.mePersonId ?? options.people[0]?.id ?? "");
-  const [category, setCategory] = useState("");
-  const [channelIds, setChannelIds] = useState<Set<string>>(new Set());
-  const [accountIds, setAccountIds] = useState<Set<string>>(new Set());
-  const [note, setNote] = useState("");
-  const [screenshots, setScreenshots] = useState<string[]>([]);
+  const [links, setLinks] = useState<string[]>(item && item.links.length ? item.links : [""]);
+  const [title, setTitle] = useState(item?.title ?? "");
+  const [tags, setTags] = useState(item ? item.tags.join(", ") : "");
+  const [personId, setPersonId] = useState(
+    item?.personId ?? options.mePersonId ?? options.people[0]?.id ?? "",
+  );
+  const [category, setCategory] = useState(item?.category ?? "");
+  const [channelIds, setChannelIds] = useState<Set<string>>(new Set(item?.channelIds ?? []));
+  const [accountIds, setAccountIds] = useState<Set<string>>(new Set(item?.accountIds ?? []));
+  const [note, setNote] = useState(item?.note ?? "");
+  const [screenshots, setScreenshots] = useState<string[]>(item?.screenshots ?? []);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const shotInput = useRef<HTMLInputElement>(null);
@@ -712,8 +778,8 @@ function AddBinForm({
   async function save() {
     if (!title.trim() || saving) return;
     setSaving(true);
-    const r = await fetch("/api/content-bin", {
-      method: "POST",
+    const r = await fetch(item ? `/api/content-bin/${item.id}` : "/api/content-bin", {
+      method: item ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         title: title.trim(),
@@ -729,7 +795,7 @@ function AddBinForm({
     });
     setSaving(false);
     if (r.ok) {
-      toast("Added to bin ✓");
+      toast(item ? "Changes saved ✓" : "Added to bin ✓");
       onSaved();
     } else {
       toast("Couldn’t save. Check the fields and try again.");
@@ -899,7 +965,7 @@ function AddBinForm({
           disabled={!title.trim() || saving || uploading}
           className="btn-premium rounded-[10px] px-4 py-2 text-[12.5px] font-semibold disabled:opacity-50"
         >
-          {saving ? "Saving…" : "Add to bin"}
+          {saving ? "Saving…" : item ? "Save changes" : "Add to bin"}
         </button>
       </div>
     </div>

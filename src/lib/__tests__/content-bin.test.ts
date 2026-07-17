@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
 import { searchBinItems } from "@/lib/data";
-import { validateSaveAsset } from "@/lib/validation/save-asset";
 import { BIN_STATUSES, BIN_STATUS_LABELS } from "@/lib/enums";
 
 const item = (over: Partial<Parameters<typeof searchBinItems>[0][number]> = {}) => ({
@@ -40,28 +39,8 @@ describe("searchBinItems (Content Bin search)", () => {
 });
 
 describe("BIN_STATUSES", () => {
-  it("has a label for every status", () => {
+  it("has New / Used / Discarded with labels", () => {
+    expect(BIN_STATUSES).toEqual(["NEW", "USED", "DISCARDED"]);
     for (const s of BIN_STATUSES) expect(BIN_STATUS_LABELS[s]).toBeTruthy();
-  });
-});
-
-describe("Save validation — promoted screenshot cover", () => {
-  const base = {
-    title: "Promoted idea",
-    type: "IMAGE",
-    source: "GENERATED",
-    personId: "person_1",
-    channels: [{ channelId: "chan_1", scheduledFor: null }],
-  };
-
-  it("accepts an optional pre-made thumbnailUrl", () => {
-    const r = validateSaveAsset({ ...base, thumbnailUrl: "https://cdn.example/r2/shot.png" });
-    expect(r.ok).toBe(true);
-    if (r.ok) expect(r.data.thumbnailUrl).toBe("https://cdn.example/r2/shot.png");
-  });
-
-  it("is fine without a thumbnailUrl", () => {
-    const r = validateSaveAsset(base);
-    expect(r.ok).toBe(true);
   });
 });

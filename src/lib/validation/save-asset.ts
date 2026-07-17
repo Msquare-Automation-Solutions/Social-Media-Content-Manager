@@ -40,9 +40,6 @@ export const saveAssetSchema = z
     // Present for uploads: the URL the file was already uploaded to (R2 direct
     // upload, or /uploads/... in dev). Not necessarily absolute, so no .url().
     fileUrl: z.string().optional(),
-    // Pre-made cover image URL (e.g. a Content Bin screenshot promoted into an
-    // asset). Used directly as the thumbnail when no custom/image upload is given.
-    thumbnailUrl: z.string().optional(),
   })
   .refine((d) => d.source !== "LINK" || !!d.url, {
     message: "A link URL is required",
