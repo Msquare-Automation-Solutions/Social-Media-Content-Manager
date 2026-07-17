@@ -86,7 +86,7 @@ export function ContentBinView({
         one’s ready, <b>Promote</b> it into a real asset and it flows into your library.
       </p>
 
-      {canEdit && !addOpen && (
+      {canEdit && (
         <button
           onClick={() => setAddOpen(true)}
           className="w-full rounded-[12px] border border-dashed border-line px-4 py-3 text-left text-[13px] font-semibold text-teal-dark transition hover:border-teal hover:bg-teal-soft"
@@ -96,14 +96,34 @@ export function ContentBinView({
       )}
 
       {addOpen && options && (
-        <BinForm
-          options={options}
-          onClose={() => setAddOpen(false)}
-          onSaved={() => {
-            setAddOpen(false);
-            router.refresh();
-          }}
-        />
+        <div
+          onClick={() => setAddOpen(false)}
+          className="fixed inset-0 z-[70] grid place-items-center bg-black/55 p-5 backdrop-blur-[3px]"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="max-h-[88vh] w-[min(680px,100%)] overflow-y-auto rounded-xl2 border border-line bg-card p-6 shadow-card"
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="font-display text-[18px]">Add to bin</h2>
+              <button
+                onClick={() => setAddOpen(false)}
+                className="grid h-8 w-8 place-items-center rounded-full text-slate hover:bg-wash/[0.06]"
+                title="Close"
+              >
+                ✕
+              </button>
+            </div>
+            <BinForm
+              options={options}
+              onClose={() => setAddOpen(false)}
+              onSaved={() => {
+                setAddOpen(false);
+                router.refresh();
+              }}
+            />
+          </div>
+        </div>
       )}
 
       {/* Filter bar */}
@@ -833,7 +853,7 @@ function BinForm({
     "rounded-[10px] border border-line bg-card px-3 py-2.5 font-normal text-ink outline-none focus:border-teal";
 
   return (
-    <div className="mt-2 grid grid-cols-2 gap-3.5 rounded-card border border-line bg-card p-4 shadow-soft">
+    <div className="grid grid-cols-2 gap-3.5">
       {/* Links */}
       <div className={`col-span-2 ${labelCls}`}>
         Reference links <span className="font-normal text-slate">(add as many as you like)</span>

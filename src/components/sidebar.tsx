@@ -88,6 +88,13 @@ export function Sidebar({
         icon="dashboard"
       />
       <NavLink
+        href="/content-bin"
+        active={isActive("/content-bin")}
+        label="Content Bin"
+        icon="bin"
+        count={binCount || undefined}
+      />
+      <NavLink
         href="/review"
         active={isActive("/review")}
         // Only the primary account (the workspace's original owner) reviews the
@@ -145,13 +152,6 @@ export function Sidebar({
 
       <div className="my-3 mx-1 h-px bg-line" />
 
-      <NavLink
-        href="/content-bin"
-        active={isActive("/content-bin")}
-        label="Content Bin"
-        icon="bin"
-        count={binCount || undefined}
-      />
       <NavLink
         href="/members"
         active={isActive("/members")}
