@@ -22,6 +22,7 @@ export type IconName =
   | "published"
   | "overview"
   | "other"
+  | "bin"
   | "bell";
 
 const PATHS: Record<IconName, string> = {
@@ -59,6 +60,8 @@ const PATHS: Record<IconName, string> = {
   signout:
     "M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75",
   activity: "M22 12h-4l-3 9L9 3l-3 9H2",
+  // Inbox / bin — a tray with an opening at the top (captured ideas land here).
+  bin: "M2.25 12h4.5l1.5 3h7.5l1.5-3h4.5M2.25 12l2.7-7.2A2.25 2.25 0 0 1 7.06 3.3h9.88a2.25 2.25 0 0 1 2.11 1.5L21.75 12M2.25 12v6.75A2.25 2.25 0 0 0 4.5 21h15a2.25 2.25 0 0 0 2.25-2.25V12",
 };
 
 export function Icon({

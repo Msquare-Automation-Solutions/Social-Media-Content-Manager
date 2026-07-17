@@ -55,6 +55,7 @@ model Workspace {
   invites     Invite[]
   activity    ActivityLog[]
   notifications Notification[]
+  binItems    ContentBinItem[]
 }
 
 // Immutable audit trail of who did what. Actor fields are denormalized so an
@@ -173,6 +174,36 @@ model Account {
 
   workspace Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   assets    AssetAccount[]
+}
+
+// A raw idea captured in the Content Bin — a link/thread/topic/screenshot the
+// team wants to keep before it becomes finished content. Lives apart from
+// MediaAsset (the finished library); "Promote" copies a bin item into a
+// MediaAsset (see promotedAssetId). Optional taxonomy is captured up front so
+// promotion is one-click. JSON-string columns follow the schema's convention.
+// status: NEW | USED | DISCARDED  (validated in src/lib/enums.ts)
+model ContentBinItem {
+  id              String    @id @default(cuid())
+  workspaceId     String
+  createdById     String // User.id who captured it
+  links           String    @default("[]") // JSON string[] of reference URLs
+  title           String
+  note            String    @default("")
+  tags            String    @default("[]") // JSON string[]
+  status          String    @default("NEW")
+  personId        String? // Person/creator (optional; not a hard FK)
+  category        String? // ASSET_TYPES value
+  channelIds      String    @default("[]") // JSON string[] of SocialChannel ids
+  accountIds      String    @default("[]") // JSON string[] of Account ids
+  screenshots     String    @default("[]") // JSON string[] of R2 image urls; [0] is the cover
+  promotedAssetId String? // set when promoted → MediaAsset
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @default(now()) @updatedAt
+  deletedAt       DateTime?
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, status, createdAt])
 }
 
 // type: IMAGE | THUMBNAIL | VIDEO | BLOGPOST | VIDEO_SCRIPT

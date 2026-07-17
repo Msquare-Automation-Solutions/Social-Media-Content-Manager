@@ -38,6 +38,18 @@ export const STATUS_LABELS: Record<AssetStatus, string> = {
   PUBLISHED: "Published",
 };
 
+// Content Bin lifecycle: a captured idea starts NEW; USED once promoted into a
+// MediaAsset; DISCARDED when rejected (kept for reference, restorable). Stays in
+// the bin (not the global Trash) unless hard-deleted.
+export const BIN_STATUSES = ["NEW", "USED", "DISCARDED"] as const;
+export type BinStatus = (typeof BIN_STATUSES)[number];
+
+export const BIN_STATUS_LABELS: Record<BinStatus, string> = {
+  NEW: "New",
+  USED: "Used",
+  DISCARDED: "Discarded",
+};
+
 export const CHAT_ROLES = ["user", "assistant"] as const;
 export type ChatRole = (typeof CHAT_ROLES)[number];
 

@@ -19,7 +19,23 @@ export type SaveTarget =
   | { mode: "artifact"; artifact: Artifact; messageId: string }
   | { mode: "upload"; file: UploadFileDraft }
   | { mode: "link"; link: LinkDraft }
+  | { mode: "promote"; promote: PromoteDraft }
   | { mode: "edit"; assetId: string };
+
+// A Content Bin idea being promoted into a library asset — pre-fills the Save
+// dialog with everything captured on the idea (see the Content Bin feature).
+export type PromoteDraft = {
+  binItemId: string;
+  title: string;
+  links: string[];
+  note: string;
+  tags: string[];
+  personId?: string | null;
+  category?: string | null;
+  channelIds: string[];
+  accountIds: string[];
+  screenshots: string[];
+};
 
 export type UploadFileDraft = {
   tempId: string;
@@ -34,18 +50,21 @@ export type UploadFileDraft = {
 // An external file reference (e.g. a Google Drive / Dropbox / YouTube link).
 export type LinkDraft = { url: string; name: string };
 
+export type SavedResult = { id: string; type: string };
+
 type SaveContextValue = {
   target: SaveTarget | null;
   queueLength: number;
-  onSaved?: (result: { type: string }) => void;
+  onSaved?: (result: SavedResult) => void;
   openArtifact: (
     artifact: Artifact,
     messageId: string,
-    onSaved?: (r: { type: string }) => void,
+    onSaved?: (r: SavedResult) => void,
   ) => void;
   openUploadFile: (file: UploadFileDraft) => void;
   queueUploads: (files: UploadFileDraft[]) => void;
   openLink: (link: LinkDraft) => void;
+  openPromote: (promote: PromoteDraft, onSaved?: (r: SavedResult) => void) => void;
   openEdit: (assetId: string) => void;
   close: () => void;
 };
@@ -71,7 +90,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
   const [target, setTarget] = useState<SaveTarget | null>(null);
   const [queue, setQueue] = useState<UploadFileDraft[]>([]);
   const [onSaved, setOnSaved] = useState<
-    ((r: { type: string }) => void) | undefined
+    ((r: SavedResult) => void) | undefined
   >(undefined);
   const [uploadOpen, setUploadOpen] = useState(false);
 
@@ -103,6 +122,12 @@ export function DialogProvider({ children }: { children: ReactNode }) {
     setQueue([]);
     setTarget({ mode: "link", link });
   }, []);
+  const openPromote = useCallback<SaveContextValue["openPromote"]>((promote, cb) => {
+    setUploadOpen(false);
+    setOnSaved(() => cb);
+    setQueue([]);
+    setTarget({ mode: "promote", promote });
+  }, []);
   const openEdit = useCallback<SaveContextValue["openEdit"]>((assetId) => {
     setOnSaved(() => undefined);
     setQueue([]);
@@ -129,10 +154,11 @@ export function DialogProvider({ children }: { children: ReactNode }) {
       openUploadFile,
       queueUploads,
       openLink,
+      openPromote,
       openEdit,
       close,
     }),
-    [target, queue.length, onSaved, openArtifact, openUploadFile, queueUploads, openLink, openEdit, close],
+    [target, queue.length, onSaved, openArtifact, openUploadFile, queueUploads, openLink, openPromote, openEdit, close],
   );
   const uploadValue = useMemo<UploadContextValue>(
     () => ({

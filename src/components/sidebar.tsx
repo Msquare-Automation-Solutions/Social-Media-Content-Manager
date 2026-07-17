@@ -23,6 +23,7 @@ type Props = {
   workspaceName: string;
   isPrimaryOwner: boolean;
   counts: Record<LibraryViewKey, number>;
+  binCount: number;
   membersCount: number;
   queueCount: number;
   reworkCount: number;
@@ -36,6 +37,7 @@ export function Sidebar({
   workspaceName,
   isPrimaryOwner,
   counts,
+  binCount,
   membersCount,
   queueCount,
   reworkCount,
@@ -143,6 +145,13 @@ export function Sidebar({
 
       <div className="my-3 mx-1 h-px bg-line" />
 
+      <NavLink
+        href="/content-bin"
+        active={isActive("/content-bin")}
+        label="Content Bin"
+        icon="bin"
+        count={binCount || undefined}
+      />
       <NavLink
         href="/members"
         active={isActive("/members")}

@@ -341,6 +341,107 @@ export async function listAccounts(workspaceId: string): Promise<AccountRow[]> {
   }));
 }
 
+// ── Content Bin ──────────────────────────────────────────────────────────────
+// A lightweight inbox of captured ideas (links / screenshots / notes) that can
+// later be promoted into a MediaAsset. See CLAUDE.md "Content Bin".
+
+export type BinFilters = {
+  status?: string; // NEW | USED | DISCARDED
+  q?: string; // title / note / tag search
+  from?: string; // yyyy-mm-dd createdAt range
+  to?: string;
+};
+
+export type ContentBinRow = {
+  id: string;
+  title: string;
+  note: string;
+  links: string[];
+  tags: string[];
+  status: string;
+  personId: string | null;
+  category: string | null;
+  channelIds: string[];
+  accountIds: string[];
+  screenshots: string[];
+  promotedAssetId: string | null;
+  createdBy: { id: string; name: string; avatarColor: string } | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+/** Captured Content Bin items (workspace-scoped, newest first). Discarded items
+ * stay in the bin (only hard-delete sets deletedAt). Search/sort in memory. */
+export async function listContentBin(
+  workspaceId: string,
+  filters: BinFilters = {},
+): Promise<ContentBinRow[]> {
+  const rows = await prisma.contentBinItem.findMany({
+    where: {
+      workspaceId,
+      deletedAt: null,
+      ...(filters.status ? { status: filters.status } : {}),
+      ...(createdAtRange(filters.from, filters.to)
+        ? { createdAt: createdAtRange(filters.from, filters.to) }
+        : {}),
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  // Resolve capturer names in one query (createdById isn't a hard relation).
+  const userIds = [...new Set(rows.map((r) => r.createdById))];
+  const users = userIds.length
+    ? await prisma.user.findMany({
+        where: { id: { in: userIds } },
+        select: { id: true, name: true, avatarColor: true },
+      })
+    : [];
+  const userById = new Map(users.map((u) => [u.id, u]));
+
+  const items: ContentBinRow[] = rows.map((r) => ({
+    id: r.id,
+    title: r.title,
+    note: r.note,
+    links: parseTags(r.links),
+    tags: parseTags(r.tags),
+    status: r.status,
+    personId: r.personId,
+    category: r.category,
+    channelIds: parseTags(r.channelIds),
+    accountIds: parseTags(r.accountIds),
+    screenshots: parseTags(r.screenshots),
+    promotedAssetId: r.promotedAssetId,
+    createdBy: userById.get(r.createdById) ?? null,
+    createdAt: r.createdAt.toISOString(),
+    updatedAt: r.updatedAt.toISOString(),
+  }));
+
+  return searchBinItems(items, filters.q);
+}
+
+/** Case-insensitive search over a bin item's title / note / tags / links.
+ * Pure so it's unit-testable without a DB (workspace is small → in-memory). */
+export function searchBinItems<
+  T extends { title: string; note: string; tags: string[]; links: string[] },
+>(items: T[], query?: string): T[] {
+  const q = query?.trim().toLowerCase();
+  if (!q) return items;
+  return items.filter(
+    (i) =>
+      i.title.toLowerCase().includes(q) ||
+      i.note.toLowerCase().includes(q) ||
+      i.tags.some((t) => t.toLowerCase().includes(q)) ||
+      i.links.some((l) => l.toLowerCase().includes(q)),
+  );
+}
+
+/** Live bin count for the sidebar badge — excludes Discarded (rejected ideas). */
+export async function getBinCount(workspaceId: string): Promise<number> {
+  return prisma.contentBinItem.count({
+    where: { workspaceId, deletedAt: null, status: { not: "DISCARDED" } },
+  });
+}
+
 export async function getAssetCounts(
   workspaceId: string,
 ): Promise<Record<LibraryViewKey, number>> {

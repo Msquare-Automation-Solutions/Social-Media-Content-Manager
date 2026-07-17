@@ -74,6 +74,9 @@ export async function POST(req: Request) {
       thumbnailUrl = buf
         ? await makeImageThumbnail(buf, keyBase)
         : await generateCover(data.title, label, keyBase);
+    } else if (data.thumbnailUrl) {
+      // Pre-made cover (e.g. a promoted Content Bin screenshot, already in R2).
+      thumbnailUrl = data.thumbnailUrl;
     } else {
       thumbnailUrl = await generateCover(data.title, label, keyBase);
     }
