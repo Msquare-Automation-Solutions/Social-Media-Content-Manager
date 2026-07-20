@@ -33,7 +33,12 @@ export function WorkspaceOverview({
       <style>{`
         .wtree ul { position: relative; display: flex; justify-content: center; padding-top: 22px; }
         .wtree li { position: relative; display: flex; flex-direction: column;
-          align-items: center; padding: 22px 7px 0; }
+          align-items: center; padding: 22px 14px 0; }
+        /* Outermost level = the single root node; it has no parent above it, so
+           suppress its connector stubs and top padding. */
+        .wtree > ul { padding-top: 0; }
+        .wtree > ul > li { padding-top: 0; }
+        .wtree > ul > li::before, .wtree > ul > li::after { content: none; }
         .wtree li::before, .wtree li::after { content: ''; position: absolute; top: 0;
           right: 50%; width: 50%; height: 22px; border-top: 1.5px solid ${line}; }
         .wtree li::after { right: auto; left: 50%; border-left: 1.5px solid ${line}; }
@@ -71,56 +76,50 @@ export function WorkspaceOverview({
             : "Nothing here yet — save or upload content and tag it to a platform."}
         </div>
       ) : (
-        <div className="relative">
-          {/* The platform tree scrolls sideways. The root node is an overlay that
-              stays centered on the page (below) so it's always in view; the
-              platforms' top bus connects up to it. */}
-          <CenteredScroll className="pb-4 pt-[64px]">
-            <div className="wtree w-max min-w-full">
-              {/* Center when the row fits (so a lone platform sits under the
-                  root); 'safe' falls back to start-align on overflow to avoid
-                  clipping the first platform when many scroll sideways. */}
-              <ul className="![justify-content:safe_center] gap-5">
-                {overview.groups.map((g) => (
-                  <li key={g.id}>
-                    <PlatformNode group={g} />
+        // The org chart scrolls sideways and starts from the left (no clipping);
+        // it centers itself only when the row fits. The root is a real node, so
+        // all connector lines are drawn by the CSS above and stay aligned.
+        <CenteredScroll className="pb-4 pt-2">
+          <div className="wtree w-max min-w-full">
+            <ul>
+              <li>
+                <RootNode total={overview.total} />
+                {/* Center when the row fits (lone platform sits under the root);
+                    'safe' start-aligns on overflow so the first platform isn't clipped. */}
+                <ul className="![justify-content:safe_center]">
+                  {overview.groups.map((g) => (
+                    <li key={g.id}>
+                      <PlatformNode group={g} />
 
-                    {/* Platform → accounts present on it → content-type cards. */}
-                    <ul className="gap-4">
-                      {g.accounts.map((acc) => (
-                        <li key={acc.id}>
-                          <AccountNode account={acc} />
-                          <ul>
-                            {acc.categories
-                              .filter((cat) => cat.count > 0)
-                              .map((cat) => (
-                                <li key={cat.key}>
-                                  <CategoryCard
-                                    channelId={g.id}
-                                    accountId={acc.id}
-                                    cat={cat}
-                                    filters={filters}
-                                  />
-                                </li>
-                              ))}
-                          </ul>
-                        </li>
-                      ))}
-                    </ul>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </CenteredScroll>
-
-          {/* Centered, always-in-view root + a drop line down to the bus. */}
-          <div className="pointer-events-none absolute inset-x-0 top-0 flex flex-col items-center">
-            <div className="pointer-events-auto">
-              <RootNode total={overview.total} />
-            </div>
-            <div className="h-[30px] w-px" style={{ background: line }} />
+                      {/* Platform → accounts present on it → content-type cards. */}
+                      <ul>
+                        {g.accounts.map((acc) => (
+                          <li key={acc.id}>
+                            <AccountNode account={acc} />
+                            <ul>
+                              {acc.categories
+                                .filter((cat) => cat.count > 0)
+                                .map((cat) => (
+                                  <li key={cat.key}>
+                                    <CategoryCard
+                                      channelId={g.id}
+                                      accountId={acc.id}
+                                      cat={cat}
+                                      filters={filters}
+                                    />
+                                  </li>
+                                ))}
+                            </ul>
+                          </li>
+                        ))}
+                      </ul>
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            </ul>
           </div>
-        </div>
+        </CenteredScroll>
       )}
 
       {/* Recent Content strip */}
