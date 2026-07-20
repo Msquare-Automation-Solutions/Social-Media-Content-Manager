@@ -130,6 +130,16 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   await recomputeCurrentStage(id);
 
+  // Publishing the task marks its linked media as Published in the Library too.
+  if (publishing) {
+    const links = await prisma.taskAsset.findMany({ where: { taskId: id }, select: { assetId: true } });
+    if (links.length)
+      await prisma.mediaAsset.updateMany({
+        where: { id: { in: links.map((l) => l.assetId) }, workspaceId: g.user.workspaceId },
+        data: { status: "PUBLISHED" },
+      });
+  }
+
   // Activity for the notable transitions.
   if (publishing)
     await logActivity(g.user, {

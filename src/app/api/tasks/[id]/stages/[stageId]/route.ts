@@ -121,6 +121,17 @@ export async function PATCH(
     where: { id: stageId },
     data: { reviewStatus: approved ? "APPROVED" : "REWORK", reviewedAt: new Date(), reviewNote: d.note ?? null },
   });
+  // Mirror the decision onto the media asset(s) submitted for this stage, so the
+  // Library reflects the same review status.
+  const stageAssets = await prisma.taskAsset.findMany({
+    where: { taskId: id, stageId },
+    select: { assetId: true },
+  });
+  if (stageAssets.length)
+    await prisma.mediaAsset.updateMany({
+      where: { id: { in: stageAssets.map((a) => a.assetId) }, workspaceId: g.user.workspaceId },
+      data: { status: approved ? "APPROVED" : "REWORK", reviewNote: approved ? null : d.note ?? null, reviewedAt: new Date() },
+    });
   await recomputeCurrentStage(id);
   if (stage.assigneeId)
     await createNotifications(actor, [stage.assigneeId], {
