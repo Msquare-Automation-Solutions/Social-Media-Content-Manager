@@ -363,14 +363,18 @@ function TaskDrawer({ task, members, isAdmin, canEdit, meId, onClose, onEdit, ap
     // saved + linked, so the reviewer is notified with the submission attached.
     // Cancelling the upload leaves the stage un-submitted.
     toast("Upload your file to submit");
-    upload.open(async (asset) => {
-      // Link the file to this stage, then submit for review.
-      await api(`/api/tasks/${t.id}/assets`, "POST", { assetId: asset.id, stageId });
-      if (await api(`/api/tasks/${t.id}/stages/${stageId}`, "PATCH", { action: "submit" })) {
-        toast("Submitted for review 🔔");
-      }
-      refresh();
-    });
+    upload.open(
+      async (asset) => {
+        // Link the file to this stage, then submit for review.
+        await api(`/api/tasks/${t.id}/assets`, "POST", { assetId: asset.id, stageId });
+        if (await api(`/api/tasks/${t.id}/stages/${stageId}`, "PATCH", { action: "submit" })) {
+          toast("Submitted for review 🔔");
+        }
+        refresh();
+      },
+      // Pre-select the task's platform so submitters don't have to re-pick it.
+      t.channel ? { channelIds: [t.channel.id] } : undefined,
+    );
   }
   async function review(stageId: string, outcome: "APPROVED" | "REWORK") {
     const note = outcome === "REWORK" ? prompt("Rework note?") ?? "" : "";
@@ -471,7 +475,7 @@ function TaskDrawer({ task, members, isAdmin, canEdit, meId, onClose, onEdit, ap
 
         <div className="mb-2 mt-4 flex items-center gap-2">
           <span className="text-[11px] font-extrabold uppercase tracking-[0.06em] text-ink">Other files</span>
-          {canEdit && <button onClick={() => upload.open(async (asset) => { await api(`/api/tasks/${t.id}/assets`, "POST", { assetId: asset.id, stageId: null }); refresh(); })} className="ml-auto rounded-[8px] border border-line px-2.5 py-1 text-[11.5px] font-semibold text-teal-dark hover:border-teal">＋ Upload file</button>}
+          {canEdit && <button onClick={() => upload.open(async (asset) => { await api(`/api/tasks/${t.id}/assets`, "POST", { assetId: asset.id, stageId: null }); refresh(); }, t.channel ? { channelIds: [t.channel.id] } : undefined)} className="ml-auto rounded-[8px] border border-line px-2.5 py-1 text-[11.5px] font-semibold text-teal-dark hover:border-teal">＋ Upload file</button>}
         </div>
         {t.assets.filter((a) => !a.stageId).length === 0 ? (
           <div className="text-[12px] text-slate">Files submitted per stage appear under each stage above.</div>

@@ -37,10 +37,15 @@ export type LinkDraft = { url: string; name: string };
 
 export type SavedResult = { id: string; type: string };
 
+// Optional prefills for the Save dialog (e.g. a task submission pre-selects the
+// task's platform). Only fields the caller wants to seed are set.
+export type SaveDefaults = { channelIds?: string[]; category?: string; personId?: string };
+
 type SaveContextValue = {
   target: SaveTarget | null;
   queueLength: number;
   onSaved?: (result: SavedResult) => void;
+  defaults?: SaveDefaults;
   openArtifact: (
     artifact: Artifact,
     messageId: string,
@@ -54,7 +59,7 @@ type SaveContextValue = {
 };
 
 type UploadContextValue = {
-  open: (onSaved?: (r: SavedResult) => void) => void;
+  open: (onSaved?: (r: SavedResult) => void, defaults?: SaveDefaults) => void;
   isOpen: boolean;
   close: () => void;
 };
@@ -81,12 +86,16 @@ export function DialogProvider({ children }: { children: ReactNode }) {
     ((r: SavedResult) => void) | undefined
   >(undefined);
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [defaults, setDefaults] = useState<SaveDefaults | undefined>(undefined);
   // onSaved to fire after an uploaded file is saved (e.g. link it to a task).
   const uploadSavedRef = useRef<((r: SavedResult) => void) | undefined>(undefined);
+  // Prefills to apply when the queued upload opens the Save dialog.
+  const uploadDefaultsRef = useRef<SaveDefaults | undefined>(undefined);
 
   const openArtifact = useCallback<SaveContextValue["openArtifact"]>(
     (artifact, messageId, cb) => {
       setOnSaved(() => cb);
+      setDefaults(undefined);
       setQueue([]);
       setTarget({ mode: "artifact", artifact, messageId });
     },
@@ -95,6 +104,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
   const openUploadFile = useCallback<SaveContextValue["openUploadFile"]>((file) => {
     setUploadOpen(false);
     setOnSaved(() => uploadSavedRef.current);
+    setDefaults(uploadDefaultsRef.current);
     setQueue([]);
     setTarget({ mode: "upload", file });
   }, []);
@@ -103,17 +113,20 @@ export function DialogProvider({ children }: { children: ReactNode }) {
     if (files.length === 0) return;
     setUploadOpen(false);
     setOnSaved(() => uploadSavedRef.current);
+    setDefaults(uploadDefaultsRef.current);
     setTarget({ mode: "upload", file: files[0] });
     setQueue(files.slice(1));
   }, []);
   const openLink = useCallback<SaveContextValue["openLink"]>((link) => {
     setUploadOpen(false);
     setOnSaved(() => undefined);
+    setDefaults(undefined);
     setQueue([]);
     setTarget({ mode: "link", link });
   }, []);
   const openEdit = useCallback<SaveContextValue["openEdit"]>((assetId) => {
     setOnSaved(() => undefined);
+    setDefaults(undefined);
     setQueue([]);
     setTarget({ mode: "edit", assetId });
   }, []);
@@ -134,6 +147,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
       target,
       queueLength: queue.length,
       onSaved,
+      defaults,
       openArtifact,
       openUploadFile,
       queueUploads,
@@ -141,12 +155,13 @@ export function DialogProvider({ children }: { children: ReactNode }) {
       openEdit,
       close,
     }),
-    [target, queue.length, onSaved, openArtifact, openUploadFile, queueUploads, openLink, openEdit, close],
+    [target, queue.length, onSaved, defaults, openArtifact, openUploadFile, queueUploads, openLink, openEdit, close],
   );
   const uploadValue = useMemo<UploadContextValue>(
     () => ({
-      open: (cb) => {
+      open: (cb, d) => {
         uploadSavedRef.current = cb;
+        uploadDefaultsRef.current = d;
         setUploadOpen(true);
       },
       close: () => setUploadOpen(false),

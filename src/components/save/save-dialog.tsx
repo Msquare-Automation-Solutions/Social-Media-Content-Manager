@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useSaveDialog, type SaveTarget, type SavedResult } from "@/components/save/dialog-context";
+import { useSaveDialog, type SaveTarget, type SavedResult, type SaveDefaults } from "@/components/save/dialog-context";
 import { useToast } from "@/components/ui/toast";
 import { CATEGORY_OPTIONS, TYPE_LABELS, LIBRARY_SLUGS } from "@/lib/library";
 import { PlatformIcon } from "@/components/ui/platform-icon";
@@ -86,7 +86,7 @@ function draftFromTarget(
 }
 
 export function SaveDialog() {
-  const { target, onSaved, close } = useSaveDialog();
+  const { target, onSaved, close, defaults } = useSaveDialog();
 
   // The "edit" mode reuses this dialog via a different entry (Phase 4/6).
   if (target === null || target.mode === "edit") return null;
@@ -96,6 +96,7 @@ export function SaveDialog() {
       target={target}
       onSaved={onSaved}
       close={close}
+      defaults={defaults}
     />
   );
 }
@@ -104,10 +105,12 @@ function SaveDialogInner({
   target,
   onSaved,
   close,
+  defaults,
 }: {
   target: Exclude<SaveTarget, { mode: "edit" }>;
   onSaved?: (r: SavedResult) => void;
   close: () => void;
+  defaults?: SaveDefaults;
 }) {
   const router = useRouter();
   const qc = useQueryClient();
@@ -127,8 +130,8 @@ function SaveDialogInner({
   const [title, setTitle] = useState(draft.title);
   // Admins may override the creator; for everyone else it stays their own name.
   const [personId, setPersonId] = useState<string>("");
-  const [category, setCategory] = useState(draft.category);
-  const [channels, setChannels] = useState<Set<string>>(new Set());
+  const [category, setCategory] = useState(defaults?.category ?? draft.category);
+  const [channels, setChannels] = useState<Set<string>>(new Set(defaults?.channelIds ?? []));
   // Which account(s) the media is assigned to.
   const [accounts, setAccounts] = useState<Set<string>>(new Set());
   // channelId → post date (yyyy-mm-dd), optional per platform.
