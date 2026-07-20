@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
@@ -58,7 +59,7 @@ export function Sidebar({
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   type Item = { href: string; label: string; icon: IconName; count?: number; hot?: boolean; active: boolean };
-  type Group = { key: string; label?: string; items: Item[] };
+  type Group = { key: string; label?: string; collapsible?: boolean; items: Item[] };
   type Area = { key: string; label: string; icon: IconName; hot: boolean; groups: Group[] };
   const it = (href: string, label: string, icon: IconName, active: boolean, count?: number, hot?: boolean): Item => ({ href, label, icon, active, count, hot });
 
@@ -101,6 +102,7 @@ export function Sidebar({
         {
           key: "review",
           label: "Review & publish",
+          collapsible: true,
           items: [
             it("/review", isPrimaryOwner ? "Review queue" : "Pending", "review", isActive("/review"), queueCount || undefined, queueCount > 0),
             it("/rework", "Needs rework", "rework", isActive("/rework"), reworkCount || undefined, reworkCount > 0),
@@ -153,6 +155,10 @@ export function Sidebar({
   const activeArea = AREAS.find((a) => a.groups.some((g) => g.items.some((i) => i.active)))?.key ?? "home";
   const current = AREAS.find((a) => a.key === activeArea)!;
   const areaHref = (a: Area) => a.groups[0].items[0].href;
+  // Collapsible groups (e.g. the rarely-used Review & publish) — collapsed by
+  // default, open if you toggle them or you're on one of their pages.
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+  const toggleGroup = (k: string, open: boolean) => setOpenGroups((m) => ({ ...m, [k]: !open }));
 
   return (
     <aside className="peer/nav group/rail relative flex h-screen w-[62px] shrink-0">
@@ -198,18 +204,39 @@ export function Sidebar({
         )}
 
         <nav className="-mr-2 flex min-h-0 flex-1 flex-col gap-[2px] overflow-y-auto overflow-x-hidden overscroll-contain pr-2">
-          {current.groups.map((g) => (
-            <div key={g.key}>
-              {g.label && (
-                <div className="px-3 pb-1 pt-3 text-[11px] font-bold uppercase tracking-[0.06em] text-slate/80">
-                  {g.label}
+          {current.groups.map((g) => {
+            if (g.collapsible) {
+              const open = openGroups[g.key] ?? g.items.some((i) => i.active);
+              const hot = !open && g.items.some((i) => i.hot);
+              return (
+                <div key={g.key}>
+                  <button
+                    onClick={() => toggleGroup(g.key, open)}
+                    className="flex w-full items-center gap-1.5 px-3 pb-1 pt-3 text-[11px] font-bold uppercase tracking-[0.06em] text-slate/80 transition hover:text-ink"
+                  >
+                    <span className={`text-[9px] transition-transform ${open ? "rotate-90" : ""}`}>▶</span>
+                    {g.label}
+                    {hot && <span className="ml-1 h-1.5 w-1.5 rounded-full bg-[#e0912b]" />}
+                  </button>
+                  {open && g.items.map((i) => (
+                    <NavLink key={i.href} href={i.href} active={i.active} label={i.label} icon={i.icon} count={i.count} hot={i.hot} />
+                  ))}
                 </div>
-              )}
-              {g.items.map((i) => (
-                <NavLink key={i.href} href={i.href} active={i.active} label={i.label} icon={i.icon} count={i.count} hot={i.hot} />
-              ))}
-            </div>
-          ))}
+              );
+            }
+            return (
+              <div key={g.key}>
+                {g.label && (
+                  <div className="px-3 pb-1 pt-3 text-[11px] font-bold uppercase tracking-[0.06em] text-slate/80">
+                    {g.label}
+                  </div>
+                )}
+                {g.items.map((i) => (
+                  <NavLink key={i.href} href={i.href} active={i.active} label={i.label} icon={i.icon} count={i.count} hot={i.hot} />
+                ))}
+              </div>
+            );
+          })}
         </nav>
 
         <div className="pt-3">
