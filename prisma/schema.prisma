@@ -348,10 +348,14 @@ model Task {
   publishStatus String    @default("NOT_PUBLISHED")
   publishedDate DateTime?
   contentLink   String?
-  metricClicks  Int?
-  metricLeads   Int?
-  metricEng     Int?
-  metricsNote   String?
+  metricClicks       Int?
+  metricLeads        Int?
+  metricEng          Int?
+  metricImpressions  Int?
+  metricReach        Int?
+  metricSaves        Int?
+  metricShares       Int?
+  metricsNote        String?
   binItemId     String? // linked Content Bin idea
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @default(now()) @updatedAt

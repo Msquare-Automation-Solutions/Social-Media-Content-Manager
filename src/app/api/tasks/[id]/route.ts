@@ -42,6 +42,10 @@ const patchSchema = z.object({
   metricClicks: z.number().int().nonnegative().nullable().optional(),
   metricLeads: z.number().int().nonnegative().nullable().optional(),
   metricEng: z.number().int().nonnegative().nullable().optional(),
+  metricImpressions: z.number().int().nonnegative().nullable().optional(),
+  metricReach: z.number().int().nonnegative().nullable().optional(),
+  metricSaves: z.number().int().nonnegative().nullable().optional(),
+  metricShares: z.number().int().nonnegative().nullable().optional(),
   metricsNote: z.string().trim().max(2000).nullable().optional(),
 });
 
@@ -64,7 +68,13 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     d.plannedDate !== undefined && d.plannedDate ? weekLabelForDate(d.plannedDate) : undefined;
   const publishing = d.publishStatus !== undefined && d.publishStatus.startsWith("PUBLISHED");
   const recordingMetrics =
-    d.metricClicks !== undefined || d.metricLeads !== undefined || d.metricEng !== undefined;
+    d.metricClicks !== undefined ||
+    d.metricLeads !== undefined ||
+    d.metricEng !== undefined ||
+    d.metricImpressions !== undefined ||
+    d.metricReach !== undefined ||
+    d.metricSaves !== undefined ||
+    d.metricShares !== undefined;
 
   await prisma.$transaction(async (tx) => {
     await tx.task.update({
@@ -90,6 +100,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         ...(d.metricClicks !== undefined ? { metricClicks: d.metricClicks } : {}),
         ...(d.metricLeads !== undefined ? { metricLeads: d.metricLeads } : {}),
         ...(d.metricEng !== undefined ? { metricEng: d.metricEng } : {}),
+        ...(d.metricImpressions !== undefined ? { metricImpressions: d.metricImpressions } : {}),
+        ...(d.metricReach !== undefined ? { metricReach: d.metricReach } : {}),
+        ...(d.metricSaves !== undefined ? { metricSaves: d.metricSaves } : {}),
+        ...(d.metricShares !== undefined ? { metricShares: d.metricShares } : {}),
         ...(d.metricsNote !== undefined ? { metricsNote: d.metricsNote } : {}),
       },
     });

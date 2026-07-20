@@ -494,6 +494,10 @@ export type TaskRow = {
   metricClicks: number | null;
   metricLeads: number | null;
   metricEng: number | null;
+  metricImpressions: number | null;
+  metricReach: number | null;
+  metricSaves: number | null;
+  metricShares: number | null;
   metricsNote: string | null;
   binItemId: string | null;
   assets: { id: string; title: string; thumbnailUrl: string | null; type: string; stageId: string | null }[];
@@ -573,6 +577,10 @@ export async function listTasks(
     metricClicks: t.metricClicks,
     metricLeads: t.metricLeads,
     metricEng: t.metricEng,
+    metricImpressions: t.metricImpressions,
+    metricReach: t.metricReach,
+    metricSaves: t.metricSaves,
+    metricShares: t.metricShares,
     metricsNote: t.metricsNote,
     binItemId: t.binItemId,
     assets: t.assets.map((a) => ({ ...a.asset, stageId: a.stageId })),

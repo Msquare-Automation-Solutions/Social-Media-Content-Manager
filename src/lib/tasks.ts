@@ -99,48 +99,63 @@ export type TaskMetric = {
   clicks: number | null;
   leads: number | null;
   eng: number | null;
+  impressions: number | null;
+  reach: number | null;
+  saves: number | null;
+  shares: number | null;
 };
-export type TaskSummary = {
-  planned: number;
-  published: number;
+type MetricTotals = {
   clicks: number;
   leads: number;
   eng: number;
-  byPlatform: {
+  impressions: number;
+  reach: number;
+  saves: number;
+  shares: number;
+};
+export type TaskSummary = MetricTotals & {
+  planned: number;
+  published: number;
+  byPlatform: (MetricTotals & {
     platform: string;
     planned: number;
     published: number;
-    clicks: number;
-    leads: number;
-    eng: number;
-  }[];
+  })[];
 };
 
 /** Planned-vs-published rollup + summed metrics, overall and per platform. */
 export function summarizeTasks(tasks: TaskMetric[]): TaskSummary {
-  const s: TaskSummary = { planned: 0, published: 0, clicks: 0, leads: 0, eng: 0, byPlatform: [] };
+  const zero = (): MetricTotals => ({
+    clicks: 0, leads: 0, eng: 0, impressions: 0, reach: 0, saves: 0, shares: 0,
+  });
+  const addMetrics = (dst: MetricTotals, t: TaskMetric) => {
+    dst.clicks += t.clicks ?? 0;
+    dst.leads += t.leads ?? 0;
+    dst.eng += t.eng ?? 0;
+    dst.impressions += t.impressions ?? 0;
+    dst.reach += t.reach ?? 0;
+    dst.saves += t.saves ?? 0;
+    dst.shares += t.shares ?? 0;
+  };
+  const s: TaskSummary = { planned: 0, published: 0, ...zero(), byPlatform: [] };
   const byPlat = new Map<string, TaskSummary["byPlatform"][number]>();
   for (const t of tasks) {
     const isPub = t.publishStatus.startsWith("PUBLISHED");
     s.planned++;
     if (isPub) {
       s.published++;
-      s.clicks += t.clicks ?? 0;
-      s.leads += t.leads ?? 0;
-      s.eng += t.eng ?? 0;
+      addMetrics(s, t);
     }
     const key = t.platform ?? "Unassigned";
     let p = byPlat.get(key);
     if (!p) {
-      p = { platform: key, planned: 0, published: 0, clicks: 0, leads: 0, eng: 0 };
+      p = { platform: key, planned: 0, published: 0, ...zero() };
       byPlat.set(key, p);
     }
     p.planned++;
     if (isPub) {
       p.published++;
-      p.clicks += t.clicks ?? 0;
-      p.leads += t.leads ?? 0;
-      p.eng += t.eng ?? 0;
+      addMetrics(p, t);
     }
   }
   s.byPlatform = [...byPlat.values()];

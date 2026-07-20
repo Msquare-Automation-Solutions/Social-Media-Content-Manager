@@ -308,22 +308,37 @@ function ReviewInbox({ tasks, onOpen, onReview }: { tasks: TaskRow[]; onOpen: (i
 
 // ── Analytics ────────────────────────────────────────────────────────────────
 function Analytics({ tasks }: { tasks: TaskRow[] }) {
-  const sum = summarizeTasks(tasks.map((t) => ({ platform: t.channel?.name ?? null, publishStatus: t.publishStatus, clicks: t.metricClicks, leads: t.metricLeads, eng: t.metricEng })));
+  const sum = summarizeTasks(
+    tasks.map((t) => ({
+      platform: t.channel?.name ?? null,
+      publishStatus: t.publishStatus,
+      clicks: t.metricClicks,
+      leads: t.metricLeads,
+      eng: t.metricEng,
+      impressions: t.metricImpressions,
+      reach: t.metricReach,
+      saves: t.metricSaves,
+      shares: t.metricShares,
+    })),
+  );
   const pub = tasks.filter((t) => t.publishStatus.startsWith("PUBLISHED"));
+  const nf = (n: number) => n.toLocaleString();
+  const cell = (n: number | null) => (n == null ? "·" : n.toLocaleString());
   return (
     <div>
       <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Kpi v={sum.planned} l="Planned" /><Kpi v={sum.published} l="Published" /><Kpi v={sum.clicks} l="Total clicks" /><Kpi v={`${sum.leads} / ${sum.eng}`} l="Leads / engagements" />
+        <Kpi v={sum.planned} l="Planned" /><Kpi v={sum.published} l="Published" /><Kpi v={nf(sum.impressions)} l="Impressions" /><Kpi v={nf(sum.reach)} l="Reach" />
+        <Kpi v={nf(sum.clicks)} l="Clicks" /><Kpi v={nf(sum.eng)} l="Engagements" /><Kpi v={nf(sum.saves)} l="Saves" /><Kpi v={nf(sum.shares)} l="Shares" />
       </div>
       <div className="mb-2 text-[11px] font-extrabold uppercase tracking-[0.06em] text-ink">Summary by platform</div>
       <div className="mb-6 overflow-x-auto rounded-card border border-line bg-card shadow-soft">
-        <table className="w-full border-collapse text-[12.5px]"><thead><tr className="border-b border-line text-left text-[11px] uppercase tracking-[0.04em] text-slate"><th className="px-3 py-2.5">Platform</th><th className="px-3 py-2.5">Planned</th><th className="px-3 py-2.5">Published</th><th className="px-3 py-2.5">Clicks</th><th className="px-3 py-2.5">Leads</th><th className="px-3 py-2.5">Eng.</th></tr></thead>
-        <tbody>{sum.byPlatform.map((p) => <tr key={p.platform} className="border-b border-line"><td className="px-3 py-2.5 font-semibold">{p.platform}</td><td className="px-3 py-2.5">{p.planned}</td><td className="px-3 py-2.5">{p.published}</td><td className="px-3 py-2.5">{p.clicks}</td><td className="px-3 py-2.5">{p.leads}</td><td className="px-3 py-2.5">{p.eng}</td></tr>)}</tbody></table>
+        <table className="w-full border-collapse text-[12.5px]"><thead><tr className="border-b border-line text-left text-[11px] uppercase tracking-[0.04em] text-slate"><th className="px-3 py-2.5">Platform</th><th className="px-3 py-2.5">Planned</th><th className="px-3 py-2.5">Published</th><th className="px-3 py-2.5">Impr.</th><th className="px-3 py-2.5">Reach</th><th className="px-3 py-2.5">Clicks</th><th className="px-3 py-2.5">Leads</th><th className="px-3 py-2.5">Eng.</th><th className="px-3 py-2.5">Saves</th><th className="px-3 py-2.5">Shares</th></tr></thead>
+        <tbody>{sum.byPlatform.map((p) => <tr key={p.platform} className="border-b border-line"><td className="px-3 py-2.5 font-semibold">{p.platform}</td><td className="px-3 py-2.5">{p.planned}</td><td className="px-3 py-2.5">{p.published}</td><td className="px-3 py-2.5">{nf(p.impressions)}</td><td className="px-3 py-2.5">{nf(p.reach)}</td><td className="px-3 py-2.5">{nf(p.clicks)}</td><td className="px-3 py-2.5">{nf(p.leads)}</td><td className="px-3 py-2.5">{nf(p.eng)}</td><td className="px-3 py-2.5">{nf(p.saves)}</td><td className="px-3 py-2.5">{nf(p.shares)}</td></tr>)}</tbody></table>
       </div>
       <div className="mb-2 text-[11px] font-extrabold uppercase tracking-[0.06em] text-ink">Published pieces</div>
       <div className="overflow-x-auto rounded-card border border-line bg-card shadow-soft">
-        <table className="w-full border-collapse text-[12.5px]"><thead><tr className="border-b border-line text-left text-[11px] uppercase tracking-[0.04em] text-slate"><th className="px-3 py-2.5">Content</th><th className="px-3 py-2.5">Platform</th><th className="px-3 py-2.5">Clicks</th><th className="px-3 py-2.5">Leads</th><th className="px-3 py-2.5">Eng.</th></tr></thead>
-        <tbody>{pub.length ? pub.map((t) => <tr key={t.id} className="border-b border-line"><td className="px-3 py-2.5 font-semibold">{t.title}</td><td className="px-3 py-2.5">{t.channel?.name ?? "—"}</td><td className="px-3 py-2.5">{t.metricClicks ?? "—"}</td><td className="px-3 py-2.5">{t.metricLeads ?? "—"}</td><td className="px-3 py-2.5">{t.metricEng ?? "—"}</td></tr>) : <tr><td colSpan={5} className="px-3 py-6 text-center text-slate">Nothing published yet.</td></tr>}</tbody></table>
+        <table className="w-full border-collapse text-[12.5px]"><thead><tr className="border-b border-line text-left text-[11px] uppercase tracking-[0.04em] text-slate"><th className="px-3 py-2.5">Content</th><th className="px-3 py-2.5">Platform</th><th className="px-3 py-2.5">Impr.</th><th className="px-3 py-2.5">Reach</th><th className="px-3 py-2.5">Clicks</th><th className="px-3 py-2.5">Leads</th><th className="px-3 py-2.5">Eng.</th><th className="px-3 py-2.5">Saves</th><th className="px-3 py-2.5">Shares</th></tr></thead>
+        <tbody>{pub.length ? pub.map((t) => <tr key={t.id} className="border-b border-line"><td className="px-3 py-2.5 font-semibold">{t.title}</td><td className="px-3 py-2.5">{t.channel?.name ?? "·"}</td><td className="px-3 py-2.5">{cell(t.metricImpressions)}</td><td className="px-3 py-2.5">{cell(t.metricReach)}</td><td className="px-3 py-2.5">{cell(t.metricClicks)}</td><td className="px-3 py-2.5">{cell(t.metricLeads)}</td><td className="px-3 py-2.5">{cell(t.metricEng)}</td><td className="px-3 py-2.5">{cell(t.metricSaves)}</td><td className="px-3 py-2.5">{cell(t.metricShares)}</td></tr>) : <tr><td colSpan={9} className="px-3 py-6 text-center text-slate">Nothing published yet.</td></tr>}</tbody></table>
       </div>
     </div>
   );
@@ -362,12 +377,6 @@ function TaskDrawer({ task, members, isAdmin, canEdit, meId, onClose, onEdit, ap
   }
   async function publish() {
     if (await api(`/api/tasks/${t.id}`, "PATCH", { publishStatus: "PUBLISHED_ON_TIME", publishedDate: new Date().toISOString() })) { toast("Published 🚀"); refresh(); }
-  }
-  async function recordMetrics() {
-    const c = Number(prompt("Clicks?") ?? "");
-    const l = Number(prompt("Leads?") ?? "");
-    const e = Number(prompt("Engagements?") ?? "");
-    if (await api(`/api/tasks/${t.id}`, "PATCH", { metricClicks: c || 0, metricLeads: l || 0, metricEng: e || 0 })) { toast("Metrics recorded 📊"); refresh(); }
   }
 
   return (
@@ -452,10 +461,7 @@ function TaskDrawer({ task, members, isAdmin, canEdit, meId, onClose, onEdit, ap
         {t.currentStage === "PUBLISHING" && canEdit && <button onClick={publish} className="btn-premium mt-2 rounded-[9px] px-3.5 py-1.5 text-[12px] font-semibold">Mark published →</button>}
 
         <div className="mb-2 mt-4 text-[11px] font-extrabold uppercase tracking-[0.06em] text-ink">Analytics</div>
-        {t.metricClicks != null ? (
-          <div className="flex gap-4 text-[12px] text-slate"><span>Clicks <b className="text-ink">{t.metricClicks}</b></span><span>Leads <b className="text-ink">{t.metricLeads}</b></span><span>Eng. <b className="text-ink">{t.metricEng}</b></span></div>
-        ) : <div className="text-[12px] text-slate">Recorded after publishing.</div>}
-        {t.currentStage === "ANALYTICS" && canEdit && <button onClick={recordMetrics} className="btn-premium mt-2 rounded-[9px] px-3.5 py-1.5 text-[12px] font-semibold">Record metrics →</button>}
+        <MetricsEditor task={t} canEdit={canEdit} api={api} refresh={refresh} toast={toast} />
 
         <div className="mb-2 mt-4 flex items-center gap-2">
           <span className="text-[11px] font-extrabold uppercase tracking-[0.06em] text-ink">Other files</span>
@@ -482,6 +488,74 @@ function TaskDrawer({ task, members, isAdmin, canEdit, meId, onClose, onEdit, ap
         )}
 
         {isAdmin && <div className="mt-6 border-t border-line pt-4"><button onClick={() => { if (confirm("Delete this task? Moves to Trash.")) api(`/api/tasks/${t.id}`, "DELETE").then((ok) => ok && (toast("Deleted → Trash"), onClose(), refresh())); }} className="rounded-[9px] border border-line px-3.5 py-1.5 text-[12px] font-semibold text-[#c23b2a] hover:border-[#c23b2a]">🗑 Delete task</button></div>}
+      </div>
+    </div>
+  );
+}
+
+// Editable analytics metrics. Read view + Edit toggle; editable any time by
+// EDITOR+ (not gated to a stage) so numbers can be corrected/updated later.
+const METRIC_FIELDS = [
+  { key: "metricImpressions", label: "Impressions" },
+  { key: "metricReach", label: "Reach" },
+  { key: "metricClicks", label: "Clicks" },
+  { key: "metricLeads", label: "Leads" },
+  { key: "metricEng", label: "Engagements" },
+  { key: "metricSaves", label: "Saves" },
+  { key: "metricShares", label: "Shares" },
+] as const;
+
+function MetricsEditor({ task, canEdit, api, refresh, toast }: { task: TaskRow; canEdit: boolean; api: (u: string, m: string, b?: unknown) => Promise<boolean>; refresh: () => void; toast: (m: string) => void }) {
+  const recorded = METRIC_FIELDS.some((f) => task[f.key] != null) || !!task.metricsNote;
+  const [editing, setEditing] = useState(false);
+  const [vals, setVals] = useState<Record<string, string>>(() =>
+    Object.fromEntries(METRIC_FIELDS.map((f) => [f.key, task[f.key] != null ? String(task[f.key]) : ""])),
+  );
+  const [note, setNote] = useState(task.metricsNote ?? "");
+  const [saving, setSaving] = useState(false);
+
+  async function save() {
+    setSaving(true);
+    const body: Record<string, number | string | null> = { metricsNote: note.trim() || null };
+    for (const f of METRIC_FIELDS) {
+      const raw = vals[f.key].trim();
+      body[f.key] = raw === "" ? null : Math.max(0, Math.round(Number(raw) || 0));
+    }
+    const ok = await api(`/api/tasks/${task.id}`, "PATCH", body);
+    setSaving(false);
+    if (ok) { toast("Metrics saved 📊"); setEditing(false); refresh(); }
+  }
+
+  if (!editing) {
+    return (
+      <div>
+        {recorded ? (
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-slate">
+            {METRIC_FIELDS.map((f) => (
+              <span key={f.key}>{f.label} <b className="text-ink">{task[f.key] != null ? Number(task[f.key]).toLocaleString() : "·"}</b></span>
+            ))}
+          </div>
+        ) : <div className="text-[12px] text-slate">No metrics recorded yet.</div>}
+        {recorded && task.metricsNote && <div className="mt-1.5 text-[12px] text-slate">📝 {task.metricsNote}</div>}
+        {canEdit && <button onClick={() => setEditing(true)} className="btn-premium mt-2 rounded-[9px] px-3.5 py-1.5 text-[12px] font-semibold">{recorded ? "Edit metrics" : "Record metrics →"}</button>}
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-[12px] border border-line bg-wash/[0.02] p-3">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        {METRIC_FIELDS.map((f) => (
+          <label key={f.key} className="text-[11px] font-semibold text-slate">
+            {f.label}
+            <input type="number" min={0} inputMode="numeric" value={vals[f.key]} onChange={(e) => setVals((v) => ({ ...v, [f.key]: e.target.value }))} placeholder="·" className="mt-0.5 w-full rounded-[8px] border border-line bg-card px-2 py-1.5 text-[12px] text-ink outline-none focus:border-teal" />
+          </label>
+        ))}
+      </div>
+      <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note (optional)" className="mt-2 w-full rounded-[8px] border border-line bg-card px-2 py-1.5 text-[12px] text-ink outline-none focus:border-teal" />
+      <div className="mt-2 flex gap-2">
+        <button disabled={saving} onClick={save} className="btn-premium rounded-[8px] px-3 py-1.5 text-[11.5px] font-semibold disabled:opacity-60">{saving ? "Saving…" : "Save metrics"}</button>
+        <button onClick={() => setEditing(false)} className="px-2 py-1.5 text-[11.5px] font-semibold text-slate">Cancel</button>
       </div>
     </div>
   );

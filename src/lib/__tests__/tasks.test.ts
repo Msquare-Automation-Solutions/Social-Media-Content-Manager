@@ -56,18 +56,23 @@ describe("computeCurrentStage", () => {
 
 describe("summarizeTasks", () => {
   it("rolls up planned vs published + metrics by platform", () => {
+    const m = { impressions: null, reach: null, saves: null, shares: null };
     const s = summarizeTasks([
-      { platform: "LinkedIn", publishStatus: "PUBLISHED_ON_TIME", clicks: 100, leads: 4, eng: 20 },
-      { platform: "LinkedIn", publishStatus: "NOT_PUBLISHED", clicks: null, leads: null, eng: null },
-      { platform: "YouTube", publishStatus: "PUBLISHED_DELAY", clicks: 50, leads: 1, eng: 5 },
+      { platform: "LinkedIn", publishStatus: "PUBLISHED_ON_TIME", clicks: 100, leads: 4, eng: 20, ...m, impressions: 1000, saves: 3 },
+      { platform: "LinkedIn", publishStatus: "NOT_PUBLISHED", clicks: null, leads: null, eng: null, ...m },
+      { platform: "YouTube", publishStatus: "PUBLISHED_DELAY", clicks: 50, leads: 1, eng: 5, ...m, reach: 200 },
     ]);
     expect(s.planned).toBe(3);
     expect(s.published).toBe(2);
     expect(s.clicks).toBe(150);
     expect(s.leads).toBe(5);
+    expect(s.impressions).toBe(1000);
+    expect(s.reach).toBe(200);
+    expect(s.saves).toBe(3);
     const li = s.byPlatform.find((p) => p.platform === "LinkedIn")!;
     expect(li.planned).toBe(2);
     expect(li.published).toBe(1);
     expect(li.clicks).toBe(100);
+    expect(li.impressions).toBe(1000);
   });
 });
