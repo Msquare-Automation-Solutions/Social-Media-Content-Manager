@@ -339,17 +339,18 @@ function TaskDrawer({ task, members, isAdmin, canEdit, meId, onClose, onEdit, ap
   async function work(stageId: string, workStatus: string) {
     if (await api(`/api/tasks/${t.id}/stages/${stageId}`, "PATCH", { action: "work", workStatus })) { toast("Status updated"); refresh(); }
   }
-  async function submit(stageId: string) {
-    if (await api(`/api/tasks/${t.id}/stages/${stageId}`, "PATCH", { action: "submit" })) {
-      toast("Submitted for review 🔔 — attach your file");
-      // Pop the upload flow so the produced file becomes a linked media asset
-      // the reviewer can open from their notification.
-      upload.open(async (asset) => {
-        await api(`/api/tasks/${t.id}`, "PATCH", { assetIds: [...t.assets.map((a) => a.id), asset.id] });
-        refresh();
-      });
+  function submit(stageId: string) {
+    // Upload first: the stage is only submitted for review once the file is
+    // saved + linked, so the reviewer is notified with the submission attached.
+    // Cancelling the upload leaves the stage un-submitted.
+    toast("Upload your file to submit");
+    upload.open(async (asset) => {
+      await api(`/api/tasks/${t.id}`, "PATCH", { assetIds: [...t.assets.map((a) => a.id), asset.id] });
+      if (await api(`/api/tasks/${t.id}/stages/${stageId}`, "PATCH", { action: "submit" })) {
+        toast("Submitted for review 🔔");
+      }
       refresh();
-    }
+    });
   }
   async function review(stageId: string, outcome: "APPROVED" | "REWORK") {
     const note = outcome === "REWORK" ? prompt("Rework note?") ?? "" : "";
