@@ -407,6 +407,7 @@ model TaskType {
 model TaskAsset {
   taskId  String
   assetId String
+  stageId String? // which production stage this file was submitted for (null = task-level)
 
   task  Task       @relation(fields: [taskId], references: [id], onDelete: Cascade)
   asset MediaAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)

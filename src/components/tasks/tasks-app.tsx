@@ -25,7 +25,8 @@ function assetSlug(type: string): string {
   return LIBRARY_SLUGS[view];
 }
 
-type Member = { id: string; name: string; avatarColor: string };
+type Member = { id: string; name: string; avatarColor: string; role?: string };
+const memberLabel = (m: Member) => (m.role ? `${m.name} — ${m.role}` : m.name);
 type Opt = { id: string; name: string; icon: string };
 type TaskType = { id: string; name: string };
 export type TasksMode = "overview" | "board" | "mywork" | "review" | "analytics";
@@ -361,7 +362,8 @@ function TaskDrawer({ task, members, isAdmin, canEdit, meId, onClose, onEdit, ap
     // Cancelling the upload leaves the stage un-submitted.
     toast("Upload your file to submit");
     upload.open(async (asset) => {
-      await api(`/api/tasks/${t.id}`, "PATCH", { assetIds: [...t.assets.map((a) => a.id), asset.id] });
+      // Link the file to this stage, then submit for review.
+      await api(`/api/tasks/${t.id}/assets`, "POST", { assetId: asset.id, stageId });
       if (await api(`/api/tasks/${t.id}/stages/${stageId}`, "PATCH", { action: "submit" })) {
         toast("Submitted for review 🔔");
       }
@@ -417,9 +419,29 @@ function TaskDrawer({ task, members, isAdmin, canEdit, meId, onClose, onEdit, ap
             <div className="mb-2 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-slate">
               <span>Owner <b className="text-ink">{s.assigneeName ?? "Unassigned"}</b></span>
               {s.targetDate && <span>Deadline <b className="text-ink">{fmt(s.targetDate)}</b></span>}
+              {s.submittedAt && <span>Submitted <b className="text-ink">{fmt(s.submittedAt)}</b></span>}
             </div>
             {s.remarks && <div className="mb-2 text-[12px] text-slate">📝 {s.remarks}</div>}
             {s.reviewNote && <div className="mb-2 text-[12px] text-[#c23b2a]">↩ {s.reviewNote}</div>}
+
+            {/* Files this department submitted for the stage. */}
+            {t.assets.filter((a) => a.stageId === s.id).length > 0 && (
+              <div className="mb-2 flex flex-wrap gap-2">
+                {t.assets.filter((a) => a.stageId === s.id).map((a) => (
+                  <a key={a.id} href={`/${assetSlug(a.type)}?asset=${a.id}`} title={a.title} className="w-[76px]">
+                    <span className="grid h-[48px] w-[76px] place-items-center overflow-hidden rounded-[8px] border border-line bg-wash/[0.05]">
+                      {a.thumbnailUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={a.thumbnailUrl} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <span className="text-[15px]">📄</span>
+                      )}
+                    </span>
+                    <span className="mt-0.5 block truncate text-[10.5px] text-slate">{a.title}</span>
+                  </a>
+                ))}
+              </div>
+            )}
 
             {assignStage === s.id ? (
               <AssignForm members={members} current={s.assigneeId} onCancel={() => setAssignStage(null)} onSave={(a, d) => assign(s.id, a, d)} />
@@ -450,14 +472,14 @@ function TaskDrawer({ task, members, isAdmin, canEdit, meId, onClose, onEdit, ap
         {t.currentStage === "ANALYTICS" && canEdit && <button onClick={recordMetrics} className="btn-premium mt-2 rounded-[9px] px-3.5 py-1.5 text-[12px] font-semibold">Record metrics →</button>}
 
         <div className="mb-2 mt-4 flex items-center gap-2">
-          <span className="text-[11px] font-extrabold uppercase tracking-[0.06em] text-ink">Submission</span>
-          {canEdit && <button onClick={() => upload.open(async (asset) => { await api(`/api/tasks/${t.id}`, "PATCH", { assetIds: [...t.assets.map((a) => a.id), asset.id] }); refresh(); })} className="ml-auto rounded-[8px] border border-line px-2.5 py-1 text-[11.5px] font-semibold text-teal-dark hover:border-teal">＋ Upload file</button>}
+          <span className="text-[11px] font-extrabold uppercase tracking-[0.06em] text-ink">Other files</span>
+          {canEdit && <button onClick={() => upload.open(async (asset) => { await api(`/api/tasks/${t.id}/assets`, "POST", { assetId: asset.id, stageId: null }); refresh(); })} className="ml-auto rounded-[8px] border border-line px-2.5 py-1 text-[11.5px] font-semibold text-teal-dark hover:border-teal">＋ Upload file</button>}
         </div>
-        {t.assets.length === 0 ? (
-          <div className="text-[12px] text-slate">No file attached yet.</div>
+        {t.assets.filter((a) => !a.stageId).length === 0 ? (
+          <div className="text-[12px] text-slate">Files submitted per stage appear under each stage above.</div>
         ) : (
           <div className="flex flex-wrap gap-2">
-            {t.assets.map((a) => (
+            {t.assets.filter((a) => !a.stageId).map((a) => (
               <a key={a.id} href={`/${assetSlug(a.type)}?asset=${a.id}`} title={a.title} className="w-[92px]">
                 <span className="grid h-[58px] w-[92px] place-items-center overflow-hidden rounded-[9px] border border-line bg-wash/[0.05]">
                   {a.thumbnailUrl ? (
@@ -485,7 +507,7 @@ function AssignForm({ members, current, onCancel, onSave }: { members: Member[];
   return (
     <div className="flex flex-wrap items-center gap-2">
       <select value={who} onChange={(e) => setWho(e.target.value)} className="rounded-[8px] border border-line bg-card px-2 py-1.5 text-[12px] text-ink outline-none focus:border-teal">
-        {members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+        {members.map((m) => <option key={m.id} value={m.id}>{memberLabel(m)}</option>)}
       </select>
       <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="rounded-[8px] border border-line bg-card px-2 py-1.5 text-[12px] text-ink outline-none focus:border-teal" />
       <button onClick={() => onSave(who, date)} className="btn-premium rounded-[8px] px-3 py-1.5 text-[11.5px] font-semibold">Save</button>
@@ -516,7 +538,7 @@ function TaskForm({ task, channels, accounts, taskTypes, members, isAdmin, onClo
   const [brief, setBrief] = useState(task?.brief ?? "");
   const [content, setContent] = useState(task?.content ?? "");
   const [remarks, setRemarks] = useState(task?.remarks ?? "");
-  const [date, setDate] = useState(task?.plannedDate ? task.plannedDate.slice(0, 10) : "");
+  const [date, setDate] = useState(task?.plannedDate ? task.plannedDate.slice(0, 10) : todayStr());
   const [channelId, setChannelId] = useState(task?.channel?.id ?? "");
   const [accountId, setAccountId] = useState(task?.account?.id ?? "");
   const [stageSel, setStageSel] = useState<Record<string, StageSel>>(initStages);
@@ -634,7 +656,7 @@ function TaskForm({ task, channels, accounts, taskTypes, members, isAdmin, onClo
                       <div className="mt-2 flex flex-wrap gap-2">
                         <select value={sel.assigneeId} onChange={(e) => setStage(s, { assigneeId: e.target.value })} className="flex-1 rounded-[8px] border border-line bg-card px-2 py-1.5 text-[12px] font-normal text-ink outline-none focus:border-teal">
                           <option value="">Unassigned</option>
-                          {members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+                          {members.map((m) => <option key={m.id} value={m.id}>{memberLabel(m)}</option>)}
                         </select>
                         <input type="date" value={sel.due} onChange={(e) => setStage(s, { due: e.target.value })} className="rounded-[8px] border border-line bg-card px-2 py-1.5 text-[12px] font-normal text-ink outline-none focus:border-teal" />
                       </div>
@@ -651,7 +673,7 @@ function TaskForm({ task, channels, accounts, taskTypes, members, isAdmin, onClo
             <label className={lab}>Account<select value={accountId} onChange={(e) => setAccountId(e.target.value)} className={cls + " mt-1"}><option value="">—</option>{accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></label>
           </div>
           <label className={lab}>
-            Planned date {week && <span className="font-normal text-teal-dark">· {week}</span>}
+            Planning date {week && <span className="font-normal text-teal-dark">· {week}</span>}
             <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={cls + " mt-1 font-normal"} />
           </label>
 
@@ -682,6 +704,11 @@ function av(name: string, color: string | null) {
 }
 function fmt(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+function todayStr() {
+  const d = new Date();
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 function nextWork(w: string): TaskWorkStatus {
   const cyc: TaskWorkStatus[] = ["WIP_ON_TRACK", "WIP_DELAY", "COMPLETED_ON_TIME", "COMPLETED_DELAY"];

@@ -496,7 +496,7 @@ export type TaskRow = {
   metricEng: number | null;
   metricsNote: string | null;
   binItemId: string | null;
-  assets: { id: string; title: string; thumbnailUrl: string | null; type: string }[];
+  assets: { id: string; title: string; thumbnailUrl: string | null; type: string; stageId: string | null }[];
   createdAt: string;
   stages: TaskStageRow[];
 };
@@ -532,7 +532,7 @@ export async function listTasks(
     include: {
       stages: { orderBy: { order: "asc" } },
       assets: {
-        select: { asset: { select: { id: true, title: true, thumbnailUrl: true, type: true } } },
+        select: { stageId: true, asset: { select: { id: true, title: true, thumbnailUrl: true, type: true } } },
       },
     },
   });
@@ -575,7 +575,7 @@ export async function listTasks(
     metricEng: t.metricEng,
     metricsNote: t.metricsNote,
     binItemId: t.binItemId,
-    assets: t.assets.map((a) => a.asset),
+    assets: t.assets.map((a) => ({ ...a.asset, stageId: a.stageId })),
     createdAt: t.createdAt.toISOString(),
     stages: t.stages.map((s) => {
       const u = s.assigneeId ? usById.get(s.assigneeId) : null;
@@ -633,7 +633,7 @@ export async function getPendingReviewCount(workspaceId: string): Promise<number
 /** Dropdown data for the task views: assignable members (login users) +
  * platforms + accounts. */
 export async function getTaskOptions(workspaceId: string) {
-  const [members, channels, accounts, taskTypes] = await Promise.all([
+  const [members, channels, accounts, taskTypes, people] = await Promise.all([
     listMembers(workspaceId),
     prisma.socialChannel.findMany({
       where: { workspaceId },
@@ -650,11 +650,22 @@ export async function getTaskOptions(workspaceId: string) {
       orderBy: { createdAt: "asc" },
       select: { id: true, name: true },
     }),
+    // Designations come from the member's linked Person record (its label).
+    prisma.person.findMany({
+      where: { workspaceId, deletedAt: null, userId: { not: null } },
+      select: { userId: true, label: true },
+    }),
   ]);
+  const labelByUser = new Map(people.map((p) => [p.userId!, p.label ?? ""]));
   return {
     members: members
       .filter((m) => !m.disabled)
-      .map((m) => ({ id: m.userId, name: m.name, avatarColor: m.avatarColor })),
+      .map((m) => ({
+        id: m.userId,
+        name: m.name,
+        avatarColor: m.avatarColor,
+        role: labelByUser.get(m.userId) || "",
+      })),
     channels,
     accounts,
     taskTypes,
