@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
@@ -57,6 +58,72 @@ export function Sidebar({
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
+  type Item = { href: string; label: string; icon: IconName; count?: number; hot?: boolean; active: boolean };
+  type Group = { key: string; label: string; items: Item[] };
+  const it = (href: string, label: string, icon: IconName, active: boolean, count?: number, hot?: boolean): Item => ({ href, label, icon, active, count, hot });
+
+  const groups: Group[] = [
+    {
+      key: "create",
+      label: "Create",
+      items: [
+        it("/create", "Content Creator", "create", isActive("/create")),
+        it("/content-bin", "Content Bin", "bin", isActive("/content-bin"), binCount || undefined),
+      ],
+    },
+    {
+      key: "produce",
+      label: "Produce",
+      items: [
+        it("/content-overview", "Content Overview", "overview", isActive("/content-overview")),
+        it("/tasks", "Tasks board", "tasks", pathname === "/tasks"),
+        it("/my-work", "My Work", "mywork", isActive("/my-work"), myTaskCount || undefined, myTaskCount > 0),
+        ...(isAdmin ? [it("/tasks/review", "To review", "review", isActive("/tasks/review"), taskReviewCount || undefined, taskReviewCount > 0)] : []),
+      ],
+    },
+    {
+      key: "review",
+      label: "Review & publish",
+      items: [
+        it("/review", isPrimaryOwner ? "Review queue" : "Pending", "review", isActive("/review"), queueCount || undefined, queueCount > 0),
+        it("/rework", "Needs rework", "rework", isActive("/rework"), reworkCount || undefined, reworkCount > 0),
+        it("/approved", "Approved", "approved", isActive("/approved"), approvedCount || undefined),
+        it("/published", "Published", "published", isActive("/published"), publishedCount || undefined),
+      ],
+    },
+    {
+      key: "library",
+      label: "Library",
+      items: [
+        it("/", "Workspace overview", "overview", isActive("/")),
+        ...LIBRARY_VIEWS.map((v) =>
+          it(`/${LIBRARY_SLUGS[v.key]}`, v.label, VIEW_ICONS[v.key], isActive(`/${LIBRARY_SLUGS[v.key]}`), counts[v.key]),
+        ),
+      ],
+    },
+    {
+      key: "insights",
+      label: "Insights",
+      items: [
+        it("/dashboard", "Dashboard", "dashboard", isActive("/dashboard")),
+        it("/analytics", "Analytics", "analytics", isActive("/analytics")),
+      ],
+    },
+    {
+      key: "workspace",
+      label: "Workspace",
+      items: [
+        it("/members", "Members", "members", isActive("/members"), membersCount),
+        ...(isAdmin ? [it("/activity", "Activity", "activity", isActive("/activity"))] : []),
+        it("/trash", "Trash", "trash", isActive("/trash")),
+      ],
+    },
+  ];
+  const activeKey = groups.find((g) => g.items.some((i) => i.active))?.key ?? "produce";
+  // A group is open if the user toggled it; otherwise only the active section is.
+  const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
+  const toggle = (k: string, cur: boolean) => setOpenMap((m) => ({ ...m, [k]: !cur }));
+
   return (
     <aside className="flex h-screen flex-col border-r border-line/80 bg-gradient-to-b from-card to-bg px-3.5 pb-5 pt-4">
       <div className="flex items-center gap-2 px-1 pb-3.5 pt-0.5 font-display text-[14px] font-bold">
@@ -78,86 +145,27 @@ export function Sidebar({
 
       {/* Only the nav list scrolls (vertical only) — the header (with the
           notification dropdown) and footer stay put and aren't clipped. */}
-      <nav className="-mr-2 flex min-h-0 flex-1 flex-col gap-[3px] overflow-y-auto overflow-x-hidden overscroll-contain pr-2">
-      <GroupLabel>Create</GroupLabel>
-      <NavLink href="/create" active={isActive("/create")} label="Content Creator" icon="create" />
-      <NavLink
-        href="/content-bin"
-        active={isActive("/content-bin")}
-        label="Content Bin"
-        icon="bin"
-        count={binCount || undefined}
-      />
-
-      <GroupLabel>Produce</GroupLabel>
-      <NavLink
-        href="/content-overview"
-        active={isActive("/content-overview")}
-        label="Content Overview"
-        icon="overview"
-      />
-      <NavLink
-        href="/tasks"
-        active={pathname === "/tasks"}
-        label="Tasks board"
-        icon="tasks"
-      />
-      <NavLink
-        href="/my-work"
-        active={isActive("/my-work")}
-        label="My Work"
-        icon="mywork"
-        count={myTaskCount || undefined}
-        hot={myTaskCount > 0}
-      />
-      {isAdmin && (
-        <NavLink
-          href="/tasks/review"
-          active={isActive("/tasks/review")}
-          label="To review"
-          icon="review"
-          count={taskReviewCount || undefined}
-          hot={taskReviewCount > 0}
-        />
-      )}
-
-      <GroupLabel>Review &amp; publish</GroupLabel>
-      <NavLink
-        href="/review"
-        active={isActive("/review")}
-        label={isPrimaryOwner ? "Review queue" : "Pending"}
-        icon="review"
-        count={queueCount || undefined}
-        hot={queueCount > 0}
-      />
-      <NavLink
-        href="/rework"
-        active={isActive("/rework")}
-        label="Needs rework"
-        icon="rework"
-        count={reworkCount || undefined}
-        hot={reworkCount > 0}
-      />
-      <NavLink href="/approved" active={isActive("/approved")} label="Approved" icon="approved" count={approvedCount || undefined} />
-      <NavLink href="/published" active={isActive("/published")} label="Published" icon="published" count={publishedCount || undefined} />
-
-      <GroupLabel>Library</GroupLabel>
-      <NavLink href="/" active={isActive("/")} label="Workspace overview" icon="overview" />
-      {LIBRARY_VIEWS.map((v) => {
-        const href = `/${LIBRARY_SLUGS[v.key]}`;
-        return (
-          <NavLink key={v.key} href={href} active={isActive(href)} label={v.label} icon={VIEW_ICONS[v.key]} count={counts[v.key]} />
-        );
-      })}
-
-      <GroupLabel>Insights</GroupLabel>
-      <NavLink href="/dashboard" active={isActive("/dashboard")} label="Dashboard" icon="dashboard" />
-      <NavLink href="/analytics" active={isActive("/analytics")} label="Analytics" icon="analytics" />
-
-      <GroupLabel>Workspace</GroupLabel>
-      <NavLink href="/members" active={isActive("/members")} label="Members" icon="members" count={membersCount} />
-      {isAdmin && <NavLink href="/activity" active={isActive("/activity")} label="Activity" icon="activity" />}
-      <NavLink href="/trash" active={isActive("/trash")} label="Trash" icon="trash" />
+      <nav className="-mr-2 flex min-h-0 flex-1 flex-col gap-[2px] overflow-y-auto overflow-x-hidden overscroll-contain pr-2">
+        {groups.map((g) => {
+          const open = openMap[g.key] ?? g.key === activeKey;
+          const collapsedHot = !open && g.items.some((i) => i.hot);
+          return (
+            <div key={g.key}>
+              <button
+                onClick={() => toggle(g.key, open)}
+                className="flex w-full items-center gap-1.5 rounded-[8px] px-3 pb-1 pt-3 text-[11px] font-bold uppercase tracking-[0.06em] text-slate/80 transition hover:text-ink"
+              >
+                <span className={`text-[9px] transition-transform ${open ? "rotate-90" : ""}`}>▶</span>
+                {g.label}
+                {collapsedHot && <span className="ml-1 h-1.5 w-1.5 rounded-full bg-[#e0912b]" />}
+              </button>
+              {open &&
+                g.items.map((i) => (
+                  <NavLink key={i.href} href={i.href} active={i.active} label={i.label} icon={i.icon} count={i.count} hot={i.hot} />
+                ))}
+            </div>
+          );
+        })}
       </nav>
 
       <div className="pt-3">
@@ -197,14 +205,6 @@ export function Sidebar({
         </a>
       </div>
     </aside>
-  );
-}
-
-function GroupLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="px-3 pb-1.5 pt-3.5 text-[11px] font-bold uppercase tracking-[0.06em] text-slate/80">
-      {children}
-    </div>
   );
 }
 
