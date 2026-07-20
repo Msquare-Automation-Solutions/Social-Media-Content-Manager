@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { BackButton } from "@/components/ui/back-button";
 import { useToast } from "@/components/ui/toast";
@@ -76,20 +76,6 @@ export function TasksApp(props: Props) {
   const [editId, setEditId] = useState<string | null>(null);
 
   const openTask = tasks.find((t) => t.id === openId) || null;
-
-  // Keep the board/lists live: refresh on an interval and whenever the tab
-  // regains focus, so other people's changes show up without a manual reload.
-  useEffect(() => {
-    const iv = setInterval(() => {
-      if (document.visibilityState === "visible") router.refresh();
-    }, 12000);
-    const onFocus = () => router.refresh();
-    window.addEventListener("focus", onFocus);
-    return () => {
-      clearInterval(iv);
-      window.removeEventListener("focus", onFocus);
-    };
-  }, [router]);
 
   async function api(url: string, method: string, body?: unknown) {
     const r = await fetch(url, {

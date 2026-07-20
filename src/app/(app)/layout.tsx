@@ -6,6 +6,7 @@ import { unreadNotificationCount } from "@/lib/notifications";
 import { Sidebar } from "@/components/sidebar";
 import { DialogProvider } from "@/components/save/dialog-context";
 import { Dialogs } from "@/components/save/dialogs";
+import { LiveRefresh } from "@/components/live-refresh";
 
 export const dynamic = "force-dynamic";
 
@@ -78,6 +79,7 @@ export default async function AppLayout({
         </main>
       </div>
       <Dialogs canUpload={user.role !== "VIEWER"} />
+      <LiveRefresh />
     </DialogProvider>
   );
 }
