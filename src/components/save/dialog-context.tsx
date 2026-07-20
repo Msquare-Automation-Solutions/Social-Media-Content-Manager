@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -52,7 +53,11 @@ type SaveContextValue = {
   close: () => void;
 };
 
-type UploadContextValue = { open: () => void; isOpen: boolean; close: () => void };
+type UploadContextValue = {
+  open: (onSaved?: (r: SavedResult) => void) => void;
+  isOpen: boolean;
+  close: () => void;
+};
 
 const SaveContext = createContext<SaveContextValue | null>(null);
 const UploadContext = createContext<UploadContextValue | null>(null);
@@ -76,6 +81,8 @@ export function DialogProvider({ children }: { children: ReactNode }) {
     ((r: SavedResult) => void) | undefined
   >(undefined);
   const [uploadOpen, setUploadOpen] = useState(false);
+  // onSaved to fire after an uploaded file is saved (e.g. link it to a task).
+  const uploadSavedRef = useRef<((r: SavedResult) => void) | undefined>(undefined);
 
   const openArtifact = useCallback<SaveContextValue["openArtifact"]>(
     (artifact, messageId, cb) => {
@@ -87,7 +94,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
   );
   const openUploadFile = useCallback<SaveContextValue["openUploadFile"]>((file) => {
     setUploadOpen(false);
-    setOnSaved(() => undefined);
+    setOnSaved(() => uploadSavedRef.current);
     setQueue([]);
     setTarget({ mode: "upload", file });
   }, []);
@@ -95,7 +102,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
   const queueUploads = useCallback<SaveContextValue["queueUploads"]>((files) => {
     if (files.length === 0) return;
     setUploadOpen(false);
-    setOnSaved(() => undefined);
+    setOnSaved(() => uploadSavedRef.current);
     setTarget({ mode: "upload", file: files[0] });
     setQueue(files.slice(1));
   }, []);
@@ -138,7 +145,10 @@ export function DialogProvider({ children }: { children: ReactNode }) {
   );
   const uploadValue = useMemo<UploadContextValue>(
     () => ({
-      open: () => setUploadOpen(true),
+      open: (cb) => {
+        uploadSavedRef.current = cb;
+        setUploadOpen(true);
+      },
       close: () => setUploadOpen(false),
       isOpen: uploadOpen,
     }),

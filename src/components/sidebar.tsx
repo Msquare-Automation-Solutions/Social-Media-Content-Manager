@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
@@ -153,10 +152,6 @@ export function Sidebar({
   ];
   const activeArea = AREAS.find((a) => a.groups.some((g) => g.items.some((i) => i.active)))?.key ?? "home";
   const current = AREAS.find((a) => a.key === activeArea)!;
-  const activeGroupKey = current.groups.find((g) => g.items.some((i) => i.active))?.key;
-  // A labelled group is open if toggled, else when it holds the active item.
-  const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
-  const toggle = (k: string, cur: boolean) => setOpenMap((m) => ({ ...m, [k]: !cur }));
   const areaHref = (a: Area) => a.groups[0].items[0].href;
 
   return (
@@ -203,30 +198,18 @@ export function Sidebar({
         )}
 
         <nav className="-mr-2 flex min-h-0 flex-1 flex-col gap-[2px] overflow-y-auto overflow-x-hidden overscroll-contain pr-2">
-          {current.groups.map((g) => {
-            if (!g.label)
-              return g.items.map((i) => (
-                <NavLink key={i.href} href={i.href} active={i.active} label={i.label} icon={i.icon} count={i.count} hot={i.hot} />
-              ));
-            const open = openMap[g.key] ?? g.key === activeGroupKey;
-            const collapsedHot = !open && g.items.some((i) => i.hot);
-            return (
-              <div key={g.key}>
-                <button
-                  onClick={() => toggle(g.key, open)}
-                  className="flex w-full items-center gap-1.5 rounded-[8px] px-3 pb-1 pt-3 text-[11px] font-bold uppercase tracking-[0.06em] text-slate/80 transition hover:text-ink"
-                >
-                  <span className={`text-[9px] transition-transform ${open ? "rotate-90" : ""}`}>▶</span>
+          {current.groups.map((g) => (
+            <div key={g.key}>
+              {g.label && (
+                <div className="px-3 pb-1 pt-3 text-[11px] font-bold uppercase tracking-[0.06em] text-slate/80">
                   {g.label}
-                  {collapsedHot && <span className="ml-1 h-1.5 w-1.5 rounded-full bg-[#e0912b]" />}
-                </button>
-                {open &&
-                  g.items.map((i) => (
-                    <NavLink key={i.href} href={i.href} active={i.active} label={i.label} icon={i.icon} count={i.count} hot={i.hot} />
-                  ))}
-              </div>
-            );
-          })}
+                </div>
+              )}
+              {g.items.map((i) => (
+                <NavLink key={i.href} href={i.href} active={i.active} label={i.label} icon={i.icon} count={i.count} hot={i.hot} />
+              ))}
+            </div>
+          ))}
         </nav>
 
         <div className="pt-3">

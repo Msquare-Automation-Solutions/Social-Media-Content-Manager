@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/session";
-import { prisma } from "@/lib/db";
 import { listContentBin, type BinFilters } from "@/lib/data";
 import { ContentBinView } from "@/components/content-bin/content-bin-view";
 
@@ -27,13 +26,8 @@ export default async function ContentBinPage({
 
   const sp = await searchParams;
 
-  // Default the Creator filter to the current user's own creator record, so you
-  // land on your own captures; "all" widens it to everyone.
-  const self = await prisma.person.findFirst({
-    where: { workspaceId: user.workspaceId, userId: user.id, deletedAt: null },
-    select: { id: true },
-  });
-  const personValue = sp.person ?? self?.id ?? "all";
+  // Creator filter defaults to All creators; pick a person to narrow.
+  const personValue = sp.person ?? "all";
   const personId = personValue && personValue !== "all" ? personValue : undefined;
 
   const filters: BinFilters = {

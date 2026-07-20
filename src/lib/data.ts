@@ -495,7 +495,7 @@ export type TaskRow = {
   metricEng: number | null;
   metricsNote: string | null;
   binItemId: string | null;
-  assetIds: string[];
+  assets: { id: string; title: string; thumbnailUrl: string | null; type: string }[];
   createdAt: string;
   stages: TaskStageRow[];
 };
@@ -530,7 +530,9 @@ export async function listTasks(
     orderBy: { createdAt: "desc" },
     include: {
       stages: { orderBy: { order: "asc" } },
-      assets: { select: { assetId: true } },
+      assets: {
+        select: { asset: { select: { id: true, title: true, thumbnailUrl: true, type: true } } },
+      },
     },
   });
 
@@ -571,7 +573,7 @@ export async function listTasks(
     metricEng: t.metricEng,
     metricsNote: t.metricsNote,
     binItemId: t.binItemId,
-    assetIds: t.assets.map((a) => a.assetId),
+    assets: t.assets.map((a) => a.asset),
     createdAt: t.createdAt.toISOString(),
     stages: t.stages.map((s) => {
       const u = s.assigneeId ? usById.get(s.assigneeId) : null;
@@ -629,7 +631,7 @@ export async function getPendingReviewCount(workspaceId: string): Promise<number
 /** Dropdown data for the task views: assignable members (login users) +
  * platforms + accounts. */
 export async function getTaskOptions(workspaceId: string) {
-  const [members, channels, accounts] = await Promise.all([
+  const [members, channels, accounts, taskTypes] = await Promise.all([
     listMembers(workspaceId),
     prisma.socialChannel.findMany({
       where: { workspaceId },
@@ -641,6 +643,11 @@ export async function getTaskOptions(workspaceId: string) {
       orderBy: { createdAt: "asc" },
       select: { id: true, name: true, icon: true },
     }),
+    prisma.taskType.findMany({
+      where: { workspaceId, deletedAt: null },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, name: true },
+    }),
   ]);
   return {
     members: members
@@ -648,6 +655,7 @@ export async function getTaskOptions(workspaceId: string) {
       .map((m) => ({ id: m.userId, name: m.name, avatarColor: m.avatarColor })),
     channels,
     accounts,
+    taskTypes,
   };
 }
 

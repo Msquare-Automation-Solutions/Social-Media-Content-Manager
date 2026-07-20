@@ -33,19 +33,39 @@ export const TASK_CONTENT_TYPES: TaskContentType[] = [
 ];
 
 const BY_KEY = new Map(TASK_CONTENT_TYPES.map((t) => [t.key, t]));
+// Also look up by (lowercased) label so legacy key-based tasks and new
+// name-based types both resolve.
+const BY_LABEL = new Map(TASK_CONTENT_TYPES.map((t) => [t.label.toLowerCase(), t]));
 
-export function contentTypeLabel(key: string): string {
-  return BY_KEY.get(key)?.label ?? key;
+// The default content-type names seeded into a new workspace.
+export const DEFAULT_TASK_TYPE_NAMES = TASK_CONTENT_TYPES.map((t) => t.label);
+
+export function contentTypeLabel(value: string): string {
+  // Legacy tasks stored the KEY (e.g. "REEL"); new tasks store the name.
+  return BY_KEY.get(value)?.label ?? value;
 }
 
-/** The ordered production stages for a content type (defaults to [CONTENT]). */
-export function stagesForType(key: string): TaskStageKey[] {
-  const t = BY_KEY.get(key);
+/** A sensible default set of stages to pre-check when a type is picked. Types
+ * are free-form now, so this is only a suggestion — the planner edits it. */
+export function suggestStages(typeNameOrKey: string): TaskStageKey[] {
+  const t = BY_KEY.get(typeNameOrKey) ?? BY_LABEL.get(typeNameOrKey.toLowerCase());
   return t ? [...t.stages] : ["CONTENT"];
 }
 
 export function isTaskContentType(key: string): boolean {
   return BY_KEY.has(key);
+}
+
+// Week label from a date, e.g. 2026-07-10 → "July W2" (week = ceil(day/7)).
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+export function weekLabelForDate(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const week = Math.ceil(d.getDate() / 7);
+  return `${MONTHS[d.getMonth()]} W${week}`;
 }
 
 type StageState = { stage: string; reviewStatus: string };

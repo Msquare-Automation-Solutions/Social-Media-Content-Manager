@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { BackButton } from "@/components/ui/back-button";
 import { useToast } from "@/components/ui/toast";
 import { Icon, type IconName } from "@/components/ui/icons";
+import { useUploadDialog } from "@/components/save/dialog-context";
 import { initials } from "@/lib/colors";
 import type { TaskRow } from "@/lib/data";
 import {
@@ -15,10 +16,18 @@ import {
   TASK_PUBLISH_LABELS,
   type TaskWorkStatus,
 } from "@/lib/enums";
-import { TASK_CONTENT_TYPES, stagesForType, summarizeTasks } from "@/lib/tasks";
+import { contentTypeLabel, suggestStages, weekLabelForDate, summarizeTasks } from "@/lib/tasks";
+import { LIBRARY_VIEWS, LIBRARY_SLUGS } from "@/lib/library";
+
+// Library slug for an asset type, so a submission links to where it lives.
+function assetSlug(type: string): string {
+  const view = LIBRARY_VIEWS.find((v) => (v.types as readonly string[]).includes(type))?.key ?? "IMAGE";
+  return LIBRARY_SLUGS[view];
+}
 
 type Member = { id: string; name: string; avatarColor: string };
 type Opt = { id: string; name: string; icon: string };
+type TaskType = { id: string; name: string };
 export type TasksMode = "overview" | "board" | "mywork" | "review" | "analytics";
 
 type Props = {
@@ -27,6 +36,7 @@ type Props = {
   members: Member[];
   channels: Opt[];
   accounts: Opt[];
+  taskTypes: TaskType[];
   isAdmin: boolean;
   canEdit: boolean;
   meId: string;
@@ -125,6 +135,8 @@ export function TasksApp(props: Props) {
           task={editId ? tasks.find((t) => t.id === editId) ?? null : null}
           channels={props.channels}
           accounts={props.accounts}
+          taskTypes={props.taskTypes}
+          isAdmin={props.isAdmin}
           onClose={() => setFormOpen(false)}
           onSaved={() => { setFormOpen(false); refresh(); }}
           api={api}
@@ -316,6 +328,7 @@ function Analytics({ tasks }: { tasks: TaskRow[] }) {
 // ── Task drawer ──────────────────────────────────────────────────────────────
 function TaskDrawer({ task, members, isAdmin, canEdit, meId, onClose, onEdit, api, refresh, toast }: Props & { task: TaskRow; onClose: () => void; onEdit: () => void; api: (u: string, m: string, b?: unknown) => Promise<boolean>; refresh: () => void; toast: (m: string) => void }) {
   const [assignStage, setAssignStage] = useState<string | null>(null);
+  const upload = useUploadDialog();
   const t = task;
 
   async function assign(stageId: string, assigneeId: string, targetDate: string) {
@@ -326,7 +339,16 @@ function TaskDrawer({ task, members, isAdmin, canEdit, meId, onClose, onEdit, ap
     if (await api(`/api/tasks/${t.id}/stages/${stageId}`, "PATCH", { action: "work", workStatus })) { toast("Status updated"); refresh(); }
   }
   async function submit(stageId: string) {
-    if (await api(`/api/tasks/${t.id}/stages/${stageId}`, "PATCH", { action: "submit" })) { toast("Submitted for review 🔔"); refresh(); }
+    if (await api(`/api/tasks/${t.id}/stages/${stageId}`, "PATCH", { action: "submit" })) {
+      toast("Submitted for review 🔔 — attach your file");
+      // Pop the upload flow so the produced file becomes a linked media asset
+      // the reviewer can open from their notification.
+      upload.open(async (asset) => {
+        await api(`/api/tasks/${t.id}`, "PATCH", { assetIds: [...t.assets.map((a) => a.id), asset.id] });
+        refresh();
+      });
+      refresh();
+    }
   }
   async function review(stageId: string, outcome: "APPROVED" | "REWORK") {
     const note = outcome === "REWORK" ? prompt("Rework note?") ?? "" : "";
@@ -409,6 +431,30 @@ function TaskDrawer({ task, members, isAdmin, canEdit, meId, onClose, onEdit, ap
         ) : <div className="text-[12px] text-slate">Recorded after publishing.</div>}
         {t.currentStage === "ANALYTICS" && canEdit && <button onClick={recordMetrics} className="btn-premium mt-2 rounded-[9px] px-3.5 py-1.5 text-[12px] font-semibold">Record metrics →</button>}
 
+        <div className="mb-2 mt-4 flex items-center gap-2">
+          <span className="text-[11px] font-extrabold uppercase tracking-[0.06em] text-ink">Submission</span>
+          {canEdit && <button onClick={() => upload.open(async (asset) => { await api(`/api/tasks/${t.id}`, "PATCH", { assetIds: [...t.assets.map((a) => a.id), asset.id] }); refresh(); })} className="ml-auto rounded-[8px] border border-line px-2.5 py-1 text-[11.5px] font-semibold text-teal-dark hover:border-teal">＋ Upload file</button>}
+        </div>
+        {t.assets.length === 0 ? (
+          <div className="text-[12px] text-slate">No file attached yet.</div>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {t.assets.map((a) => (
+              <a key={a.id} href={`/${assetSlug(a.type)}?asset=${a.id}`} title={a.title} className="w-[92px]">
+                <span className="grid h-[58px] w-[92px] place-items-center overflow-hidden rounded-[9px] border border-line bg-wash/[0.05]">
+                  {a.thumbnailUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={a.thumbnailUrl} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <span className="text-[18px]">📄</span>
+                  )}
+                </span>
+                <span className="mt-1 block truncate text-[11px] text-slate">{a.title}</span>
+              </a>
+            ))}
+          </div>
+        )}
+
         {isAdmin && <div className="mt-6 border-t border-line pt-4"><button onClick={() => { if (confirm("Delete this task? Moves to Trash.")) api(`/api/tasks/${t.id}`, "DELETE").then((ok) => ok && (toast("Deleted → Trash"), onClose(), refresh())); }} className="rounded-[9px] border border-line px-3.5 py-1.5 text-[12px] font-semibold text-[#c23b2a] hover:border-[#c23b2a]">🗑 Delete task</button></div>}
       </div>
     </div>
@@ -431,49 +477,135 @@ function AssignForm({ members, current, onCancel, onSave }: { members: Member[];
 }
 
 // ── Create / edit form ───────────────────────────────────────────────────────
-function TaskForm({ task, channels, accounts, onClose, onSaved, api, toast }: { task: TaskRow | null; channels: Opt[]; accounts: Opt[]; onClose: () => void; onSaved: () => void; api: (u: string, m: string, b?: unknown) => Promise<boolean>; toast: (m: string) => void }) {
-  const [type, setType] = useState(task?.contentType ?? TASK_CONTENT_TYPES[0].key);
+function TaskForm({ task, channels, accounts, taskTypes, isAdmin, onClose, onSaved, api, toast }: { task: TaskRow | null; channels: Opt[]; accounts: Opt[]; taskTypes: TaskType[]; isAdmin: boolean; onClose: () => void; onSaved: () => void; api: (u: string, m: string, b?: unknown) => Promise<boolean>; toast: (m: string) => void }) {
+  const [types, setTypes] = useState<TaskType[]>(taskTypes);
+  const [type, setType] = useState(task ? contentTypeLabel(task.contentType) : taskTypes[0]?.name ?? "");
   const [title, setTitle] = useState(task?.title ?? "");
   const [brief, setBrief] = useState(task?.brief ?? "");
   const [content, setContent] = useState(task?.content ?? "");
   const [remarks, setRemarks] = useState(task?.remarks ?? "");
-  const [week, setWeek] = useState(task?.weekLabel ?? "");
+  const [date, setDate] = useState("");
   const [channelId, setChannelId] = useState(task?.channel?.id ?? "");
   const [accountId, setAccountId] = useState(task?.account?.id ?? "");
+  const [stages, setStages] = useState<string[]>(
+    task ? task.stages.map((s) => s.stage) : suggestStages(taskTypes[0]?.name ?? ""),
+  );
+  const [addingType, setAddingType] = useState(false);
+  const [newType, setNewType] = useState("");
+  const [manageTypes, setManageTypes] = useState(false);
   const [saving, setSaving] = useState(false);
   const cls = "w-full rounded-[9px] border border-line bg-card px-3 py-2.5 text-[13px] text-ink outline-none focus:border-teal";
   const lab = "text-[11.5px] font-semibold text-slate";
 
+  function pickType(name: string) {
+    setType(name);
+    if (!task) setStages(suggestStages(name)); // prefill stages for new tasks only
+  }
+  function toggleStage(s: string) {
+    setStages((cur) => (cur.includes(s) ? cur.filter((x) => x !== s) : [...cur, s]));
+  }
+  async function addType() {
+    const name = newType.trim();
+    if (!name) return;
+    const r = await fetch("/api/task-types", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name }) });
+    if (!r.ok) { toast("Couldn’t add type."); return; }
+    const t = (await r.json()) as TaskType;
+    setTypes((cur) => (cur.some((x) => x.id === t.id) ? cur : [...cur, t]));
+    pickType(t.name);
+    setNewType("");
+    setAddingType(false);
+    toast(`Added type “${t.name}”`);
+  }
+  async function deleteType(t: TaskType) {
+    if (!confirm(`Remove content type “${t.name}”? Existing tasks keep it.`)) return;
+    const r = await fetch(`/api/task-types/${t.id}`, { method: "DELETE" });
+    if (r.ok) { setTypes((cur) => cur.filter((x) => x.id !== t.id)); toast("Type removed"); }
+  }
+
   async function save() {
-    if (!title.trim() || saving) return;
+    if (!title.trim() || !type || stages.length === 0 || saving) return;
     setSaving(true);
-    const body = { title: title.trim(), brief: brief.trim(), content: content.trim(), remarks: remarks.trim(), contentType: type, channelId: channelId || null, accountId: accountId || null, weekLabel: week.trim() };
+    const ordered = TASK_BOARD_COLUMNS.filter((c) => stages.includes(c));
+    const body = {
+      title: title.trim(), brief: brief.trim(), content: content.trim(), remarks: remarks.trim(),
+      contentType: type, stages: ordered, channelId: channelId || null, accountId: accountId || null,
+      plannedDate: date ? new Date(date).toISOString() : null,
+    };
     const ok = await api(task ? `/api/tasks/${task.id}` : "/api/tasks", task ? "PATCH" : "POST", body);
     setSaving(false);
     if (ok) { toast(task ? "Changes saved" : "Task created, now assign each stage"); onSaved(); }
   }
-  const stages = stagesForType(type);
+
+  const STAGE_OPTS = ["CONTENT", "VIDEO", "GRAPHICS"] as const;
+  const week = date ? weekLabelForDate(new Date(date).toISOString()) : task?.weekLabel ?? "";
 
   return (
     <div onClick={onClose} className="fixed inset-0 z-[80] grid place-items-center bg-black/50 p-5 backdrop-blur-[3px]">
-      <div onClick={(e) => e.stopPropagation()} className="max-h-[90vh] w-[min(520px,96vw)] overflow-y-auto rounded-xl2 border border-line bg-card p-6 shadow-card">
+      <div onClick={(e) => e.stopPropagation()} className="max-h-[90vh] w-[min(540px,96vw)] overflow-y-auto rounded-xl2 border border-line bg-card p-6 shadow-card">
         <div className="mb-1 flex items-center justify-between"><h2 className="font-display text-[18px]">{task ? "Edit content" : "Plan content"}</h2><button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-full text-slate hover:bg-wash/[0.06]">✕</button></div>
-        <p className="mb-4 text-[12px] text-slate">Classify the piece, its production stages are set from the content type, then write the theme, brief and content.</p>
+        <p className="mb-4 text-[12px] text-slate">Classify the piece, choose the stages it needs, then write the theme, brief and content.</p>
         <div className="grid gap-3">
-          <div className="grid grid-cols-2 gap-3">
-            <label className={lab}>Content type<select value={type} onChange={(e) => setType(e.target.value)} className={cls + " mt-1"}>{TASK_CONTENT_TYPES.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}</select></label>
-            <label className={lab}>Week<input value={week} onChange={(e) => setWeek(e.target.value)} placeholder="e.g. July W2" className={cls + " mt-1 font-normal"} /></label>
+          {/* Content type + inline add/manage (admin) */}
+          <div className={lab}>
+            <div className="flex items-center gap-2">
+              Content type
+              {isAdmin && <button type="button" onClick={() => { setAddingType((v) => !v); setManageTypes(false); }} className="text-[11px] font-semibold text-teal-dark hover:underline">＋ Add</button>}
+              {isAdmin && types.length > 0 && <button type="button" onClick={() => { setManageTypes((v) => !v); setAddingType(false); }} className="text-[11px] font-semibold text-slate hover:underline">Manage</button>}
+            </div>
+            <select value={type} onChange={(e) => pickType(e.target.value)} className={cls + " mt-1"}>
+              {types.length === 0 && <option value="">— add a type —</option>}
+              {types.map((t) => <option key={t.id} value={t.name}>{t.name}</option>)}
+              {/* keep a legacy type value selectable when editing an older task */}
+              {type && !types.some((t) => t.name === type) && <option value={type}>{type}</option>}
+            </select>
+            {addingType && (
+              <div className="mt-2 flex gap-2">
+                <input autoFocus value={newType} onChange={(e) => setNewType(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addType()} placeholder="New content type" className={cls + " font-normal"} />
+                <button type="button" onClick={addType} className="btn-premium rounded-[9px] px-3 text-[12px] font-semibold">Add</button>
+              </div>
+            )}
+            {manageTypes && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {types.map((t) => (
+                  <span key={t.id} className="inline-flex items-center gap-1 rounded-full bg-wash/[0.06] px-2 py-1 text-[11.5px] font-normal text-ink">
+                    {t.name}
+                    <button type="button" onClick={() => deleteType(t)} className="text-slate hover:text-[#c23b2a]">✕</button>
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
+
+          {/* Stages (per task) */}
+          <div className={lab}>
+            Stages <span className="font-normal">(pick what this piece needs)</span>
+            <div className="mt-1 flex flex-wrap gap-2">
+              {STAGE_OPTS.map((s) => {
+                const on = stages.includes(s);
+                return (
+                  <button key={s} type="button" onClick={() => toggleStage(s)} className={`rounded-full border px-3 py-1.5 text-[12.5px] font-normal transition ${on ? "border-teal bg-teal-soft font-semibold text-teal-dark" : "border-line bg-bg text-ink hover:border-teal"}`}>
+                    {STAGE_LABELS[s]}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="mt-1.5 text-[11.5px] font-normal text-slate">Then Publishing, Analytics follow automatically.</div>
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <label className={lab}>Platform<select value={channelId} onChange={(e) => setChannelId(e.target.value)} className={cls + " mt-1"}><option value="">—</option>{channels.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
             <label className={lab}>Account<select value={accountId} onChange={(e) => setAccountId(e.target.value)} className={cls + " mt-1"}><option value="">—</option>{accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></label>
           </div>
-          <div className="text-[12px] text-slate">Stages: <b className="text-teal-dark">{stages.map((s) => STAGE_LABELS[s]).join(" → ")} → Publishing → Analytics</b></div>
+          <label className={lab}>
+            Planned date {week && <span className="font-normal text-teal-dark">· {week}</span>}
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={cls + " mt-1 font-normal"} />
+          </label>
+
           <label className={lab}>Content theme<input autoFocus value={title} onChange={(e) => setTitle(e.target.value)} className={cls + " mt-1 font-normal"} /></label>
           <label className={lab}>Content brief<input value={brief} onChange={(e) => setBrief(e.target.value)} className={cls + " mt-1 font-normal"} /></label>
           <label className={lab}>Content (draft)<textarea value={content} onChange={(e) => setContent(e.target.value)} className={cls + " mt-1 min-h-[80px] resize-y font-normal"} /></label>
           <label className={lab}>Remarks<input value={remarks} onChange={(e) => setRemarks(e.target.value)} className={cls + " mt-1 font-normal"} /></label>
-          <div className="flex justify-end gap-2"><button onClick={onClose} className="px-3 py-2 text-[12.5px] font-semibold text-slate">Cancel</button><button onClick={save} disabled={!title.trim() || saving} className="btn-premium rounded-[10px] px-4 py-2 text-[12.5px] font-semibold disabled:opacity-50">{saving ? "Saving…" : task ? "Save changes" : "Create task"}</button></div>
+          <div className="flex justify-end gap-2"><button onClick={onClose} className="px-3 py-2 text-[12.5px] font-semibold text-slate">Cancel</button><button onClick={save} disabled={!title.trim() || !type || stages.length === 0 || saving} className="btn-premium rounded-[10px] px-4 py-2 text-[12.5px] font-semibold disabled:opacity-50">{saving ? "Saving…" : task ? "Save changes" : "Create task"}</button></div>
         </div>
       </div>
     </div>

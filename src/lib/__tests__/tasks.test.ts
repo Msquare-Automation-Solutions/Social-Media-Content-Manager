@@ -1,23 +1,33 @@
 import { describe, it, expect } from "vitest";
-import { stagesForType, computeCurrentStage, summarizeTasks, isTaskContentType } from "@/lib/tasks";
+import { suggestStages, computeCurrentStage, summarizeTasks, weekLabelForDate } from "@/lib/tasks";
 
-describe("stagesForType", () => {
-  it("maps written types to Content only", () => {
-    expect(stagesForType("ARTICLE")).toEqual(["CONTENT"]);
+describe("suggestStages (default stage suggestion)", () => {
+  it("suggests Content only for written types (by key or name)", () => {
+    expect(suggestStages("ARTICLE")).toEqual(["CONTENT"]);
+    expect(suggestStages("Article")).toEqual(["CONTENT"]);
   });
-  it("maps carousels to Content + Graphics", () => {
-    expect(stagesForType("CAROUSEL")).toEqual(["CONTENT", "GRAPHICS"]);
+  it("suggests Content + Graphics for carousels", () => {
+    expect(suggestStages("Carousels")).toEqual(["CONTENT", "GRAPHICS"]);
   });
-  it("maps video types to Content + Video + Graphics", () => {
-    expect(stagesForType("REEL")).toEqual(["CONTENT", "VIDEO", "GRAPHICS"]);
+  it("suggests Content + Video + Graphics for video types", () => {
+    expect(suggestStages("Reels")).toEqual(["CONTENT", "VIDEO", "GRAPHICS"]);
   });
-  it("maps posters to Graphics only", () => {
-    expect(stagesForType("AD_POSTER")).toEqual(["GRAPHICS"]);
+  it("suggests Graphics only for posters", () => {
+    expect(suggestStages("Ad Poster")).toEqual(["GRAPHICS"]);
   });
-  it("defaults unknown types to Content", () => {
-    expect(stagesForType("???")).toEqual(["CONTENT"]);
-    expect(isTaskContentType("???")).toBe(false);
-    expect(isTaskContentType("REEL")).toBe(true);
+  it("defaults unknown/custom types to Content", () => {
+    expect(suggestStages("My Custom Type")).toEqual(["CONTENT"]);
+  });
+});
+
+describe("weekLabelForDate", () => {
+  it("derives month + week-of-month", () => {
+    expect(weekLabelForDate("2026-07-03")).toBe("July W1");
+    expect(weekLabelForDate("2026-07-10")).toBe("July W2");
+    expect(weekLabelForDate("2026-07-30")).toBe("July W5");
+  });
+  it("returns empty for an invalid date", () => {
+    expect(weekLabelForDate("nope")).toBe("");
   });
 });
 

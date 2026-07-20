@@ -57,6 +57,7 @@ model Workspace {
   notifications Notification[]
   binItems      ContentBinItem[]
   tasks         Task[]
+  taskTypes     TaskType[]
 }
 
 // Immutable audit trail of who did what. Actor fields are denormalized so an
@@ -386,6 +387,21 @@ model TaskStage {
 
   @@index([taskId])
   @@index([assigneeId, reviewStatus])
+}
+
+// Admin-editable content types for the task pipeline (Reels, Article, …).
+// Replaces the old hardcoded config; each task picks a type by name and its
+// own stages. Soft-deleted so archiving keeps past tasks readable.
+model TaskType {
+  id          String    @id @default(cuid())
+  workspaceId String
+  name        String
+  createdAt   DateTime  @default(now())
+  deletedAt   DateTime?
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, deletedAt])
 }
 
 model TaskAsset {

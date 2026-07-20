@@ -3,8 +3,8 @@ import { guard } from "@/lib/api-guard";
 import { prisma } from "@/lib/db";
 import { logActivity } from "@/lib/activity";
 import { recomputeCurrentStage } from "@/lib/task-server";
-import { stagesForType, isTaskContentType } from "@/lib/tasks";
-import { TASK_PUBLISH_STATUSES } from "@/lib/enums";
+import { weekLabelForDate } from "@/lib/tasks";
+import { TASK_PUBLISH_STATUSES, TASK_STAGES } from "@/lib/enums";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,10 +15,13 @@ const patchSchema = z.object({
   brief: z.string().trim().max(2000).optional(),
   content: z.string().trim().max(100000).optional(),
   remarks: z.string().trim().max(2000).optional(),
-  contentType: z.string().refine(isTaskContentType).optional(),
+  contentType: z.string().trim().min(1).max(60).optional(),
   channelId: z.string().nullable().optional(),
   accountId: z.string().nullable().optional(),
   weekLabel: z.string().trim().max(40).optional(),
+  plannedDate: z.string().datetime().nullable().optional(),
+  // Explicit per-task stages — reconciled with existing rows (keeps assignments).
+  stages: z.array(z.enum(TASK_STAGES)).min(1).optional(),
   binItemId: z.string().nullable().optional(),
   assetIds: z.array(z.string()).max(50).optional(),
   // Publish.
@@ -47,9 +50,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (!parsed.success) return new Response("Bad request", { status: 400 });
   const d = parsed.data;
 
-  // Changing content type regenerates the production stages (unassigned).
-  const typeChanged = d.contentType !== undefined && d.contentType !== task.contentType;
-
+  const week =
+    d.plannedDate !== undefined && d.plannedDate ? weekLabelForDate(d.plannedDate) : undefined;
   const publishing = d.publishStatus !== undefined && d.publishStatus.startsWith("PUBLISHED");
   const recordingMetrics =
     d.metricClicks !== undefined || d.metricLeads !== undefined || d.metricEng !== undefined;
@@ -65,7 +67,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         ...(d.contentType !== undefined ? { contentType: d.contentType } : {}),
         ...(d.channelId !== undefined ? { channelId: d.channelId } : {}),
         ...(d.accountId !== undefined ? { accountId: d.accountId } : {}),
-        ...(d.weekLabel !== undefined ? { weekLabel: d.weekLabel } : {}),
+        ...(week !== undefined ? { weekLabel: week } : d.weekLabel !== undefined ? { weekLabel: d.weekLabel } : {}),
+        ...(d.plannedDate !== undefined ? { plannedDate: d.plannedDate ? new Date(d.plannedDate) : null } : {}),
         ...(d.binItemId !== undefined ? { binItemId: d.binItemId } : {}),
         ...(d.publishStatus !== undefined ? { publishStatus: d.publishStatus } : {}),
         ...(d.contentLink !== undefined ? { contentLink: d.contentLink } : {}),
@@ -81,12 +84,19 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       },
     });
 
-    if (typeChanged) {
-      const stages = stagesForType(d.contentType!);
-      await tx.taskStage.deleteMany({ where: { taskId: id } });
-      await tx.taskStage.createMany({
-        data: stages.map((s, i) => ({ taskId: id, stage: s, order: i })),
-      });
+    // Reconcile stages if the planner changed the selection: add newly-picked
+    // stages, drop deselected ones, keep existing rows (and their assignments).
+    if (d.stages !== undefined) {
+      const want = TASK_STAGES.filter((s) => d.stages!.includes(s));
+      const have = new Set(task.stages.map((s) => s.stage));
+      const remove = task.stages.filter((s) => !want.includes(s.stage as (typeof want)[number]));
+      if (remove.length)
+        await tx.taskStage.deleteMany({ where: { id: { in: remove.map((s) => s.id) } } });
+      for (let i = 0; i < want.length; i++) {
+        const stage = want[i];
+        if (have.has(stage)) await tx.taskStage.updateMany({ where: { taskId: id, stage }, data: { order: i } });
+        else await tx.taskStage.create({ data: { taskId: id, stage, order: i } });
+      }
     }
 
     if (d.assetIds !== undefined) {
