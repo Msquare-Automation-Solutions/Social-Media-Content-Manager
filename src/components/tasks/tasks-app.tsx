@@ -272,9 +272,11 @@ function MyWork({ tasks, meId, onOpen }: { tasks: TaskRow[]; meId: string; onOpe
     const r = x.s.reviewStatus;
     groups[r === "APPROVED" ? "Done" : r === "PENDING" ? "In review" : r === "REWORK" ? "Needs rework" : "To do"].push(x);
   }
-  if (!mine.length) return <Empty text="Nothing assigned to you yet." />;
   return (
     <div>
+      {mine.length === 0 && (
+        <p className="mb-1 text-[13px] text-slate">Nothing assigned to you yet.</p>
+      )}
       {Object.entries(groups).map(([g, arr]) => (
         <div key={g}>
           <div className="mb-2 mt-4 text-[11px] font-extrabold uppercase tracking-[0.06em] text-ink">{g} <span className="text-slate">({arr.length})</span></div>
