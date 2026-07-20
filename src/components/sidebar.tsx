@@ -59,150 +59,197 @@ export function Sidebar({
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   type Item = { href: string; label: string; icon: IconName; count?: number; hot?: boolean; active: boolean };
-  type Group = { key: string; label: string; items: Item[] };
+  type Group = { key: string; label?: string; items: Item[] };
+  type Area = { key: string; label: string; icon: IconName; hot: boolean; groups: Group[] };
   const it = (href: string, label: string, icon: IconName, active: boolean, count?: number, hot?: boolean): Item => ({ href, label, icon, active, count, hot });
 
-  const groups: Group[] = [
+  const AREAS: Area[] = [
     {
-      key: "create",
-      label: "Create",
-      items: [
-        it("/create", "Content Creator", "create", isActive("/create")),
-        it("/content-bin", "Content Bin", "bin", isActive("/content-bin"), binCount || undefined),
+      key: "home",
+      label: "Home",
+      icon: "home",
+      hot: false,
+      groups: [
+        {
+          key: "home",
+          items: [
+            it("/", "Workspace overview", "overview", isActive("/")),
+            it("/dashboard", "Dashboard", "dashboard", isActive("/dashboard")),
+          ],
+        },
       ],
     },
     {
-      key: "produce",
-      label: "Produce",
-      items: [
-        it("/content-overview", "Content Overview", "overview", isActive("/content-overview")),
-        it("/tasks", "Tasks board", "tasks", pathname === "/tasks"),
-        it("/my-work", "My Work", "mywork", isActive("/my-work"), myTaskCount || undefined, myTaskCount > 0),
-        ...(isAdmin ? [it("/tasks/review", "To review", "review", isActive("/tasks/review"), taskReviewCount || undefined, taskReviewCount > 0)] : []),
+      key: "content",
+      label: "Content",
+      icon: "images",
+      hot: queueCount > 0 || reworkCount > 0,
+      groups: [
+        {
+          key: "create",
+          label: "Create",
+          items: [
+            it("/create", "Content Creator", "create", isActive("/create")),
+            it("/content-bin", "Content Bin", "bin", isActive("/content-bin"), binCount || undefined),
+          ],
+        },
+        {
+          key: "library",
+          label: "Library",
+          items: LIBRARY_VIEWS.map((v) =>
+            it(`/${LIBRARY_SLUGS[v.key]}`, v.label, VIEW_ICONS[v.key], isActive(`/${LIBRARY_SLUGS[v.key]}`), counts[v.key]),
+          ),
+        },
+        {
+          key: "review",
+          label: "Review & publish",
+          items: [
+            it("/review", isPrimaryOwner ? "Review queue" : "Pending", "review", isActive("/review"), queueCount || undefined, queueCount > 0),
+            it("/rework", "Needs rework", "rework", isActive("/rework"), reworkCount || undefined, reworkCount > 0),
+            it("/approved", "Approved", "approved", isActive("/approved"), approvedCount || undefined),
+            it("/published", "Published", "published", isActive("/published"), publishedCount || undefined),
+          ],
+        },
       ],
     },
     {
-      key: "review",
-      label: "Review & publish",
-      items: [
-        it("/review", isPrimaryOwner ? "Review queue" : "Pending", "review", isActive("/review"), queueCount || undefined, queueCount > 0),
-        it("/rework", "Needs rework", "rework", isActive("/rework"), reworkCount || undefined, reworkCount > 0),
-        it("/approved", "Approved", "approved", isActive("/approved"), approvedCount || undefined),
-        it("/published", "Published", "published", isActive("/published"), publishedCount || undefined),
-      ],
-    },
-    {
-      key: "library",
-      label: "Library",
-      items: [
-        it("/", "Workspace overview", "overview", isActive("/")),
-        ...LIBRARY_VIEWS.map((v) =>
-          it(`/${LIBRARY_SLUGS[v.key]}`, v.label, VIEW_ICONS[v.key], isActive(`/${LIBRARY_SLUGS[v.key]}`), counts[v.key]),
-        ),
-      ],
-    },
-    {
-      key: "insights",
-      label: "Insights",
-      items: [
-        it("/dashboard", "Dashboard", "dashboard", isActive("/dashboard")),
-        it("/analytics", "Analytics", "analytics", isActive("/analytics")),
+      key: "tasks",
+      label: "Tasks",
+      icon: "tasks",
+      hot: myTaskCount > 0 || taskReviewCount > 0,
+      groups: [
+        {
+          key: "tasks",
+          items: [
+            it("/content-overview", "Content Overview", "overview", isActive("/content-overview")),
+            it("/tasks", "Tasks board", "tasks", pathname === "/tasks"),
+            it("/my-work", "My Work", "mywork", isActive("/my-work"), myTaskCount || undefined, myTaskCount > 0),
+            ...(isAdmin ? [it("/tasks/review", "To review", "review", isActive("/tasks/review"), taskReviewCount || undefined, taskReviewCount > 0)] : []),
+            it("/analytics", "Analytics", "analytics", isActive("/analytics")),
+          ],
+        },
       ],
     },
     {
       key: "workspace",
       label: "Workspace",
-      items: [
-        it("/members", "Members", "members", isActive("/members"), membersCount),
-        ...(isAdmin ? [it("/activity", "Activity", "activity", isActive("/activity"))] : []),
-        it("/trash", "Trash", "trash", isActive("/trash")),
+      icon: "members",
+      hot: false,
+      groups: [
+        {
+          key: "workspace",
+          items: [
+            it("/members", "Members", "members", isActive("/members"), membersCount),
+            ...(isAdmin ? [it("/activity", "Activity", "activity", isActive("/activity"))] : []),
+            it("/trash", "Trash", "trash", isActive("/trash")),
+          ],
+        },
       ],
     },
   ];
-  const activeKey = groups.find((g) => g.items.some((i) => i.active))?.key ?? "produce";
-  // A group is open if the user toggled it; otherwise only the active section is.
+  const activeArea = AREAS.find((a) => a.groups.some((g) => g.items.some((i) => i.active)))?.key ?? "home";
+  const current = AREAS.find((a) => a.key === activeArea)!;
+  const activeGroupKey = current.groups.find((g) => g.items.some((i) => i.active))?.key;
+  // A labelled group is open if toggled, else when it holds the active item.
   const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
   const toggle = (k: string, cur: boolean) => setOpenMap((m) => ({ ...m, [k]: !cur }));
+  const areaHref = (a: Area) => a.groups[0].items[0].href;
 
   return (
-    <aside className="flex h-screen flex-col border-r border-line/80 bg-gradient-to-b from-card to-bg px-3.5 pb-5 pt-4">
-      <div className="flex items-center gap-2 px-1 pb-3.5 pt-0.5 font-display text-[14px] font-bold">
-        <div className="grid h-7 w-7 shrink-0 place-items-center rounded-[9px] bg-brand-teal text-[13px] text-white shadow-glow-sm">
-          ◆
-        </div>
-        <span className="min-w-0 flex-1 truncate" title={workspaceName}>{workspaceName}</span>
-        <NotificationBell initialUnread={unreadCount} />
-      </div>
-
-      {canUpload && (
-        <button
-          onClick={() => upload.open()}
-          className="btn-premium mb-3.5 flex items-center justify-center gap-2 rounded-[12px] px-3.5 py-2.5 font-semibold"
-        >
-          <Icon name="upload" size={17} /> Upload files
-        </button>
-      )}
-
-      {/* Only the nav list scrolls (vertical only) — the header (with the
-          notification dropdown) and footer stay put and aren't clipped. */}
-      <nav className="-mr-2 flex min-h-0 flex-1 flex-col gap-[2px] overflow-y-auto overflow-x-hidden overscroll-contain pr-2">
-        {groups.map((g) => {
-          const open = openMap[g.key] ?? g.key === activeKey;
-          const collapsedHot = !open && g.items.some((i) => i.hot);
+    <aside className="flex h-screen border-r border-line/80 bg-gradient-to-b from-card to-bg">
+      {/* Area rail */}
+      <div className="flex w-[62px] shrink-0 flex-col items-center gap-1 border-r border-line/60 bg-wash/[0.02] py-3">
+        <div className="mb-2 grid h-8 w-8 place-items-center rounded-[9px] bg-brand-teal text-[13px] text-white shadow-glow-sm">◆</div>
+        {AREAS.map((a) => {
+          const on = a.key === activeArea;
           return (
-            <div key={g.key}>
-              <button
-                onClick={() => toggle(g.key, open)}
-                className="flex w-full items-center gap-1.5 rounded-[8px] px-3 pb-1 pt-3 text-[11px] font-bold uppercase tracking-[0.06em] text-slate/80 transition hover:text-ink"
-              >
-                <span className={`text-[9px] transition-transform ${open ? "rotate-90" : ""}`}>▶</span>
-                {g.label}
-                {collapsedHot && <span className="ml-1 h-1.5 w-1.5 rounded-full bg-[#e0912b]" />}
-              </button>
-              {open &&
-                g.items.map((i) => (
-                  <NavLink key={i.href} href={i.href} active={i.active} label={i.label} icon={i.icon} count={i.count} hot={i.hot} />
-                ))}
-            </div>
+            <Link
+              key={a.key}
+              href={areaHref(a)}
+              title={a.label}
+              className={`relative flex w-[52px] flex-col items-center gap-0.5 rounded-[10px] py-2 text-[10px] font-semibold transition ${
+                on ? "bg-teal-soft text-teal-dark" : "text-slate hover:bg-wash/[0.05] hover:text-ink"
+              }`}
+            >
+              <Icon name={a.icon} size={19} />
+              {a.label}
+              {a.hot && !on && <span className="absolute right-2.5 top-1.5 h-1.5 w-1.5 rounded-full bg-[#e0912b]" />}
+            </Link>
           );
         })}
-      </nav>
+      </div>
 
-      <div className="pt-3">
-        <Link
-          href="/account"
-          className="flex items-center gap-2.5 rounded-[12px] bg-wash/[0.03] px-3 py-2.5 transition duration-200 hover:bg-wash/[0.06]"
-        >
-          <div
-            className="grid h-8 w-8 place-items-center rounded-full text-[13px] font-bold text-white shadow-soft"
-            style={{ background: user.avatarColor }}
-          >
-            {initials(user.name)}
-          </div>
-          <div className="min-w-0">
-            <b className="block text-[12.5px]">{user.name}</b>
-            <span className="block truncate text-[11px] text-slate">
-              {user.email} · {roleLabel(user.role)}
-            </span>
-          </div>
-        </Link>
-        <div className="mt-1.5 flex items-center gap-1.5">
-          <button
-            onClick={() => signOut({ callbackUrl: "/login" })}
-            className="flex flex-1 items-center justify-center gap-2 rounded-[10px] border border-line py-2.5 font-medium text-slate hover:bg-bg hover:text-[#c23b2a]"
-          >
-            <Icon name="signout" size={16} /> Sign out
-          </button>
-          <ThemeToggle />
+      {/* Contextual sidebar for the active area */}
+      <div className="flex min-w-0 flex-1 flex-col px-3 pb-5 pt-4">
+        <div className="flex items-center gap-2 px-1 pb-3 pt-0.5 font-display text-[14px] font-bold">
+          <span className="min-w-0 flex-1 truncate" title={workspaceName}>{workspaceName}</span>
+          <NotificationBell initialUnread={unreadCount} />
         </div>
-        <a
-          href="https://github.com/Msquare-Automation-Solutions/Social-Media-Content-Manager"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-2 block text-center text-[10.5px] text-slate/60 transition hover:text-slate"
-        >
-          Built by Msquare Automation Solutions
-        </a>
+
+        {canUpload && (
+          <button
+            onClick={() => upload.open()}
+            className="btn-premium mb-3 flex items-center justify-center gap-2 rounded-[12px] px-3.5 py-2.5 font-semibold"
+          >
+            <Icon name="upload" size={17} /> Upload files
+          </button>
+        )}
+
+        <nav className="-mr-2 flex min-h-0 flex-1 flex-col gap-[2px] overflow-y-auto overflow-x-hidden overscroll-contain pr-2">
+          {current.groups.map((g) => {
+            if (!g.label)
+              return g.items.map((i) => (
+                <NavLink key={i.href} href={i.href} active={i.active} label={i.label} icon={i.icon} count={i.count} hot={i.hot} />
+              ));
+            const open = openMap[g.key] ?? g.key === activeGroupKey;
+            const collapsedHot = !open && g.items.some((i) => i.hot);
+            return (
+              <div key={g.key}>
+                <button
+                  onClick={() => toggle(g.key, open)}
+                  className="flex w-full items-center gap-1.5 rounded-[8px] px-3 pb-1 pt-3 text-[11px] font-bold uppercase tracking-[0.06em] text-slate/80 transition hover:text-ink"
+                >
+                  <span className={`text-[9px] transition-transform ${open ? "rotate-90" : ""}`}>▶</span>
+                  {g.label}
+                  {collapsedHot && <span className="ml-1 h-1.5 w-1.5 rounded-full bg-[#e0912b]" />}
+                </button>
+                {open &&
+                  g.items.map((i) => (
+                    <NavLink key={i.href} href={i.href} active={i.active} label={i.label} icon={i.icon} count={i.count} hot={i.hot} />
+                  ))}
+              </div>
+            );
+          })}
+        </nav>
+
+        <div className="pt-3">
+          <Link
+            href="/account"
+            className="flex items-center gap-2.5 rounded-[12px] bg-wash/[0.03] px-3 py-2.5 transition duration-200 hover:bg-wash/[0.06]"
+          >
+            <div
+              className="grid h-8 w-8 place-items-center rounded-full text-[13px] font-bold text-white shadow-soft"
+              style={{ background: user.avatarColor }}
+            >
+              {initials(user.name)}
+            </div>
+            <div className="min-w-0">
+              <b className="block text-[12.5px]">{user.name}</b>
+              <span className="block truncate text-[11px] text-slate">
+                {user.email} · {roleLabel(user.role)}
+              </span>
+            </div>
+          </Link>
+          <div className="mt-1.5 flex items-center gap-1.5">
+            <button
+              onClick={() => signOut({ callbackUrl: "/login" })}
+              className="flex flex-1 items-center justify-center gap-2 rounded-[10px] border border-line py-2.5 font-medium text-slate hover:bg-bg hover:text-[#c23b2a]"
+            >
+              <Icon name="signout" size={16} /> Sign out
+            </button>
+            <ThemeToggle />
+          </div>
+        </div>
       </div>
     </aside>
   );
