@@ -22,7 +22,7 @@ export function PlatformCarousel({ platforms }: { platforms: PlatformSlice[] }) 
   if (count === 0) {
     return (
       <div className="py-6 text-center text-[13px] text-slate">
-        No platforms yet — add one from the save dialog.
+        No platforms yet, add one from the save dialog.
       </div>
     );
   }

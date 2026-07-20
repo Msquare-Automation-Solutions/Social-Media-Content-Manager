@@ -40,7 +40,7 @@ export default async function ActivityPage({
         <h2 className="font-display text-[19px]">Activity</h2>
       </div>
       <p className="mb-4 text-[12.5px] text-slate">
-        Who did what across the workspace — visible to admins only.
+        Who did what across the workspace, visible to admins only.
       </p>
       <ActivityPanel
         key={`${sp.actor ?? ""}-${sp.category ?? ""}-${sp.from ?? ""}-${sp.to ?? ""}`}

@@ -52,7 +52,7 @@ export const BIN_STATUS_LABELS: Record<BinStatus, string> = {
 
 // ── Task pipeline (production workflow) ──────────────────────────────────────
 // Production stages a task can move through (which apply depends on content
-// type — see src/lib/tasks.ts). PUBLISHING/ANALYTICS/DONE are finish steps.
+// type, see src/lib/tasks.ts). PUBLISHING/ANALYTICS/DONE are finish steps.
 export const TASK_STAGES = ["CONTENT", "VIDEO", "GRAPHICS"] as const;
 export type TaskStageKey = (typeof TASK_STAGES)[number];
 
@@ -87,10 +87,10 @@ export const TASK_WORK_STATUSES = [
 export type TaskWorkStatus = (typeof TASK_WORK_STATUSES)[number];
 export const TASK_WORK_LABELS: Record<TaskWorkStatus, string> = {
   YTI: "Yet to initiate",
-  WIP_ON_TRACK: "WIP — on track",
-  WIP_DELAY: "WIP — delayed",
-  COMPLETED_ON_TIME: "Completed — on time",
-  COMPLETED_DELAY: "Completed — delayed",
+  WIP_ON_TRACK: "WIP, on track",
+  WIP_DELAY: "WIP, delayed",
+  COMPLETED_ON_TIME: "Completed, on time",
+  COMPLETED_DELAY: "Completed, delayed",
 };
 
 // Admin-driven review status of a stage.
@@ -114,8 +114,8 @@ export type TaskPublishStatus = (typeof TASK_PUBLISH_STATUSES)[number];
 export const TASK_PUBLISH_LABELS: Record<TaskPublishStatus, string> = {
   NOT_PUBLISHED: "Not published",
   PENDING: "Pending",
-  PUBLISHED_ON_TIME: "Published — on time",
-  PUBLISHED_DELAY: "Published — delayed",
+  PUBLISHED_ON_TIME: "Published, on time",
+  PUBLISHED_DELAY: "Published, delayed",
 };
 
 export const CHAT_ROLES = ["user", "assistant"] as const;

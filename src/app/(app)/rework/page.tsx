@@ -48,7 +48,7 @@ export default async function ReworkPage({
       canReview={isAdminRole(user.role)}
       initialAssetId={sp.asset ?? null}
       title="Rework"
-      subtitle="Items an admin sent back — edit and resubmit to move them into review again."
+      subtitle="Items an admin sent back, edit and resubmit to move them into review again."
       emptyText="Nothing needs rework right now."
     />
   );

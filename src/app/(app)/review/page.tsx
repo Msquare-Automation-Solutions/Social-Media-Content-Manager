@@ -8,7 +8,7 @@ import { ApprovedView } from "@/components/approved/approved-view";
 
 export const dynamic = "force-dynamic";
 
-// The review queue is a card gallery of everything awaiting approval — same
+// The review queue is a card gallery of everything awaiting approval, same
 // filterable grid as the Approved / library lists. Opening a card's drawer is
 // where admins Approve / Request rework (canReview drives those controls).
 export default async function ReviewPage({
@@ -56,10 +56,10 @@ export default async function ReviewPage({
       title={user.role === "OWNER" ? "Review queue" : "Pending"}
       subtitle={
         canReview
-          ? "Everything awaiting approval — open a card to preview it, then approve or send it back for rework."
-          : "Everything awaiting approval — open a card to preview it and see its review status."
+          ? "Everything awaiting approval, open a card to preview it, then approve or send it back for rework."
+          : "Everything awaiting approval, open a card to preview it and see its review status."
       }
-      emptyText="🎉 Queue’s clear — nothing waiting for review."
+      emptyText="🎉 Queue’s clear, nothing waiting for review."
       initialAssetId={sp.asset ?? null}
     />
   );

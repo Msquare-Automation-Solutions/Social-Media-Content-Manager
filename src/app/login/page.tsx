@@ -13,7 +13,7 @@ export default async function LoginPage({
   if (user) redirect("/");
 
   const notice = sp.reset
-    ? "Password updated — sign in with your new password."
+    ? "Password updated, sign in with your new password."
     : sp.joined
       ? "You're in! Sign in to your new workspace."
       : null;

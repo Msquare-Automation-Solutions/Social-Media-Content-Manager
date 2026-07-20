@@ -282,7 +282,7 @@ function CreateAccountModal({
   return (
     <Modal
       title="Create account"
-      subtitle="You set the password and share it with the person — no email needed."
+      subtitle="You set the password and share it with the person, no email needed."
       onClose={onClose}
     >
       <Field label="Name">
@@ -305,8 +305,8 @@ function CreateAccountModal({
       </Field>
       <Field label="Role">
         <select value={role} onChange={(e) => setRole(e.target.value)} className={inputCls}>
-          <option value="EDITOR">User — create &amp; manage content</option>
-          <option value="ADMIN">Admin — manage accounts &amp; content</option>
+          <option value="EDITOR">User, create &amp; manage content</option>
+          <option value="ADMIN">Admin, manage accounts &amp; content</option>
         </select>
       </Field>
       <Field label="Password (min 8 characters)">
@@ -358,7 +358,7 @@ function ResetPasswordModal({
 
   return (
     <Modal
-      title={`Reset password — ${member.name}`}
+      title={`Reset password, ${member.name}`}
       subtitle="They'll be signed out and must use the new password. Share it with them."
       onClose={onClose}
     >
@@ -415,7 +415,7 @@ function DeleteAccountModal({
   return (
     <Modal
       title={`Delete ${member.name}?`}
-      subtitle="This permanently removes their login. Their content is reassigned first — nothing is lost."
+      subtitle="This permanently removes their login. Their content is reassigned first, nothing is lost."
       onClose={onClose}
     >
       <div className="mb-3 rounded-[11px] bg-bg px-3.5 py-2.5 text-[12.5px] text-slate">

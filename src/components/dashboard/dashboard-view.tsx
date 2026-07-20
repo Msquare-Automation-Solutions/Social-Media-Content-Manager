@@ -154,7 +154,7 @@ export function DashboardView({
           <h3 className="mb-3 font-display text-[15px]">Upcoming posts</h3>
           {data.upcoming.length === 0 ? (
             <div className="py-6 text-center text-[12.5px] text-slate">
-              Nothing scheduled ahead — add post dates in the save dialog.
+              Nothing scheduled ahead, add post dates in the save dialog.
             </div>
           ) : (
             <ul className="flex flex-col divide-y divide-line/70">

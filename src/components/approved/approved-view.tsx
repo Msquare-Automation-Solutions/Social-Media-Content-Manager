@@ -33,7 +33,7 @@ type Props = {
   initialAssetId?: string | null;
 };
 
-// A browsable gallery of a status bucket (Approved / Published) — cards with
+// A browsable gallery of a status bucket (Approved / Published), cards with
 // live previews of the media / link, filterable by person, platform, category.
 export function ApprovedView({
   assets,
@@ -44,8 +44,8 @@ export function ApprovedView({
   canEdit,
   canReview,
   title = "Approved",
-  subtitle = "Everything signed off and ready to publish — preview any card to open, download, or edit it.",
-  emptyText = "Nothing approved yet — items show here once an admin approves them from the review queue.",
+  subtitle = "Everything signed off and ready to publish, preview any card to open, download, or edit it.",
+  emptyText = "Nothing approved yet, items show here once an admin approves them from the review queue.",
   initialAssetId = null,
 }: Props) {
   const router = useRouter();
@@ -190,7 +190,7 @@ export function ApprovedView({
 
       {assets.length === 0 ? (
         <div className="grid place-items-center py-20 text-center text-slate">
-          {hasFilters ? "No items match — adjust the filters." : emptyText}
+          {hasFilters ? "No items match, adjust the filters." : emptyText}
         </div>
       ) : (
         <div className="grid grid-cols-[repeat(auto-fill,minmax(215px,1fr))] gap-4 pb-24">

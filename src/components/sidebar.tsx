@@ -161,7 +161,7 @@ export function Sidebar({
 
   return (
     <aside className="peer/nav group/rail relative flex h-screen w-[62px] shrink-0">
-      {/* Area rail — always visible */}
+      {/* Area rail, always visible */}
       <div className="z-50 flex h-full w-[62px] shrink-0 flex-col items-center gap-1 border-r border-line/70 bg-gradient-to-b from-card to-bg py-3">
         <div className="mb-2 grid h-8 w-8 place-items-center rounded-[9px] bg-brand-teal text-[13px] text-white shadow-glow-sm">◆</div>
         {AREAS.map((a) => {
@@ -187,7 +187,7 @@ export function Sidebar({
         </div>
       </div>
 
-      {/* Contextual sidebar — slides in when the rail is hovered/focused */}
+      {/* Contextual sidebar, slides in when the rail is hovered/focused */}
       <div className="pointer-events-none fixed left-[62px] top-0 z-40 flex h-screen w-[248px] -translate-x-[112%] flex-col border-r border-line bg-card px-3 pb-5 pt-4 opacity-0 shadow-lift transition-all duration-200 ease-premium group-hover/rail:pointer-events-auto group-hover/rail:translate-x-0 group-hover/rail:opacity-100">
         <div className="flex items-center gap-2 px-1 pb-3 pt-0.5 font-display text-[14px] font-bold">
           <span className="min-w-0 flex-1 truncate" title={workspaceName}>{workspaceName}</span>

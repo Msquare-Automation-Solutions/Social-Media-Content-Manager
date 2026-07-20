@@ -5,7 +5,7 @@ import { useSaveDialog } from "@/components/save/dialog-context";
 import { useToast } from "@/components/ui/toast";
 import { classifyFiles } from "@/lib/upload";
 
-// "Drag-drop anywhere" — a full-window overlay appears while dragging files,
+// "Drag-drop anywhere", a full-window overlay appears while dragging files,
 // and dropped files route straight into the batch Save queue.
 export function GlobalDrop({ canUpload }: { canUpload: boolean }) {
   const { queueUploads } = useSaveDialog();

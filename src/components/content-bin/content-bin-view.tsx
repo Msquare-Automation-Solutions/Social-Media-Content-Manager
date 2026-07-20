@@ -104,7 +104,7 @@ export function ContentBinView({
       </div>
       <p className="mb-4 max-w-[64ch] text-[13px] text-slate">
         Grab a link, thread, or half-formed idea before it slips away. Everything here is raw
-        reference — use it to create your media, then mark it <b>used</b>.
+        reference, use it to create your media, then mark it <b>used</b>.
       </p>
 
       {canEdit && (
@@ -112,7 +112,7 @@ export function ContentBinView({
           onClick={() => setAddOpen(true)}
           className="btn-premium mb-1 flex w-full items-center justify-center gap-2 rounded-[12px] px-4 py-3.5 text-[14px] font-bold"
         >
-          <span className="text-[18px] leading-none">＋</span> Add to bin — paste a link or jot a thought
+          <span className="text-[18px] leading-none">＋</span> Add to bin, paste a link or jot a thought
         </button>
       )}
 
@@ -242,8 +242,8 @@ export function ContentBinView({
       {items.length === 0 ? (
         <div className="grid place-items-center py-20 text-center text-slate">
           {hasFilters
-            ? "No items match — adjust the filters."
-            : "Nothing here yet — add a link or idea above."}
+            ? "No items match, adjust the filters."
+            : "Nothing here yet, add a link or idea above."}
         </div>
       ) : (
         <div className="flex flex-col gap-3 pb-24">
@@ -688,7 +688,7 @@ function BinDetail({
             <div className="mb-1.5 text-[11.5px] font-extrabold uppercase tracking-[0.07em] text-ink">
               Screenshots <span className="text-slate">({shots.length})</span>
             </div>
-            {/* A single collection tile — opens the full gallery. Keeps the
+            {/* A single collection tile, opens the full gallery. Keeps the
                 panel a fixed, compact height no matter how many screenshots. */}
             <button
               onClick={() => setGalleryOpen(true)}
@@ -1192,7 +1192,7 @@ function BinForm({
       {/* Screenshots */}
       <div className={`col-span-2 ${labelCls}`}>
         Screenshots{" "}
-        <span className="font-normal text-slate">(optional — add several; the first is the cover)</span>
+        <span className="font-normal text-slate">(optional, add several; the first is the cover)</span>
         <div className="mt-1 flex flex-wrap items-start gap-2">
           {screenshots.map((s, i) => (
             <div key={i} className="relative h-[52px] w-[76px] overflow-hidden rounded-[10px] border border-line">

@@ -266,7 +266,7 @@ export function AssetDrawer({
                 ) : (
                   <p className="mt-2 text-[11.5px] text-slate">
                     {asset.status === "APPROVED"
-                      ? "Approved — queued for publishing."
+                      ? "Approved, queued for publishing."
                       : asset.status === "PUBLISHED"
                         ? "Published."
                         : asset.status === "REWORK"

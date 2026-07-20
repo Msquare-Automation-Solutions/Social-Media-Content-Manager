@@ -30,7 +30,7 @@ export function ChangePasswordForm() {
       setError(b.error ?? "Couldn't change password.");
       return;
     }
-    toast("Password changed — signing you back in…");
+    toast("Password changed, signing you back in…");
     // This session was invalidated (passwordChangedAt bumped); sign out.
     setTimeout(() => signOut({ callbackUrl: "/login?reset=1" }), 1200);
   }

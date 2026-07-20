@@ -73,7 +73,7 @@ export function WorkspaceOverview({
         <div className="grid place-items-center py-20 text-center text-slate">
           {filters.status || filters.from || filters.to
             ? "No content matches these filters."
-            : "Nothing here yet — save or upload content and tag it to a platform."}
+            : "Nothing here yet, save or upload content and tag it to a platform."}
         </div>
       ) : (
         // The org chart scrolls sideways and starts from the left (no clipping);
@@ -135,7 +135,7 @@ export function WorkspaceOverview({
         </div>
         {overview.recent.length === 0 ? (
           <div className="py-8 text-center text-[12.5px] text-slate">
-            Nothing saved yet — content you create or upload shows up here.
+            Nothing saved yet, content you create or upload shows up here.
           </div>
         ) : (
           <div className="flex gap-3.5 overflow-x-auto pb-1">

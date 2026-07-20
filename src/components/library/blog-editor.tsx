@@ -43,7 +43,7 @@ export function BlogEditor({
       );
       onSaved();
     } catch {
-      setStatus("Save failed — retry");
+      setStatus("Save failed, retry");
     }
   }
 

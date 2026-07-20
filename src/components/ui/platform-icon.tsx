@@ -78,7 +78,7 @@ const PATHS: Record<BrandKey, string> = {
     "M4 3h16a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Zm2.5 4a1 1 0 0 0 0 2h11a1 1 0 1 0 0-2h-11Zm0 4a1 1 0 1 0 0 2h11a1 1 0 1 0 0-2h-11Zm0 4a1 1 0 1 0 0 2h7a1 1 0 1 0 0-2h-7Z",
 };
 
-// MSquare AI Lab — a multi-colour mark (not a single-path brand glyph), so it's
+// MSquare AI Lab, a multi-colour mark (not a single-path brand glyph), so it's
 // rendered specially rather than through the PATHS/BRAND_COLOR maps above.
 function isAiLab(name: string): boolean {
   return name.toLowerCase().replace(/[^a-z]/g, "").includes("ailab");
@@ -158,7 +158,7 @@ export function PlatformIcon({
   className?: string;
   style?: CSSProperties;
 }) {
-  // A custom uploaded logo — `icon` holds an image URL rather than an emoji.
+  // A custom uploaded logo, `icon` holds an image URL rather than an emoji.
   if (icon && /^(https?:\/\/|\/)/.test(icon)) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
@@ -177,7 +177,7 @@ export function PlatformIcon({
   }
   const key = brandKey(name);
   if (!key) {
-    // Custom platform — render the stored emoji (or a generic dot).
+    // Custom platform, render the stored emoji (or a generic dot).
     return (
       <span
         className={className}

@@ -21,7 +21,7 @@ type NotificationRow = {
 
 type Feed = { rows: NotificationRow[]; nextCursor: string | null; unread: number };
 
-// Where a notification takes you when clicked — the gallery its status lives in,
+// Where a notification takes you when clicked, the gallery its status lives in,
 // with the specific asset's drawer opened via ?asset=<id>.
 function hrefFor(action: string, targetId: string | null): string | null {
   // Task notifications: assign/rework land the assignee in My Work; submit lands
@@ -55,7 +55,7 @@ export function NotificationBell({ initialUnread }: { initialUnread: number }) {
       if (!r.ok) throw new Error("Failed to load notifications");
       return r.json();
     },
-    // Fallback poll only — real-time delivery comes from the SSE stream below.
+    // Fallback poll only, real-time delivery comes from the SSE stream below.
     refetchInterval: 60_000,
     initialData: { rows: [], nextCursor: null, unread: initialUnread },
   });
@@ -71,7 +71,7 @@ export function NotificationBell({ initialUnread }: { initialUnread: number }) {
   const unread = data?.unread ?? 0;
   const rows = useMemo(() => data?.rows ?? [], [data]);
 
-  // Desktop (OS) notifications — poll-driven. `perm` tracks browser permission;
+  // Desktop (OS) notifications, poll-driven. `perm` tracks browser permission;
   // `lastTopId` remembers the newest notification we've already seen so we only
   // fire the OS toast for genuinely new arrivals (never on first load).
   const [perm, setPerm] = useState<NotificationPermission | "unsupported">("default");
@@ -107,7 +107,7 @@ export function NotificationBell({ initialUnread }: { initialUnread: number }) {
           notif.close();
         };
       } catch {
-        // Some environments disallow the constructor — the in-app bell still shows it.
+        // Some environments disallow the constructor, the in-app bell still shows it.
       }
     }
   }, [rows, router]);
@@ -124,7 +124,7 @@ export function NotificationBell({ initialUnread }: { initialUnread: number }) {
   function testDesktopAlert() {
     try {
       new Notification("MediaChat", {
-        body: "Test — desktop alerts are working ✓",
+        body: "Test, desktop alerts are working ✓",
       });
     } catch {
       // ignore
@@ -181,8 +181,6 @@ export function NotificationBell({ initialUnread }: { initialUnread: number }) {
       </button>
 
       {open && (
-        {/* Opens upward + to the right — the bell sits at the bottom of the
-            slim left rail. */}
         <div className="absolute bottom-11 left-0 z-[60] w-[320px] max-w-[calc(100vw-2rem)] rounded-[14px] border border-line bg-card shadow-card">
           <div className="flex items-center justify-between border-b border-line px-4 py-2.5">
             <b className="text-[13px]">Notifications</b>
@@ -209,7 +207,7 @@ export function NotificationBell({ initialUnread }: { initialUnread: number }) {
           <div className="max-h-[380px] overflow-y-auto">
             {rows.length === 0 ? (
               <div className="px-4 py-8 text-center text-[12.5px] text-slate">
-                Nothing yet — approvals, reworks and publishes show up here.
+                Nothing yet, approvals, reworks and publishes show up here.
               </div>
             ) : (
               <ul className="flex flex-col">

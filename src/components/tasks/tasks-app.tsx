@@ -147,17 +147,17 @@ export function TasksApp(props: Props) {
 
 function subtitle(mode: TasksMode, isAdmin: boolean) {
   switch (mode) {
-    case "overview": return "The weekly plan — theme, brief, content and publish status. Add a piece, then assign its stages.";
+    case "overview": return "The weekly plan, theme, brief, content and publish status. Add a piece, then assign its stages.";
     case "board": return isAdmin ? "Every task and the stage it's in. Open a card to assign owners, review, and advance it." : "Where everything sits. Your own work is in My Work.";
     case "mywork": return "Everything assigned to you. Update your status, then submit for review.";
     case "review": return "Work submitted for review. Approve to advance it, or send it back for rework.";
-    case "analytics": return "How the month is tracking — planned vs published, and metrics by platform.";
+    case "analytics": return "How the month is tracking, planned vs published, and metrics by platform.";
   }
 }
 
 // ── Overview (planning table) ────────────────────────────────────────────────
 function Overview({ tasks, canEdit, onOpen, onEdit, onDelete }: Props & { onOpen: (id: string) => void; onEdit: (id: string) => void; onDelete: (id: string) => void }) {
-  if (!tasks.length) return <Empty text="No tasks yet — plan your first piece." />;
+  if (!tasks.length) return <Empty text="No tasks yet, plan your first piece." />;
   const weeks = new Map<string, TaskRow[]>();
   for (const t of tasks) { const k = t.weekLabel || "Unscheduled"; (weeks.get(k) || weeks.set(k, []).get(k)!).push(t); }
   return (
@@ -320,7 +320,7 @@ function TaskDrawer({ task, members, isAdmin, canEdit, meId, onClose, onEdit, ap
 
   async function assign(stageId: string, assigneeId: string, targetDate: string) {
     if (await api(`/api/tasks/${t.id}/stages/${stageId}`, "PATCH", { action: "assign", assigneeId: assigneeId || null, targetDate: targetDate ? new Date(targetDate).toISOString() : null }))
-      { setAssignStage(null); toast("Assigned — notified 🔔"); refresh(); }
+      { setAssignStage(null); toast("Assigned, notified 🔔"); refresh(); }
   }
   async function work(stageId: string, workStatus: string) {
     if (await api(`/api/tasks/${t.id}/stages/${stageId}`, "PATCH", { action: "work", workStatus })) { toast("Status updated"); refresh(); }
@@ -450,7 +450,7 @@ function TaskForm({ task, channels, accounts, onClose, onSaved, api, toast }: { 
     const body = { title: title.trim(), brief: brief.trim(), content: content.trim(), remarks: remarks.trim(), contentType: type, channelId: channelId || null, accountId: accountId || null, weekLabel: week.trim() };
     const ok = await api(task ? `/api/tasks/${task.id}` : "/api/tasks", task ? "PATCH" : "POST", body);
     setSaving(false);
-    if (ok) { toast(task ? "Changes saved" : "Task created — now assign each stage"); onSaved(); }
+    if (ok) { toast(task ? "Changes saved" : "Task created, now assign each stage"); onSaved(); }
   }
   const stages = stagesForType(type);
 
@@ -458,7 +458,7 @@ function TaskForm({ task, channels, accounts, onClose, onSaved, api, toast }: { 
     <div onClick={onClose} className="fixed inset-0 z-[80] grid place-items-center bg-black/50 p-5 backdrop-blur-[3px]">
       <div onClick={(e) => e.stopPropagation()} className="max-h-[90vh] w-[min(520px,96vw)] overflow-y-auto rounded-xl2 border border-line bg-card p-6 shadow-card">
         <div className="mb-1 flex items-center justify-between"><h2 className="font-display text-[18px]">{task ? "Edit content" : "Plan content"}</h2><button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-full text-slate hover:bg-wash/[0.06]">✕</button></div>
-        <p className="mb-4 text-[12px] text-slate">Classify the piece — its production stages are set from the content type — then write the theme, brief and content.</p>
+        <p className="mb-4 text-[12px] text-slate">Classify the piece, its production stages are set from the content type, then write the theme, brief and content.</p>
         <div className="grid gap-3">
           <div className="grid grid-cols-2 gap-3">
             <label className={lab}>Content type<select value={type} onChange={(e) => setType(e.target.value)} className={cls + " mt-1"}>{TASK_CONTENT_TYPES.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}</select></label>

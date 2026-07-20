@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 
-// "← Back" — returns to the previous page (browser history), falling back to the
+// "← Back", returns to the previous page (browser history), falling back to the
 // chat home when there's no history to go back to (e.g. opened via direct link).
 export function BackButton({ className = "" }: { className?: string }) {
   const router = useRouter();

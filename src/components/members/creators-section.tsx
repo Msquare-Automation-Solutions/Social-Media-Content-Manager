@@ -42,7 +42,7 @@ export function CreatorsSection({
           {creators.length}
         </span>
         <p className="text-[12px] text-slate">
-          People that content is attributed to — separate from login accounts.
+          People that content is attributed to, separate from login accounts.
         </p>
         {canManage && (
           <button

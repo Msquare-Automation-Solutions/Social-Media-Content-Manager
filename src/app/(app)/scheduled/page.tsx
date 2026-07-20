@@ -16,7 +16,7 @@ export default async function ScheduledPage({
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   const sp = await searchParams;
-  // Default to post-date order — most useful for a schedule.
+  // Default to post-date order, most useful for a schedule.
   const { filters, view } = await resolveListFilters({ workspaceId: user.workspaceId, id: user.id, role: user.role }, sp, "postdate");
 
   const [assets, people, channels, accounts] = await Promise.all([
@@ -49,8 +49,8 @@ export default async function ScheduledPage({
       canReview={isAdminRole(user.role)}
       initialAssetId={sp.asset ?? null}
       title="Scheduled this month"
-      subtitle="Approved content with a post date set for this month — sorted by when it goes out."
-      emptyText="Nothing approved & scheduled this month — approve items and add post dates in the save dialog."
+      subtitle="Approved content with a post date set for this month, sorted by when it goes out."
+      emptyText="Nothing approved & scheduled this month, approve items and add post dates in the save dialog."
     />
   );
 }

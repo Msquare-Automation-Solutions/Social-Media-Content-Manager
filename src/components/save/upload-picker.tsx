@@ -111,7 +111,7 @@ export function UploadPicker() {
           </button>
         </div>
         <p className="mt-1.5 text-[11px] text-slate">
-          Saves the link as a library item (Drive, Dropbox, YouTube, any URL) — it opens
+          Saves the link as a library item (Drive, Dropbox, YouTube, any URL), it opens
           in a new tab.
         </p>
 

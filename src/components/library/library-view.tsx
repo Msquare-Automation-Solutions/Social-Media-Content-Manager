@@ -186,7 +186,7 @@ export function LibraryView({
 
       {assets.length === 0 ? (
         <div className="grid place-items-center py-20 text-center text-slate">
-          No items match — adjust filters, or create something in chat.
+          No items match, adjust filters, or create something in chat.
         </div>
       ) : (
         <div className="grid grid-cols-[repeat(auto-fill,minmax(215px,1fr))] gap-4 pb-24">

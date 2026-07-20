@@ -11,7 +11,7 @@ export function AuthCard({
 }) {
   return (
     <div className="grid min-h-screen grid-cols-1 md:grid-cols-[1.05fr_1fr]">
-      {/* Brand panel — always the teal gradient (brand-constant across themes). */}
+      {/* Brand panel, always the teal gradient (brand-constant across themes). */}
       <aside className="relative hidden overflow-hidden bg-brand-teal-strong px-12 py-12 text-white md:flex md:flex-col md:justify-between">
         {/* ambient depth */}
         <div className="pointer-events-none absolute -left-24 -top-24 h-96 w-96 rounded-full bg-white/10 blur-3xl" />
@@ -27,7 +27,7 @@ export function AuthCard({
 
         <div className="relative max-w-[26rem]">
           <h2 className="font-display text-[30px] font-bold leading-[1.15] tracking-tight">
-            Create, tag, and ship content — from one chat.
+            Create, tag, and ship content, from one chat.
           </h2>
           <p className="mt-4 text-[14px] leading-relaxed text-white/80">
             A chat-first studio for your whole team. Generate drafts, save and tag them by
@@ -37,7 +37,7 @@ export function AuthCard({
             {[
               { icon: "home" as const, text: "Generate blog posts, thumbnails & scripts in chat" },
               { icon: "images" as const, text: "Save & tag by creator, type, and platform" },
-              { icon: "approved" as const, text: "Review, approve, and schedule — together" },
+              { icon: "approved" as const, text: "Review, approve, and schedule, together" },
             ].map((f) => (
               <li key={f.text} className="flex items-center gap-3 text-[13.5px] text-white/90">
                 <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[10px] bg-white/15 backdrop-blur-sm">

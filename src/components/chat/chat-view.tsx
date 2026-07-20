@@ -249,7 +249,7 @@ function Hello({ onPick }: { onPick: (t: string) => void }) {
       <p className="mx-auto max-w-[460px] leading-relaxed text-slate">
         I generate blog posts, thumbnail concepts, and video scripts. When you&apos;re
         happy with a result, hit <b>Save…</b> to tag it with a person, category and
-        platform — so it&apos;s easy to filter later.
+        platform, so it&apos;s easy to filter later.
       </p>
       <div className="mt-5 flex flex-wrap justify-center gap-2.5">
         {["📝 Write a blog post", "🎯 Thumbnail concept", "🎬 Video script"].map(

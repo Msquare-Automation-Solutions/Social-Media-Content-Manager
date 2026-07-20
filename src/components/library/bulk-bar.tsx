@@ -48,7 +48,7 @@ export function BulkBar({
         {panel === "creator" && (
           <div className="px-1 pt-1">
             <div className="mb-1 text-[12px] font-semibold text-slate">Set creator</div>
-            {/* Inline scrollable list — grows upward within the panel (above the
+            {/* Inline scrollable list, grows upward within the panel (above the
                 bar), so it never opens off the bottom of the screen. */}
             <div className="max-h-56 w-56 overflow-y-auto rounded-[9px] border border-line">
               {people.length === 0 ? (

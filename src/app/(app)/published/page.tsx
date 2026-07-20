@@ -48,8 +48,8 @@ export default async function PublishedPage({
       canReview={isAdminRole(user.role)}
       initialAssetId={sp.asset ?? null}
       title="Published"
-      subtitle="Content that's live — everything marked published after it went out."
-      emptyText="Nothing published yet — mark an approved item as published once it's live."
+      subtitle="Content that's live, everything marked published after it went out."
+      emptyText="Nothing published yet, mark an approved item as published once it's live."
     />
   );
 }

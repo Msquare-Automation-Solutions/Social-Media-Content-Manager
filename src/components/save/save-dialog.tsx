@@ -527,7 +527,7 @@ function SaveDialogInner({
           <textarea
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder="Note — what is this? (optional)"
+            placeholder="Note, what is this? (optional)"
             rows={2}
             className="mt-2 w-full rounded-[10px] border border-line px-3 py-2 text-[12.5px] outline-none focus:border-teal"
           />
@@ -626,7 +626,7 @@ function SaveDialogInner({
         )}
       </Field>
 
-      {/* Accounts — which social account(s) the media is assigned to */}
+      {/* Accounts, which social account(s) the media is assigned to */}
       <Field label="Account(s)" error={errors.accountIds}>
         <div className="flex flex-wrap gap-2">
           {(options?.accounts ?? []).map((a) => {
