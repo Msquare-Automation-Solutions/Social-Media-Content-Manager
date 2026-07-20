@@ -178,7 +178,7 @@ export function Sidebar({
             >
               <Icon name={a.icon} size={19} />
               {a.label}
-              {a.hot && !on && <span className="absolute right-2.5 top-1.5 h-1.5 w-1.5 rounded-full bg-[#e0912b]" />}
+              {a.hot && <span className="absolute right-2.5 top-1.5 h-2 w-2 rounded-full bg-[#e0912b] ring-2 ring-card" />}
             </Link>
           );
         })}
