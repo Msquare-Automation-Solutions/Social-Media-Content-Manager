@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { BackButton } from "@/components/ui/back-button";
 import { useToast } from "@/components/ui/toast";
+import { Icon, type IconName } from "@/components/ui/icons";
 import { initials } from "@/lib/colors";
 import type { TaskRow } from "@/lib/data";
 import {
@@ -32,9 +33,14 @@ type Props = {
   initialTaskId?: string | null;
 };
 
-const STAGE_ICON: Record<string, string> = {
-  CONTENT: "✍️", VIDEO: "🎬", GRAPHICS: "🎨", PUBLISHING: "🚀", ANALYTICS: "📊", DONE: "✓",
+// Standard line icons per stage (same set as the sidebar / workspace overview).
+const STAGE_ICON_NAME: Record<string, IconName> = {
+  CONTENT: "blog", VIDEO: "videos", GRAPHICS: "images", PUBLISHING: "published", ANALYTICS: "analytics", DONE: "approved",
 };
+function StageIcon({ stage, size = 14 }: { stage: string; size?: number }) {
+  const n = STAGE_ICON_NAME[stage];
+  return n ? <Icon name={n} size={size} className="inline-block shrink-0" /> : null;
+}
 const workCls = (w: string) =>
   w === "YTI" ? "bg-wash/[0.07] text-slate"
   : w === "WIP_ON_TRACK" ? "bg-[#fbeecb] text-[#c98a12]"
@@ -177,7 +183,7 @@ function Overview({ tasks, canEdit, onOpen, onEdit, onDelete }: Props & { onOpen
                     <td className="max-w-[160px] truncate px-3 py-2.5 text-slate">{t.brief || "—"}</td>
                     <td className="px-3 py-2.5">{t.content ? "📄 drafted" : <span className="text-slate">—</span>}</td>
                     <td className="px-3 py-2.5"><span className={`${badge} ${t.publishStatus.startsWith("PUBLISHED") ? "bg-[#d7f2e5] text-[#2e9e6b]" : "bg-wash/[0.07] text-slate"}`}>{TASK_PUBLISH_LABELS[t.publishStatus as keyof typeof TASK_PUBLISH_LABELS] ?? t.publishStatus}</span></td>
-                    <td className="px-3 py-2.5">{t.currentStage === "DONE" ? "✓ Done" : <span>{STAGE_ICON[t.currentStage]} {STAGE_LABELS[t.currentStage]} {st?.assigneeName ? `· ${st.assigneeName}` : <span className="text-[#e0912b]">· unassigned</span>}</span>}</td>
+                    <td className="px-3 py-2.5"><span className="inline-flex items-center gap-1.5"><StageIcon stage={t.currentStage} /> {STAGE_LABELS[t.currentStage]} {t.currentStage !== "DONE" && (st?.assigneeName ? `· ${st.assigneeName}` : <span className="text-[#e0912b]">· unassigned</span>)}</span></td>
                     <td className="whitespace-nowrap px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
                       {canEdit && <button onClick={() => onEdit(t.id)} className="rounded-[8px] border border-line px-2.5 py-1 text-[11.5px] font-semibold text-teal-dark hover:border-teal">Edit</button>}
                       {canEdit && <button onClick={() => onDelete(t.id)} className="ml-1.5 rounded-[8px] border border-line px-2.5 py-1 text-[11.5px] font-semibold text-[#c23b2a] hover:border-[#c23b2a]">Delete</button>}
@@ -202,7 +208,7 @@ function Board({ tasks, onOpen }: { tasks: TaskRow[]; onOpen: (id: string) => vo
         return (
           <div key={col} className="w-[240px] flex-shrink-0 rounded-card border border-line bg-wash/[0.03] p-2.5">
             <div className="mb-2.5 flex items-center gap-2 px-1 text-[12.5px] font-bold">
-              {STAGE_ICON[col]} {STAGE_LABELS[col]}
+              <StageIcon stage={col} size={16} /> {STAGE_LABELS[col]}
               <span className="ml-auto rounded-full bg-card px-1.5 text-[11px] text-slate">{items.length}</span>
             </div>
             {items.map((t) => {
@@ -247,7 +253,7 @@ function MyWork({ tasks, meId, onOpen }: { tasks: TaskRow[]; meId: string; onOpe
           <div className="mb-2 mt-4 text-[11px] font-extrabold uppercase tracking-[0.06em] text-ink">{g} <span className="text-slate">({arr.length})</span></div>
           {arr.map(({ t, s }) => (
             <button key={s.id} onClick={() => onOpen(t.id)} className="mb-2 flex w-full items-center gap-3 rounded-[12px] border border-line bg-card px-4 py-3 text-left shadow-soft hover:border-teal">
-              <span className={`${badge} bg-violet-soft text-violet`}>{STAGE_ICON[s.stage]} {STAGE_LABELS[s.stage]}</span>
+              <span className={`${badge} inline-flex items-center gap-1 bg-violet-soft text-violet`}><StageIcon stage={s.stage} size={12} /> {STAGE_LABELS[s.stage]}</span>
               <span className="min-w-0 flex-1">
                 <b className="text-[13.5px]">{t.title}</b>
                 <span className="block text-[11.5px] text-slate">{t.contentTypeLabel} · {t.channel?.name ?? "—"} {s.targetDate ? `· due ${fmt(s.targetDate)}` : ""}</span>
@@ -273,7 +279,7 @@ function ReviewInbox({ tasks, onOpen, onReview }: { tasks: TaskRow[]; onOpen: (i
       {rows.map(({ t, s }) => (
         <div key={s.id} className="mb-2 flex items-center gap-3 rounded-[12px] border border-line bg-card px-4 py-3 shadow-soft">
           <button onClick={() => onOpen(t.id)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
-            <span className={`${badge} bg-violet-soft text-violet`}>{STAGE_ICON[s.stage]} {STAGE_LABELS[s.stage]}</span>
+            <span className={`${badge} inline-flex items-center gap-1 bg-violet-soft text-violet`}><StageIcon stage={s.stage} size={12} /> {STAGE_LABELS[s.stage]}</span>
             <span className="min-w-0"><b className="text-[13.5px]">{t.title}</b><span className="block text-[11.5px] text-slate">by {s.assigneeName ?? "—"} · {t.contentTypeLabel}</span></span>
           </button>
           <button onClick={() => onReview(t.id, s.id, "APPROVED")} className="btn-premium rounded-[9px] px-3.5 py-1.5 text-[12px] font-semibold">Approve</button>
@@ -364,7 +370,7 @@ function TaskDrawer({ task, members, isAdmin, canEdit, meId, onClose, onEdit, ap
         {t.stages.map((s) => (
           <div key={s.id} className={`mb-2 rounded-[12px] border p-3 ${t.currentStage === s.stage ? "border-teal shadow-[inset_0_0_0_1px_rgba(14,159,143,0.2)]" : "border-line"}`}>
             <div className="mb-1.5 flex items-center gap-2">
-              <span className="text-[13px] font-bold">{STAGE_ICON[s.stage]} {STAGE_LABELS[s.stage]}</span>
+              <span className="inline-flex items-center gap-1.5 text-[13px] font-bold"><StageIcon stage={s.stage} size={15} /> {STAGE_LABELS[s.stage]}</span>
               <span className={`${badge} ${workCls(s.workStatus)}`}>{TASK_WORK_LABELS[s.workStatus as TaskWorkStatus] ?? s.workStatus}</span>
               <span className={`${badge} ${revCls(s.reviewStatus)}`}>{TASK_REVIEW_LABELS[s.reviewStatus as keyof typeof TASK_REVIEW_LABELS] ?? s.reviewStatus}</span>
             </div>
