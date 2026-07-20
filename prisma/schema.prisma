@@ -346,6 +346,7 @@ model Task {
   plannedDate   DateTime?
   currentStage  String    @default("CONTENT")
   publishStatus String    @default("NOT_PUBLISHED")
+  scheduledPublishDate DateTime? // planned go-live date, set at task creation
   publishedDate DateTime?
   contentLink   String?
   metricClicks       Int?

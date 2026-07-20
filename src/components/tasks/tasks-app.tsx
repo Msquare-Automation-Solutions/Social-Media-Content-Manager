@@ -376,7 +376,9 @@ function TaskDrawer({ task, members, isAdmin, canEdit, meId, onClose, onEdit, ap
     if (await api(`/api/tasks/${t.id}/stages/${stageId}`, "PATCH", { action: "review", outcome, note })) { toast(outcome === "APPROVED" ? "Approved ✓" : "Rework sent"); refresh(); }
   }
   async function publish() {
-    if (await api(`/api/tasks/${t.id}`, "PATCH", { publishStatus: "PUBLISHED_ON_TIME", publishedDate: new Date().toISOString() })) { toast("Published 🚀"); refresh(); }
+    // Leave publishedDate unset so the server falls back to the scheduled
+    // publish date chosen at creation (or now if none was set).
+    if (await api(`/api/tasks/${t.id}`, "PATCH", { publishStatus: "PUBLISHED_ON_TIME" })) { toast("Published 🚀"); refresh(); }
   }
 
   return (
@@ -458,6 +460,7 @@ function TaskDrawer({ task, members, isAdmin, canEdit, meId, onClose, onEdit, ap
 
         <div className="mb-2 mt-4 text-[11px] font-extrabold uppercase tracking-[0.06em] text-ink">Publishing</div>
         <div className="text-[12px] text-slate">Status <b className="text-ink">{TASK_PUBLISH_LABELS[t.publishStatus as keyof typeof TASK_PUBLISH_LABELS] ?? t.publishStatus}</b>{t.contentLink ? <> · <a href={t.contentLink} target="_blank" rel="noreferrer" className="text-teal-dark underline">link</a></> : ""}</div>
+        {t.scheduledPublishDate && <div className="text-[12px] text-slate">{t.publishStatus.startsWith("PUBLISHED") ? "Published" : "Scheduled"} for <b className="text-ink">{fmt(t.scheduledPublishDate)}</b></div>}
         {t.currentStage === "PUBLISHING" && canEdit && <button onClick={publish} className="btn-premium mt-2 rounded-[9px] px-3.5 py-1.5 text-[12px] font-semibold">Mark published →</button>}
 
         <div className="mb-2 mt-4 text-[11px] font-extrabold uppercase tracking-[0.06em] text-ink">Analytics</div>
@@ -599,6 +602,7 @@ function TaskForm({ task, channels, accounts, taskTypes, members, isAdmin, onClo
   const [content, setContent] = useState(task?.content ?? "");
   const [remarks, setRemarks] = useState(task?.remarks ?? "");
   const [date, setDate] = useState(task?.plannedDate ? task.plannedDate.slice(0, 10) : todayStr());
+  const [publishDate, setPublishDate] = useState(task?.scheduledPublishDate ? task.scheduledPublishDate.slice(0, 10) : todayStr());
   const [channelId, setChannelId] = useState(task?.channel?.id ?? "");
   const [accountId, setAccountId] = useState(task?.account?.id ?? "");
   const [stageSel, setStageSel] = useState<Record<string, StageSel>>(initStages);
@@ -655,6 +659,7 @@ function TaskForm({ task, channels, accounts, taskTypes, members, isAdmin, onClo
       title: title.trim(), brief: brief.trim(), content: content.trim(), remarks: remarks.trim(),
       contentType: type, stages, channelId: channelId || null, accountId: accountId || null,
       plannedDate: date ? new Date(date).toISOString() : null,
+      scheduledPublishDate: publishDate ? new Date(publishDate).toISOString() : null,
     };
     const ok = await api(task ? `/api/tasks/${task.id}` : "/api/tasks", task ? "PATCH" : "POST", body);
     setSaving(false);
@@ -732,10 +737,16 @@ function TaskForm({ task, channels, accounts, taskTypes, members, isAdmin, onClo
             <label className={lab}>Platform<select value={channelId} onChange={(e) => setChannelId(e.target.value)} className={cls + " mt-1"}><option value="">—</option>{channels.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
             <label className={lab}>Account<select value={accountId} onChange={(e) => setAccountId(e.target.value)} className={cls + " mt-1"}><option value="">—</option>{accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></label>
           </div>
-          <label className={lab}>
-            Planning date {week && <span className="font-normal text-teal-dark">· {week}</span>}
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={cls + " mt-1 font-normal"} />
-          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <label className={lab}>
+              Planning date {week && <span className="font-normal text-teal-dark">· {week}</span>}
+              <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={cls + " mt-1 font-normal"} />
+            </label>
+            <label className={lab}>
+              Publishing date <span className="font-normal">(scheduled go-live)</span>
+              <input type="date" value={publishDate} onChange={(e) => setPublishDate(e.target.value)} className={cls + " mt-1 font-normal"} />
+            </label>
+          </div>
 
           <label className={lab}>Content theme<input autoFocus value={title} onChange={(e) => setTitle(e.target.value)} className={cls + " mt-1 font-normal"} /></label>
           <label className={lab}>Content brief<input value={brief} onChange={(e) => setBrief(e.target.value)} className={cls + " mt-1 font-normal"} /></label>

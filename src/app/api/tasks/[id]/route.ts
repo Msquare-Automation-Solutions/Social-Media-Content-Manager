@@ -37,6 +37,7 @@ const patchSchema = z.object({
   // Publish.
   publishStatus: z.enum(TASK_PUBLISH_STATUSES).optional(),
   contentLink: z.string().trim().max(2000).nullable().optional(),
+  scheduledPublishDate: z.string().datetime().nullable().optional(),
   publishedDate: z.string().datetime().nullable().optional(),
   // Analytics.
   metricClicks: z.number().int().nonnegative().nullable().optional(),
@@ -92,10 +93,13 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         ...(d.binItemId !== undefined ? { binItemId: d.binItemId } : {}),
         ...(d.publishStatus !== undefined ? { publishStatus: d.publishStatus } : {}),
         ...(d.contentLink !== undefined ? { contentLink: d.contentLink } : {}),
+        ...(d.scheduledPublishDate !== undefined
+          ? { scheduledPublishDate: d.scheduledPublishDate ? new Date(d.scheduledPublishDate) : null }
+          : {}),
         ...(d.publishedDate !== undefined
           ? { publishedDate: d.publishedDate ? new Date(d.publishedDate) : null }
           : publishing
-            ? { publishedDate: new Date() }
+            ? { publishedDate: task.scheduledPublishDate ?? new Date() }
             : {}),
         ...(d.metricClicks !== undefined ? { metricClicks: d.metricClicks } : {}),
         ...(d.metricLeads !== undefined ? { metricLeads: d.metricLeads } : {}),
