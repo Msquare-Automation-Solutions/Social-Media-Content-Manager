@@ -188,7 +188,7 @@ export function Sidebar({
       </div>
 
       {/* Contextual sidebar — slides in when the rail is hovered/focused */}
-      <div className="pointer-events-none fixed left-[62px] top-0 z-40 flex h-screen w-[248px] -translate-x-[112%] flex-col border-r border-line bg-card px-3 pb-5 pt-4 opacity-0 shadow-lift transition-all duration-200 ease-premium group-hover/rail:pointer-events-auto group-hover/rail:translate-x-0 group-hover/rail:opacity-100 group-focus-within/rail:pointer-events-auto group-focus-within/rail:translate-x-0 group-focus-within/rail:opacity-100">
+      <div className="pointer-events-none fixed left-[62px] top-0 z-40 flex h-screen w-[248px] -translate-x-[112%] flex-col border-r border-line bg-card px-3 pb-5 pt-4 opacity-0 shadow-lift transition-all duration-200 ease-premium group-hover/rail:pointer-events-auto group-hover/rail:translate-x-0 group-hover/rail:opacity-100">
         <div className="flex items-center gap-2 px-1 pb-3 pt-0.5 font-display text-[14px] font-bold">
           <span className="min-w-0 flex-1 truncate" title={workspaceName}>{workspaceName}</span>
         </div>
