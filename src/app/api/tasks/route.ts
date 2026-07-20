@@ -44,10 +44,10 @@ export async function GET() {
   return Response.json(await listTasks(g.user.workspaceId));
 }
 
-// POST — plan a new content piece. EDITOR+. Instantiates the production stages
-// for the content type; owners get assigned afterwards.
+// POST — plan a new content piece. ADMIN+ only. Instantiates the production
+// stages for the content type; owners get assigned afterwards.
 export async function POST(req: Request) {
-  const g = await guard("EDITOR");
+  const g = await guard("ADMIN");
   if (!g.ok) return g.response;
 
   const parsed = schema.safeParse(await req.json());

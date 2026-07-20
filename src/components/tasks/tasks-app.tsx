@@ -11,6 +11,7 @@ import type { TaskRow } from "@/lib/data";
 import {
   TASK_BOARD_COLUMNS,
   STAGE_LABELS,
+  TASK_WORK_STATUSES,
   TASK_WORK_LABELS,
   TASK_REVIEW_LABELS,
   TASK_PUBLISH_LABELS,
@@ -103,7 +104,7 @@ export function TasksApp(props: Props) {
       <div className="mb-1.5 flex items-center gap-3.5">
         <BackButton />
         <h2 className="font-display text-[19px]">{title}</h2>
-        {mode === "overview" && props.canEdit && (
+        {mode === "overview" && props.isAdmin && (
           <button
             onClick={() => { setEditId(null); setFormOpen(true); }}
             className="btn-premium ml-auto rounded-[11px] px-4 py-2 text-[12.5px] font-semibold"
@@ -450,7 +451,9 @@ function TaskDrawer({ task, members, isAdmin, canEdit, meId, onClose, onEdit, ap
                   <button onClick={() => review(s.id, "REWORK")} className="rounded-[8px] border border-line px-2.5 py-1 text-[11.5px] font-semibold hover:border-teal">Rework</button>
                 </>}
                 {s.assigneeId === meId && s.reviewStatus !== "APPROVED" && s.reviewStatus !== "PENDING" && <>
-                  <button onClick={() => work(s.id, nextWork(s.workStatus))} className="rounded-[8px] border border-line px-2.5 py-1 text-[11.5px] font-semibold hover:border-teal">Update status</button>
+                  <select value={s.workStatus} onChange={(e) => work(s.id, e.target.value)} aria-label="Update status" className="rounded-[8px] border border-line bg-card px-2.5 py-1 text-[11.5px] font-semibold text-ink outline-none focus:border-teal">
+                    {TASK_WORK_STATUSES.map((w) => <option key={w} value={w}>{TASK_WORK_LABELS[w]}</option>)}
+                  </select>
                   <button onClick={() => submit(s.id)} className="btn-premium rounded-[8px] px-2.5 py-1 text-[11.5px] font-semibold">Submit →</button>
                 </>}
               </div>
@@ -780,9 +783,4 @@ function todayStr() {
   const d = new Date();
   const p = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
-}
-function nextWork(w: string): TaskWorkStatus {
-  const cyc: TaskWorkStatus[] = ["WIP_ON_TRACK", "WIP_DELAY", "COMPLETED_ON_TIME", "COMPLETED_DELAY"];
-  const i = cyc.indexOf(w as TaskWorkStatus);
-  return cyc[(i + 1) % cyc.length];
 }
