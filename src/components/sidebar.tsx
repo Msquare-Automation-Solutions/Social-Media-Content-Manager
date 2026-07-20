@@ -160,7 +160,7 @@ export function Sidebar({
   const areaHref = (a: Area) => a.groups[0].items[0].href;
 
   return (
-    <aside className="group/rail relative flex h-screen w-[62px] shrink-0">
+    <aside className="peer/nav group/rail relative flex h-screen w-[62px] shrink-0">
       {/* Area rail — always visible */}
       <div className="z-50 flex h-full w-[62px] shrink-0 flex-col items-center gap-1 border-r border-line/70 bg-gradient-to-b from-card to-bg py-3">
         <div className="mb-2 grid h-8 w-8 place-items-center rounded-[9px] bg-brand-teal text-[13px] text-white shadow-glow-sm">◆</div>

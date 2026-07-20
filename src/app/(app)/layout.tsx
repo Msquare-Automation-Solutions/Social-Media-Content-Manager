@@ -71,7 +71,11 @@ export default async function AppLayout({
           publishedCount={publishedCount}
           unreadCount={unreadCount}
         />
-        <main className="flex h-screen flex-col overflow-hidden">{children}</main>
+        {/* When the rail (peer/nav) is hovered and the panel slides in, push the
+            page right by the panel width so content isn't covered; slide back on leave. */}
+        <main className="flex h-screen flex-col overflow-hidden transition-[padding] duration-200 ease-premium peer-hover/nav:pl-[248px]">
+          {children}
+        </main>
       </div>
       <Dialogs canUpload={user.role !== "VIEWER"} />
     </DialogProvider>
