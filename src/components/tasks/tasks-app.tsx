@@ -136,6 +136,7 @@ export function TasksApp(props: Props) {
           channels={props.channels}
           accounts={props.accounts}
           taskTypes={props.taskTypes}
+          members={props.members}
           isAdmin={props.isAdmin}
           onClose={() => setFormOpen(false)}
           onSaved={() => { setFormOpen(false); refresh(); }}
@@ -477,32 +478,51 @@ function AssignForm({ members, current, onCancel, onSave }: { members: Member[];
 }
 
 // ── Create / edit form ───────────────────────────────────────────────────────
-function TaskForm({ task, channels, accounts, taskTypes, isAdmin, onClose, onSaved, api, toast }: { task: TaskRow | null; channels: Opt[]; accounts: Opt[]; taskTypes: TaskType[]; isAdmin: boolean; onClose: () => void; onSaved: () => void; api: (u: string, m: string, b?: unknown) => Promise<boolean>; toast: (m: string) => void }) {
+function TaskForm({ task, channels, accounts, taskTypes, members, isAdmin, onClose, onSaved, api, toast }: { task: TaskRow | null; channels: Opt[]; accounts: Opt[]; taskTypes: TaskType[]; members: Member[]; isAdmin: boolean; onClose: () => void; onSaved: () => void; api: (u: string, m: string, b?: unknown) => Promise<boolean>; toast: (m: string) => void }) {
+  const STAGE_OPTS = ["CONTENT", "VIDEO", "GRAPHICS"] as const;
+  type StageSel = { on: boolean; assigneeId: string; due: string };
+  const initStages = (): Record<string, StageSel> => {
+    const out: Record<string, StageSel> = {};
+    const suggested = suggestStages(task ? contentTypeLabel(task.contentType) : taskTypes[0]?.name ?? "");
+    for (const s of STAGE_OPTS) {
+      const existing = task?.stages.find((x) => x.stage === s);
+      out[s] = existing
+        ? { on: true, assigneeId: existing.assigneeId ?? "", due: existing.targetDate ? existing.targetDate.slice(0, 10) : "" }
+        : { on: task ? false : suggested.includes(s), assigneeId: "", due: "" };
+    }
+    return out;
+  };
+
   const [types, setTypes] = useState<TaskType[]>(taskTypes);
   const [type, setType] = useState(task ? contentTypeLabel(task.contentType) : taskTypes[0]?.name ?? "");
   const [title, setTitle] = useState(task?.title ?? "");
   const [brief, setBrief] = useState(task?.brief ?? "");
   const [content, setContent] = useState(task?.content ?? "");
   const [remarks, setRemarks] = useState(task?.remarks ?? "");
-  const [date, setDate] = useState("");
+  const [date, setDate] = useState(task?.plannedDate ? task.plannedDate.slice(0, 10) : "");
   const [channelId, setChannelId] = useState(task?.channel?.id ?? "");
   const [accountId, setAccountId] = useState(task?.account?.id ?? "");
-  const [stages, setStages] = useState<string[]>(
-    task ? task.stages.map((s) => s.stage) : suggestStages(taskTypes[0]?.name ?? ""),
-  );
+  const [stageSel, setStageSel] = useState<Record<string, StageSel>>(initStages);
   const [addingType, setAddingType] = useState(false);
   const [newType, setNewType] = useState("");
   const [manageTypes, setManageTypes] = useState(false);
   const [saving, setSaving] = useState(false);
   const cls = "w-full rounded-[9px] border border-line bg-card px-3 py-2.5 text-[13px] text-ink outline-none focus:border-teal";
   const lab = "text-[11.5px] font-semibold text-slate";
+  const setStage = (s: string, patch: Partial<StageSel>) =>
+    setStageSel((cur) => ({ ...cur, [s]: { ...cur[s], ...patch } }));
 
   function pickType(name: string) {
     setType(name);
-    if (!task) setStages(suggestStages(name)); // prefill stages for new tasks only
-  }
-  function toggleStage(s: string) {
-    setStages((cur) => (cur.includes(s) ? cur.filter((x) => x !== s) : [...cur, s]));
+    // Pre-check suggested stages for new tasks (keeps any owner/due already set).
+    if (!task) {
+      const sug = suggestStages(name);
+      setStageSel((cur) => {
+        const next = { ...cur };
+        for (const s of STAGE_OPTS) next[s] = { ...next[s], on: sug.includes(s) };
+        return next;
+      });
+    }
   }
   async function addType() {
     const name = newType.trim();
@@ -522,21 +542,26 @@ function TaskForm({ task, channels, accounts, taskTypes, isAdmin, onClose, onSav
     if (r.ok) { setTypes((cur) => cur.filter((x) => x.id !== t.id)); toast("Type removed"); }
   }
 
+  const chosen = STAGE_OPTS.filter((s) => stageSel[s].on);
+
   async function save() {
-    if (!title.trim() || !type || stages.length === 0 || saving) return;
+    if (!title.trim() || !type || chosen.length === 0 || saving) return;
     setSaving(true);
-    const ordered = TASK_BOARD_COLUMNS.filter((c) => stages.includes(c));
+    const stages = chosen.map((s) => ({
+      stage: s,
+      assigneeId: stageSel[s].assigneeId || null,
+      targetDate: stageSel[s].due ? new Date(stageSel[s].due).toISOString() : null,
+    }));
     const body = {
       title: title.trim(), brief: brief.trim(), content: content.trim(), remarks: remarks.trim(),
-      contentType: type, stages: ordered, channelId: channelId || null, accountId: accountId || null,
+      contentType: type, stages, channelId: channelId || null, accountId: accountId || null,
       plannedDate: date ? new Date(date).toISOString() : null,
     };
     const ok = await api(task ? `/api/tasks/${task.id}` : "/api/tasks", task ? "PATCH" : "POST", body);
     setSaving(false);
-    if (ok) { toast(task ? "Changes saved" : "Task created, now assign each stage"); onSaved(); }
+    if (ok) { toast(task ? "Changes saved" : "Task created ✓"); onSaved(); }
   }
 
-  const STAGE_OPTS = ["CONTENT", "VIDEO", "GRAPHICS"] as const;
   const week = date ? weekLabelForDate(new Date(date).toISOString()) : task?.weekLabel ?? "";
 
   return (
@@ -576,16 +601,28 @@ function TaskForm({ task, channels, accounts, taskTypes, isAdmin, onClose, onSav
             )}
           </div>
 
-          {/* Stages (per task) */}
+          {/* Stages — pick what this piece needs and assign owner + due date inline */}
           <div className={lab}>
-            Stages <span className="font-normal">(pick what this piece needs)</span>
-            <div className="mt-1 flex flex-wrap gap-2">
+            Stages <span className="font-normal">(tick a stage to include it, and assign it here)</span>
+            <div className="mt-1 flex flex-col gap-1.5">
               {STAGE_OPTS.map((s) => {
-                const on = stages.includes(s);
+                const sel = stageSel[s];
                 return (
-                  <button key={s} type="button" onClick={() => toggleStage(s)} className={`rounded-full border px-3 py-1.5 text-[12.5px] font-normal transition ${on ? "border-teal bg-teal-soft font-semibold text-teal-dark" : "border-line bg-bg text-ink hover:border-teal"}`}>
-                    {STAGE_LABELS[s]}
-                  </button>
+                  <div key={s} className={`rounded-[10px] border px-3 py-2 ${sel.on ? "border-teal bg-teal-soft/40" : "border-line"}`}>
+                    <label className="flex cursor-pointer items-center gap-2 text-[12.5px] font-semibold text-ink">
+                      <input type="checkbox" checked={sel.on} onChange={(e) => setStage(s, { on: e.target.checked })} className="h-3.5 w-3.5 accent-[#0e9f8f]" />
+                      {STAGE_LABELS[s]}
+                    </label>
+                    {sel.on && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <select value={sel.assigneeId} onChange={(e) => setStage(s, { assigneeId: e.target.value })} className="flex-1 rounded-[8px] border border-line bg-card px-2 py-1.5 text-[12px] font-normal text-ink outline-none focus:border-teal">
+                          <option value="">Unassigned</option>
+                          {members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+                        </select>
+                        <input type="date" value={sel.due} onChange={(e) => setStage(s, { due: e.target.value })} className="rounded-[8px] border border-line bg-card px-2 py-1.5 text-[12px] font-normal text-ink outline-none focus:border-teal" />
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </div>
@@ -605,7 +642,7 @@ function TaskForm({ task, channels, accounts, taskTypes, isAdmin, onClose, onSav
           <label className={lab}>Content brief<input value={brief} onChange={(e) => setBrief(e.target.value)} className={cls + " mt-1 font-normal"} /></label>
           <label className={lab}>Content (draft)<textarea value={content} onChange={(e) => setContent(e.target.value)} className={cls + " mt-1 min-h-[80px] resize-y font-normal"} /></label>
           <label className={lab}>Remarks<input value={remarks} onChange={(e) => setRemarks(e.target.value)} className={cls + " mt-1 font-normal"} /></label>
-          <div className="flex justify-end gap-2"><button onClick={onClose} className="px-3 py-2 text-[12.5px] font-semibold text-slate">Cancel</button><button onClick={save} disabled={!title.trim() || !type || stages.length === 0 || saving} className="btn-premium rounded-[10px] px-4 py-2 text-[12.5px] font-semibold disabled:opacity-50">{saving ? "Saving…" : task ? "Save changes" : "Create task"}</button></div>
+          <div className="flex justify-end gap-2"><button onClick={onClose} className="px-3 py-2 text-[12.5px] font-semibold text-slate">Cancel</button><button onClick={save} disabled={!title.trim() || !type || chosen.length === 0 || saving} className="btn-premium rounded-[10px] px-4 py-2 text-[12.5px] font-semibold disabled:opacity-50">{saving ? "Saving…" : task ? "Save changes" : "Create task"}</button></div>
         </div>
       </div>
     </div>

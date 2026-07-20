@@ -20,8 +20,18 @@ const patchSchema = z.object({
   accountId: z.string().nullable().optional(),
   weekLabel: z.string().trim().max(40).optional(),
   plannedDate: z.string().datetime().nullable().optional(),
-  // Explicit per-task stages — reconciled with existing rows (keeps assignments).
-  stages: z.array(z.enum(TASK_STAGES)).min(1).optional(),
+  // Explicit per-task stages — reconciled with existing rows (keeps assignments
+  // for stages that remain; applies owner/due when provided).
+  stages: z
+    .array(
+      z.object({
+        stage: z.enum(TASK_STAGES),
+        assigneeId: z.string().nullable().optional(),
+        targetDate: z.string().datetime().nullable().optional(),
+      }),
+    )
+    .min(1)
+    .optional(),
   binItemId: z.string().nullable().optional(),
   assetIds: z.array(z.string()).max(50).optional(),
   // Publish.
@@ -85,17 +95,26 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     });
 
     // Reconcile stages if the planner changed the selection: add newly-picked
-    // stages, drop deselected ones, keep existing rows (and their assignments).
+    // stages, drop deselected ones, keep existing rows, and apply the inline
+    // owner/due when provided.
     if (d.stages !== undefined) {
-      const want = TASK_STAGES.filter((s) => d.stages!.includes(s));
-      const have = new Set(task.stages.map((s) => s.stage));
-      const remove = task.stages.filter((s) => !want.includes(s.stage as (typeof want)[number]));
+      const want = TASK_STAGES.map((s) => d.stages!.find((x) => x.stage === s)).filter(
+        (s): s is NonNullable<typeof s> => Boolean(s),
+      );
+      const wantKeys = want.map((w) => w.stage);
+      const have = new Map(task.stages.map((s) => [s.stage, s]));
+      const remove = task.stages.filter((s) => !wantKeys.includes(s.stage as (typeof wantKeys)[number]));
       if (remove.length)
         await tx.taskStage.deleteMany({ where: { id: { in: remove.map((s) => s.id) } } });
       for (let i = 0; i < want.length; i++) {
-        const stage = want[i];
-        if (have.has(stage)) await tx.taskStage.updateMany({ where: { taskId: id, stage }, data: { order: i } });
-        else await tx.taskStage.create({ data: { taskId: id, stage, order: i } });
+        const w = want[i];
+        const assignData = {
+          ...(w.assigneeId !== undefined ? { assigneeId: w.assigneeId } : {}),
+          ...(w.targetDate !== undefined ? { targetDate: w.targetDate ? new Date(w.targetDate) : null } : {}),
+        };
+        if (have.has(w.stage))
+          await tx.taskStage.update({ where: { id: have.get(w.stage)!.id }, data: { order: i, ...assignData } });
+        else await tx.taskStage.create({ data: { taskId: id, stage: w.stage, order: i, ...assignData } });
       }
     }
 

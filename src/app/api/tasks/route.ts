@@ -5,6 +5,7 @@ import { listTasks } from "@/lib/data";
 import { weekLabelForDate } from "@/lib/tasks";
 import { TASK_STAGES } from "@/lib/enums";
 import { logActivity } from "@/lib/activity";
+import { createNotifications } from "@/lib/notifications";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,8 +18,17 @@ const schema = z.object({
   // Free-form content type (the workspace's editable list; validated only as
   // non-empty so admins can add their own).
   contentType: z.string().trim().min(1).max(60),
-  // Stages are chosen per task now (a subset of the production stages).
-  stages: z.array(z.enum(TASK_STAGES)).min(1, "Pick at least one stage"),
+  // Stages are chosen per task, each optionally assigned an owner + due date
+  // right in the plan form.
+  stages: z
+    .array(
+      z.object({
+        stage: z.enum(TASK_STAGES),
+        assigneeId: z.string().nullable().optional(),
+        targetDate: z.string().datetime().nullable().optional(),
+      }),
+    )
+    .min(1, "Pick at least one stage"),
   channelId: z.string().nullable().optional(),
   accountId: z.string().nullable().optional(),
   plannedDate: z.string().datetime().nullable().optional(),
@@ -42,8 +52,10 @@ export async function POST(req: Request) {
   const parsed = schema.safeParse(await req.json());
   if (!parsed.success) return new Response("Bad request", { status: 400 });
   const d = parsed.data;
-  // Keep the chosen stages in canonical order.
-  const stages = TASK_STAGES.filter((s) => d.stages.includes(s));
+  // Keep the chosen stages in canonical order, carrying their inline assignment.
+  const stages = TASK_STAGES.map((s) => d.stages.find((x) => x.stage === s)).filter(
+    (s): s is (typeof d.stages)[number] => Boolean(s),
+  );
   const week = d.plannedDate ? weekLabelForDate(d.plannedDate) : d.weekLabel ?? "";
 
   const task = await prisma.task.create({
@@ -60,8 +72,15 @@ export async function POST(req: Request) {
       weekLabel: week,
       plannedDate: d.plannedDate ? new Date(d.plannedDate) : null,
       binItemId: d.binItemId ?? null,
-      currentStage: stages[0] ?? "PUBLISHING",
-      stages: { create: stages.map((s, i) => ({ stage: s, order: i })) },
+      currentStage: stages[0]?.stage ?? "PUBLISHING",
+      stages: {
+        create: stages.map((s, i) => ({
+          stage: s.stage,
+          order: i,
+          assigneeId: s.assigneeId ?? null,
+          targetDate: s.targetDate ? new Date(s.targetDate) : null,
+        })),
+      },
     },
     select: { id: true, title: true },
   });
@@ -72,5 +91,15 @@ export async function POST(req: Request) {
     targetId: task.id,
     targetLabel: task.title,
   });
+  // Notify anyone assigned a stage at plan time.
+  const assignees = [...new Set(stages.map((s) => s.assigneeId).filter((a): a is string => Boolean(a)))];
+  if (assignees.length)
+    await createNotifications(g.user, assignees, {
+      action: "task.assigned",
+      message: `assigned you a stage of “${task.title}”`,
+      targetType: "task",
+      targetId: task.id,
+      targetLabel: task.title,
+    });
   return Response.json({ id: task.id }, { status: 201 });
 }

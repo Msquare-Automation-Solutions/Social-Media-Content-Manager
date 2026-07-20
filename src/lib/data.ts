@@ -486,6 +486,7 @@ export type TaskRow = {
   channel: { id: string; name: string; icon: string; color: string } | null;
   account: { id: string; name: string; icon: string; color: string } | null;
   weekLabel: string;
+  plannedDate: string | null;
   currentStage: string;
   publishStatus: string;
   publishedDate: string | null;
@@ -564,6 +565,7 @@ export async function listTasks(
     channel: (t.channelId && chById.get(t.channelId)) || null,
     account: (t.accountId && acById.get(t.accountId)) || null,
     weekLabel: t.weekLabel,
+    plannedDate: t.plannedDate ? t.plannedDate.toISOString() : null,
     currentStage: t.currentStage,
     publishStatus: t.publishStatus,
     publishedDate: t.publishedDate ? t.publishedDate.toISOString() : null,
