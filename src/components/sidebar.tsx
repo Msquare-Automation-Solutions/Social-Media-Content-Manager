@@ -89,7 +89,6 @@ export function Sidebar({
           key: "create",
           label: "Create",
           items: [
-            it("/create", "Content Creator", "create", isActive("/create")),
             it("/content-bin", "Content Bin", "bin", isActive("/content-bin"), binCount || undefined),
           ],
         },
@@ -109,6 +108,11 @@ export function Sidebar({
             it("/approved", "Approved", "approved", isActive("/approved"), approvedCount || undefined),
             it("/published", "Published", "published", isActive("/published"), publishedCount || undefined),
           ],
+        },
+        // Content Creator lives at the bottom (an entry point, not daily nav).
+        {
+          key: "creator",
+          items: [it("/create", "Content Creator", "create", isActive("/create"))],
         },
       ],
     },
@@ -156,9 +160,9 @@ export function Sidebar({
   const areaHref = (a: Area) => a.groups[0].items[0].href;
 
   return (
-    <aside className="flex h-screen border-r border-line/80 bg-gradient-to-b from-card to-bg">
-      {/* Area rail */}
-      <div className="flex w-[62px] shrink-0 flex-col items-center gap-1 border-r border-line/60 bg-wash/[0.02] py-3">
+    <aside className="group/rail relative flex h-screen w-[62px] shrink-0">
+      {/* Area rail — always visible */}
+      <div className="z-50 flex h-full w-[62px] shrink-0 flex-col items-center gap-1 border-r border-line/70 bg-gradient-to-b from-card to-bg py-3">
         <div className="mb-2 grid h-8 w-8 place-items-center rounded-[9px] bg-brand-teal text-[13px] text-white shadow-glow-sm">◆</div>
         {AREAS.map((a) => {
           const on = a.key === activeArea;
@@ -177,13 +181,16 @@ export function Sidebar({
             </Link>
           );
         })}
+        <div className="mt-auto flex flex-col items-center gap-2 pt-2">
+          <NotificationBell initialUnread={unreadCount} />
+          <ThemeToggle />
+        </div>
       </div>
 
-      {/* Contextual sidebar for the active area */}
-      <div className="flex min-w-0 flex-1 flex-col px-3 pb-5 pt-4">
+      {/* Contextual sidebar — slides in when the rail is hovered/focused */}
+      <div className="pointer-events-none fixed left-[62px] top-0 z-40 flex h-screen w-[248px] -translate-x-[112%] flex-col border-r border-line bg-card px-3 pb-5 pt-4 opacity-0 shadow-lift transition-all duration-200 ease-premium group-hover/rail:pointer-events-auto group-hover/rail:translate-x-0 group-hover/rail:opacity-100 group-focus-within/rail:pointer-events-auto group-focus-within/rail:translate-x-0 group-focus-within/rail:opacity-100">
         <div className="flex items-center gap-2 px-1 pb-3 pt-0.5 font-display text-[14px] font-bold">
           <span className="min-w-0 flex-1 truncate" title={workspaceName}>{workspaceName}</span>
-          <NotificationBell initialUnread={unreadCount} />
         </div>
 
         {canUpload && (
@@ -240,15 +247,12 @@ export function Sidebar({
               </span>
             </div>
           </Link>
-          <div className="mt-1.5 flex items-center gap-1.5">
-            <button
-              onClick={() => signOut({ callbackUrl: "/login" })}
-              className="flex flex-1 items-center justify-center gap-2 rounded-[10px] border border-line py-2.5 font-medium text-slate hover:bg-bg hover:text-[#c23b2a]"
-            >
-              <Icon name="signout" size={16} /> Sign out
-            </button>
-            <ThemeToggle />
-          </div>
+          <button
+            onClick={() => signOut({ callbackUrl: "/login" })}
+            className="mt-1.5 flex w-full items-center justify-center gap-2 rounded-[10px] border border-line py-2.5 font-medium text-slate hover:bg-bg hover:text-[#c23b2a]"
+          >
+            <Icon name="signout" size={16} /> Sign out
+          </button>
         </div>
       </div>
     </aside>

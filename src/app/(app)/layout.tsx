@@ -50,7 +50,7 @@ export default async function AppLayout({
 
   return (
     <DialogProvider>
-      <div className="grid h-screen grid-cols-[302px_1fr] overflow-hidden">
+      <div className="grid h-screen grid-cols-[62px_1fr] overflow-hidden">
         <Sidebar
           user={{
             name: user.name,
