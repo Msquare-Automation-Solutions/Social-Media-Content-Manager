@@ -150,6 +150,14 @@ export function NotificationBell({ initialUnread }: { initialUnread: number }) {
     qc.invalidateQueries({ queryKey: ["notifications"] });
   }
 
+  async function clearAll() {
+    // Optimistically empty the feed, then delete server-side.
+    qc.setQueryData<Feed>(["notifications"], { rows: [], nextCursor: null, unread: 0 });
+    lastTopId.current = null;
+    await fetch("/api/notifications", { method: "DELETE" });
+    qc.invalidateQueries({ queryKey: ["notifications"] });
+  }
+
   async function openPanel() {
     const next = !open;
     setOpen(next);
@@ -242,6 +250,13 @@ export function NotificationBell({ initialUnread }: { initialUnread: number }) {
               </ul>
             )}
           </div>
+          {rows.length > 0 && (
+            <div className="border-t border-line px-4 py-2 text-right">
+              <button onClick={clearAll} className="text-[11.5px] font-semibold text-slate hover:text-[#c23b2a]">
+                Clear all
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
