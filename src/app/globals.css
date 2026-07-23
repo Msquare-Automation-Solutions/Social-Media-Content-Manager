@@ -24,8 +24,8 @@
   --c-ink: 224 231 240; /* soft off-white text (less glare than pure white) */
   --c-slate: 143 157 175; /* muted text */
   --c-line: 45 55 71; /* borders/dividers — soft, low-contrast */
-  --c-bg: 13 17 25; /* deep app background */
-  --c-card: 28 36 50; /* raised surfaces — clearly above bg for depth */
+  --c-bg: 17 23 34; /* app background — a blue-slate, not flat black */
+  --c-card: 30 39 54; /* raised surfaces — clearly above bg for depth */
   --c-wash: 235 240 246; /* light wash for hovers on dark */
   --c-teal-dark: 90 224 210; /* light teal for text on teal-soft */
   --c-teal-soft: 17 50 48; /* dark teal-tinted fill */
@@ -53,13 +53,15 @@ body {
   background-attachment: fixed;
 }
 
-/* Dark mode: softer, cooler glow + a gentle top light so the deep base reads
-   with depth instead of a flat black slab. */
+/* Dark mode: visible teal/violet light sources + a subtle diagonal base wash so
+   the surface reads with depth and colour, never a flat black slab. */
 .dark body {
   background-image:
-    radial-gradient(70rem 70rem at 15% -12%, rgba(14, 159, 143, 0.10), transparent 60%),
-    radial-gradient(58rem 58rem at 100% -5%, rgba(122, 79, 201, 0.09), transparent 55%),
-    linear-gradient(180deg, rgba(148, 163, 184, 0.05), transparent 22%);
+    radial-gradient(72rem 60rem at 10% -10%, rgba(16, 185, 165, 0.20), transparent 58%),
+    radial-gradient(60rem 55rem at 108% -4%, rgba(129, 90, 214, 0.17), transparent 55%),
+    radial-gradient(55rem 55rem at 50% 122%, rgba(16, 185, 165, 0.10), transparent 60%),
+    linear-gradient(155deg, rgba(38, 50, 74, 0.55), transparent 45%),
+    linear-gradient(180deg, rgba(148, 163, 184, 0.06), transparent 28%);
 }
 
 @layer base {
