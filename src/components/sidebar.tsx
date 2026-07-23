@@ -73,8 +73,26 @@ export function Sidebar({
         {
           key: "home",
           items: [
-            it("/", "Workspace overview", "overview", isActive("/")),
             it("/dashboard", "Dashboard", "dashboard", isActive("/dashboard")),
+            it("/", "Workspace overview", "overview", isActive("/")),
+          ],
+        },
+      ],
+    },
+    {
+      key: "tasks",
+      label: "Tasks",
+      icon: "tasks",
+      hot: myTaskCount > 0 || taskReviewCount > 0,
+      groups: [
+        {
+          key: "tasks",
+          items: [
+            it("/content-overview", "Content Overview", "overview", isActive("/content-overview")),
+            it("/tasks", "Tasks board", "tasks", pathname === "/tasks"),
+            it("/my-work", "My Work", "mywork", isActive("/my-work"), myTaskCount || undefined, myTaskCount > 0),
+            ...(isAdmin ? [it("/tasks/review", "To review", "review", isActive("/tasks/review"), taskReviewCount || undefined, taskReviewCount > 0)] : []),
+            it("/analytics", "Analytics", "analytics", isActive("/analytics")),
           ],
         },
       ],
@@ -114,24 +132,6 @@ export function Sidebar({
         {
           key: "creator",
           items: [it("/create", "Content Creator", "create", isActive("/create"))],
-        },
-      ],
-    },
-    {
-      key: "tasks",
-      label: "Tasks",
-      icon: "tasks",
-      hot: myTaskCount > 0 || taskReviewCount > 0,
-      groups: [
-        {
-          key: "tasks",
-          items: [
-            it("/content-overview", "Content Overview", "overview", isActive("/content-overview")),
-            it("/tasks", "Tasks board", "tasks", pathname === "/tasks"),
-            it("/my-work", "My Work", "mywork", isActive("/my-work"), myTaskCount || undefined, myTaskCount > 0),
-            ...(isAdmin ? [it("/tasks/review", "To review", "review", isActive("/tasks/review"), taskReviewCount || undefined, taskReviewCount > 0)] : []),
-            it("/analytics", "Analytics", "analytics", isActive("/analytics")),
-          ],
         },
       ],
     },

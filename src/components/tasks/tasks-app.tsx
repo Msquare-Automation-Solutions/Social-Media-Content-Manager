@@ -676,8 +676,10 @@ function TaskForm({ task, channels, accounts, taskTypes, members, isAdmin, onClo
   const week = date ? weekLabelForDate(new Date(date).toISOString()) : task?.weekLabel ?? "";
 
   return (
-    <div onClick={onClose} className="fixed inset-0 z-[80] grid place-items-center bg-black/50 p-5 backdrop-blur-[3px]">
-      <div onClick={(e) => e.stopPropagation()} className="max-h-[90vh] w-[min(540px,96vw)] overflow-y-auto rounded-xl2 border border-line bg-card p-6 shadow-card">
+    // Backdrop intentionally does NOT close the form — an accidental outside
+    // click shouldn't discard a half-filled plan. Use ✕ / Cancel to close.
+    <div className="fixed inset-0 z-[80] grid place-items-center bg-black/50 p-5 backdrop-blur-[3px]">
+      <div className="max-h-[90vh] w-[min(540px,96vw)] overflow-y-auto rounded-xl2 border border-line bg-card p-6 shadow-card">
         <div className="mb-1 flex items-center justify-between"><h2 className="font-display text-[18px]">{task ? "Edit content" : "Plan content"}</h2><button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-full text-slate hover:bg-wash/[0.06]">✕</button></div>
         <p className="mb-4 text-[12px] text-slate">Classify the piece, choose the stages it needs, then write the theme, brief and content.</p>
         <div className="grid gap-3">

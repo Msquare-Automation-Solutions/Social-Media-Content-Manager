@@ -81,6 +81,49 @@ body {
     color: inherit;
     background-color: transparent;
   }
+
+  /* Cross-browser consistency: Safari otherwise renders selects, number inputs
+     and buttons with its own system font + native chrome, so the UI looks
+     different there. Force the app font and strip native styling everywhere. */
+  input,
+  textarea,
+  select,
+  button {
+    font: inherit;
+    letter-spacing: inherit;
+  }
+  select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    /* Custom chevron (native one is removed by appearance:none). Slate stroke
+       reads on both light and dark surfaces. */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.6rem center;
+    background-size: 0.72rem;
+    padding-right: 1.9rem;
+  }
+  select[multiple] {
+    background-image: none;
+    padding-right: revert;
+  }
+  /* Remove the native number-input steppers (Safari/Chrome/Firefox). */
+  input[type="number"] {
+    -webkit-appearance: none;
+    -moz-appearance: textfield;
+    appearance: none;
+  }
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  /* Consistent brand-colored checkboxes/radios across browsers. */
+  input[type="checkbox"],
+  input[type="radio"] {
+    accent-color: rgb(14 159 143);
+  }
   input::placeholder,
   textarea::placeholder {
     color: rgb(var(--c-slate));
