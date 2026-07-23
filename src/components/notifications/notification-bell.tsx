@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Icon } from "@/components/ui/icons";
 import { initials } from "@/lib/colors";
@@ -45,8 +45,15 @@ function hrefFor(action: string, targetId: string | null): string | null {
 export function NotificationBell({ initialUnread }: { initialUnread: number }) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
   const qc = useQueryClient();
   const ref = useRef<HTMLDivElement>(null);
+
+  // Close the panel whenever the route changes (e.g. a notification navigated us).
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setOpen(false);
+  }, [pathname]);
 
   const { data } = useQuery<Feed>({
     queryKey: ["notifications"],
@@ -136,8 +143,13 @@ export function NotificationBell({ initialUnread }: { initialUnread: number }) {
     const onClick = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     };
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
     window.addEventListener("mousedown", onClick);
-    return () => window.removeEventListener("mousedown", onClick);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("mousedown", onClick);
+      window.removeEventListener("keydown", onKey);
+    };
   }, [open]);
 
   async function markAllRead() {
@@ -189,7 +201,7 @@ export function NotificationBell({ initialUnread }: { initialUnread: number }) {
       </button>
 
       {open && (
-        <div className="absolute bottom-11 left-0 z-[60] w-[320px] max-w-[calc(100vw-2rem)] rounded-[14px] border border-line bg-card shadow-card">
+        <div className="absolute bottom-0 left-[calc(100%+10px)] z-[60] w-[330px] max-w-[calc(100vw-5rem)] rounded-[14px] border border-line bg-card shadow-lift">
           <div className="flex items-center justify-between border-b border-line px-4 py-2.5">
             <b className="text-[13px]">Notifications</b>
             {perm === "default" && (
