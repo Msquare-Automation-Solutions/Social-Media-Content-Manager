@@ -39,7 +39,15 @@ export type SavedResult = { id: string; type: string };
 
 // Optional prefills for the Save dialog (e.g. a task submission pre-selects the
 // task's platform). Only fields the caller wants to seed are set.
-export type SaveDefaults = { channelIds?: string[]; category?: string; personId?: string };
+export type SaveDefaults = {
+  channelIds?: string[];
+  accountIds?: string[];
+  category?: string;
+  personId?: string;
+  title?: string;
+  description?: string;
+  tags?: string[];
+};
 
 type SaveContextValue = {
   target: SaveTarget | null;

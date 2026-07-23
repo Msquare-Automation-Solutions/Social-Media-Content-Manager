@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { BackButton } from "@/components/ui/back-button";
 import { useToast } from "@/components/ui/toast";
 import { Icon, type IconName } from "@/components/ui/icons";
-import { useUploadDialog } from "@/components/save/dialog-context";
+import { useUploadDialog, type SaveDefaults } from "@/components/save/dialog-context";
 import { initials } from "@/lib/colors";
 import type { TaskRow } from "@/lib/data";
 import {
@@ -358,23 +358,43 @@ function TaskDrawer({ task, members, isAdmin, canEdit, meId, onClose, onEdit, ap
   async function work(stageId: string, workStatus: string) {
     if (await api(`/api/tasks/${t.id}/stages/${stageId}`, "PATCH", { action: "work", workStatus })) { toast("Status updated"); refresh(); }
   }
-  function submit(stageId: string) {
+  async function submit(stageId: string) {
     // Upload first: the stage is only submitted for review once the file is
     // saved + linked, so the reviewer is notified with the submission attached.
     // Cancelling the upload leaves the stage un-submitted.
-    toast("Upload your file to submit");
-    upload.open(
-      async (asset) => {
-        // Link the file to this stage, then submit for review.
-        await api(`/api/tasks/${t.id}/assets`, "POST", { assetId: asset.id, stageId });
-        if (await api(`/api/tasks/${t.id}/stages/${stageId}`, "PATCH", { action: "submit" })) {
-          toast("Submitted for review 🔔");
+
+    // On a re-submit (e.g. after rework), pre-fill the Save dialog with the
+    // details the creator used last time, so they don't retype everything.
+    let defaults: SaveDefaults = t.channel ? { channelIds: [t.channel.id] } : {};
+    const prior = t.assets.filter((a) => a.stageId === stageId).at(-1);
+    if (prior) {
+      try {
+        const r = await fetch(`/api/assets/${prior.id}`);
+        if (r.ok) {
+          const a = await r.json();
+          defaults = {
+            title: a.title,
+            description: a.note ?? "",
+            tags: a.tags ?? [],
+            category: a.type,
+            channelIds: a.channelIds ?? defaults.channelIds,
+            accountIds: a.accountIds ?? [],
+          };
         }
-        refresh();
-      },
-      // Pre-select the task's platform so submitters don't have to re-pick it.
-      t.channel ? { channelIds: [t.channel.id] } : undefined,
-    );
+      } catch {
+        // Fall back to the platform-only default.
+      }
+    }
+
+    toast("Upload your file to submit");
+    upload.open(async (asset) => {
+      // Link the file to this stage, then submit for review.
+      await api(`/api/tasks/${t.id}/assets`, "POST", { assetId: asset.id, stageId });
+      if (await api(`/api/tasks/${t.id}/stages/${stageId}`, "PATCH", { action: "submit" })) {
+        toast("Submitted for review 🔔");
+      }
+      refresh();
+    }, defaults);
   }
   async function review(stageId: string, outcome: "APPROVED" | "REWORK") {
     const note = outcome === "REWORK" ? prompt("Rework note?") ?? "" : "";
@@ -759,7 +779,7 @@ function TaskForm({ task, channels, accounts, taskTypes, members, isAdmin, onClo
 
           <label className={lab}>Content theme<input autoFocus value={title} onChange={(e) => setTitle(e.target.value)} className={cls + " mt-1 font-normal"} /></label>
           <label className={lab}>Content brief<input value={brief} onChange={(e) => setBrief(e.target.value)} className={cls + " mt-1 font-normal"} /></label>
-          <label className={lab}>Content (draft)<textarea value={content} onChange={(e) => setContent(e.target.value)} className={cls + " mt-1 min-h-[80px] resize-y font-normal"} /></label>
+          <label className={lab}>Content (draft) <span className="font-normal">(optional)</span><textarea value={content} onChange={(e) => setContent(e.target.value)} className={cls + " mt-1 min-h-[80px] resize-y font-normal"} /></label>
           <label className={lab}>Remarks<input value={remarks} onChange={(e) => setRemarks(e.target.value)} className={cls + " mt-1 font-normal"} /></label>
           <div className="flex justify-end gap-2"><button onClick={onClose} className="px-3 py-2 text-[12.5px] font-semibold text-slate">Cancel</button><button onClick={save} disabled={!title.trim() || !type || chosen.length === 0 || saving} className="btn-premium rounded-[10px] px-4 py-2 text-[12.5px] font-semibold disabled:opacity-50">{saving ? "Saving…" : task ? "Save changes" : "Create task"}</button></div>
         </div>

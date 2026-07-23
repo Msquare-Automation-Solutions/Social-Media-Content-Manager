@@ -127,17 +127,17 @@ function SaveDialogInner({
     },
   });
 
-  const [title, setTitle] = useState(draft.title);
+  const [title, setTitle] = useState(defaults?.title ?? draft.title);
   // Admins may override the creator; for everyone else it stays their own name.
   const [personId, setPersonId] = useState<string>("");
   const [category, setCategory] = useState(defaults?.category ?? draft.category);
   const [channels, setChannels] = useState<Set<string>>(new Set(defaults?.channelIds ?? []));
   // Which account(s) the media is assigned to.
-  const [accounts, setAccounts] = useState<Set<string>>(new Set());
+  const [accounts, setAccounts] = useState<Set<string>>(new Set(defaults?.accountIds ?? []));
   // channelId → post date (yyyy-mm-dd), optional per platform.
   const [postDates, setPostDates] = useState<Record<string, string>>({});
-  const [tags, setTags] = useState(draft.tags.join(", "));
-  const [note, setNote] = useState("");
+  const [tags, setTags] = useState((defaults?.tags ?? draft.tags).join(", "));
+  const [note, setNote] = useState(defaults?.description ?? "");
   const [customThumb, setCustomThumb] = useState<File | null>(null);
   const [customThumbUrl, setCustomThumbUrl] = useState<string | null>(null);
   const [dragThumb, setDragThumb] = useState(false);
