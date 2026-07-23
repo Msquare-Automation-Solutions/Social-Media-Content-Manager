@@ -166,7 +166,11 @@ function SaveDialogInner({
   const previewImage = customThumbUrl ?? draft.imagePreviewUrl ?? null;
   const canEdit = options?.canEdit ?? false;
   const canSave =
-    title.trim().length > 0 && channels.size > 0 && !!effectivePersonId;
+    title.trim().length > 0 &&
+    note.trim().length > 0 &&
+    channels.size > 0 &&
+    accounts.size > 0 &&
+    !!effectivePersonId;
 
   function pickThumb(file: File | null) {
     if (!file) return;
@@ -305,7 +309,7 @@ function SaveDialogInner({
         .split(",")
         .map((t) => t.trim())
         .filter(Boolean),
-      note: category === "OTHER" ? note.trim() || null : null,
+      note: note.trim(),
       html: draft.html,
       url: draft.url,
       chatMessageId: draft.chatMessageId,
@@ -362,12 +366,23 @@ function SaveDialogInner({
         </div>
       )}
 
-      {/* Name */}
-      <Field label="Name" error={errors.title}>
+      {/* Name / Title */}
+      <Field label="Title" error={errors.title}>
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           className="w-full rounded-[10px] border border-line px-3 py-2.5 outline-none focus:border-teal"
+        />
+      </Field>
+
+      {/* Description */}
+      <Field label="Description" error={errors.note}>
+        <textarea
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder="What is this content about?"
+          rows={3}
+          className="w-full resize-y rounded-[10px] border border-line px-3 py-2.5 text-[13px] outline-none focus:border-teal"
         />
       </Field>
 
@@ -526,15 +541,6 @@ function SaveDialogInner({
             </button>
           ))}
         </div>
-        {category === "OTHER" && (
-          <textarea
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="Note, what is this? (optional)"
-            rows={2}
-            className="mt-2 w-full rounded-[10px] border border-line px-3 py-2 text-[12.5px] outline-none focus:border-teal"
-          />
-        )}
       </Field>
 
       {/* Platforms */}
