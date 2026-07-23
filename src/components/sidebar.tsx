@@ -33,7 +33,7 @@ type Props = {
   approvedCount: number;
   publishedCount: number;
   unreadCount: number;
-  storageBytes: number;
+  storage: { total: number; active: number; trashed: number };
   storageLimitBytes: number;
 };
 
@@ -51,7 +51,7 @@ export function Sidebar({
   approvedCount,
   publishedCount,
   unreadCount,
-  storageBytes,
+  storage,
   storageLimitBytes,
 }: Props) {
   const pathname = usePathname();
@@ -243,7 +243,7 @@ export function Sidebar({
           })}
         </nav>
 
-        <StorageMeter used={storageBytes} limit={storageLimitBytes} />
+        <StorageMeter storage={storage} limit={storageLimitBytes} />
 
         <div className="pt-3">
           <Link
@@ -282,10 +282,13 @@ function fmtBytes(n: number) {
   return `${n} B`;
 }
 
-function StorageMeter({ used, limit }: { used: number; limit: number }) {
-  const pct = limit > 0 ? Math.min(100, (used / limit) * 100) : 0;
-  // Teal normally, amber past 75%, red past 90% — a quick at-a-glance signal.
-  const color = pct >= 90 ? "#d64545" : pct >= 75 ? "#e0912b" : "#0e9f8f";
+function StorageMeter({ storage, limit }: { storage: { total: number; active: number; trashed: number }; limit: number }) {
+  const { total, active, trashed } = storage;
+  const pct = limit > 0 ? Math.min(100, (total / limit) * 100) : 0;
+  const activePct = limit > 0 ? Math.min(100, (active / limit) * 100) : 0;
+  const trashPct = limit > 0 ? Math.min(100 - activePct, (trashed / limit) * 100) : 0;
+  // Total usage colour: teal normally, amber past 75%, red past 90%.
+  const activeColor = pct >= 90 ? "#d64545" : pct >= 75 ? "#e0912b" : "#0e9f8f";
   return (
     <div className="mt-2 rounded-[11px] border border-line bg-wash/[0.03] px-3 py-2.5">
       <div className="mb-1.5 flex items-center justify-between text-[11px]">
@@ -294,11 +297,19 @@ function StorageMeter({ used, limit }: { used: number; limit: number }) {
         </span>
         <span className="font-medium text-slate">{Math.round(pct)}%</span>
       </div>
-      <div className="h-1.5 w-full overflow-hidden rounded-full bg-wash/[0.1]">
-        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: color }} />
+      {/* Two-segment bar: active media, then trashed (still occupying R2). */}
+      <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-wash/[0.1]">
+        <div className="h-full transition-all" style={{ width: `${activePct}%`, background: activeColor }} />
+        <div className="h-full transition-all" style={{ width: `${trashPct}%`, background: "#94a3b8" }} />
       </div>
-      <div className="mt-1.5 text-[10.5px] text-slate">
-        {fmtBytes(used)} of {fmtBytes(limit)} used
+      <div className="mt-1.5 space-y-0.5 text-[10.5px] text-slate">
+        <div className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full" style={{ background: activeColor }} /> Media <b className="font-semibold text-ink">{fmtBytes(active)}</b>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full" style={{ background: "#94a3b8" }} /> Trash <b className="font-semibold text-ink">{fmtBytes(trashed)}</b>
+        </div>
+        <div className="pt-0.5">{fmtBytes(total)} of {fmtBytes(limit)} used</div>
       </div>
     </div>
   );

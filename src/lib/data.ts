@@ -455,15 +455,25 @@ export async function getBinCount(workspaceId: string): Promise<number> {
   });
 }
 
-// Total bytes stored for the workspace. Sums every media asset's original file
-// size, including soft-deleted ones (trashed files still occupy R2 until the
-// 30-day purge), so it reflects the real storage footprint.
-export async function getStorageBytes(workspaceId: string): Promise<number> {
-  const r = await prisma.mediaAsset.aggregate({
-    where: { workspaceId },
-    _sum: { sizeBytes: true },
-  });
-  return r._sum.sizeBytes ?? 0;
+export type StorageUsage = { total: number; active: number; trashed: number };
+
+// Bytes stored for the workspace, split into active media vs. trashed (still
+// occupying R2 until the 30-day purge). Sums each media asset's original file
+// size, so it reflects the real storage footprint.
+export async function getStorageUsage(workspaceId: string): Promise<StorageUsage> {
+  const [active, trashed] = await Promise.all([
+    prisma.mediaAsset.aggregate({
+      where: { workspaceId, deletedAt: null },
+      _sum: { sizeBytes: true },
+    }),
+    prisma.mediaAsset.aggregate({
+      where: { workspaceId, deletedAt: { not: null } },
+      _sum: { sizeBytes: true },
+    }),
+  ]);
+  const a = active._sum.sizeBytes ?? 0;
+  const t = trashed._sum.sizeBytes ?? 0;
+  return { total: a + t, active: a, trashed: t };
 }
 
 // ── Task pipeline ────────────────────────────────────────────────────────────

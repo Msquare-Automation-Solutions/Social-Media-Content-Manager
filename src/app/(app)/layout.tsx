@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
-import { getAssetCounts, getBinCount, getMyOpenTaskCount, getPendingReviewCount, getStorageBytes } from "@/lib/data";
+import { getAssetCounts, getBinCount, getMyOpenTaskCount, getPendingReviewCount, getStorageUsage } from "@/lib/data";
 import { unreadNotificationCount } from "@/lib/notifications";
 import { Sidebar } from "@/components/sidebar";
 import { DialogProvider } from "@/components/save/dialog-context";
@@ -18,7 +18,7 @@ export default async function AppLayout({
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const [counts, binCount, myTaskCount, taskReviewCount, membersCount, queueCount, reworkCount, approvedCount, publishedCount, unreadCount, storageBytes] =
+  const [counts, binCount, myTaskCount, taskReviewCount, membersCount, queueCount, reworkCount, approvedCount, publishedCount, unreadCount, storage] =
     await Promise.all([
       getAssetCounts(user.workspaceId),
       getBinCount(user.workspaceId),
@@ -38,7 +38,7 @@ export default async function AppLayout({
         where: { workspaceId: user.workspaceId, deletedAt: null, status: "PUBLISHED" },
       }),
       unreadNotificationCount(user.id),
-      getStorageBytes(user.workspaceId),
+      getStorageUsage(user.workspaceId),
     ]);
 
   // R2 free tier is 10 GB; override with STORAGE_LIMIT_GB if you scale the plan.
@@ -75,7 +75,7 @@ export default async function AppLayout({
           approvedCount={approvedCount}
           publishedCount={publishedCount}
           unreadCount={unreadCount}
-          storageBytes={storageBytes}
+          storage={storage}
           storageLimitBytes={storageLimitBytes}
         />
         {/* When the rail (peer/nav) is hovered and the panel slides in, push the
