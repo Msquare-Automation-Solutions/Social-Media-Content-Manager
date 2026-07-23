@@ -117,12 +117,12 @@ export function ContentBinView({
       )}
 
       {addOpen && options && (
+        // Backdrop intentionally does NOT close the form — an accidental
+        // outside click shouldn't discard a half-filled entry. Use ✕ / Cancel.
         <div
-          onClick={() => setAddOpen(false)}
           className="fixed inset-0 z-[70] grid place-items-center bg-black/55 p-5 backdrop-blur-[3px]"
         >
           <div
-            onClick={(e) => e.stopPropagation()}
             className="max-h-[88vh] w-[min(680px,100%)] overflow-y-auto rounded-xl2 border border-line bg-card p-6 shadow-card"
           >
             <div className="mb-3 flex items-center justify-between">
