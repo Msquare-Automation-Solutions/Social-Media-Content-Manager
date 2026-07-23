@@ -455,6 +455,17 @@ export async function getBinCount(workspaceId: string): Promise<number> {
   });
 }
 
+// Total bytes stored for the workspace. Sums every media asset's original file
+// size, including soft-deleted ones (trashed files still occupy R2 until the
+// 30-day purge), so it reflects the real storage footprint.
+export async function getStorageBytes(workspaceId: string): Promise<number> {
+  const r = await prisma.mediaAsset.aggregate({
+    where: { workspaceId },
+    _sum: { sizeBytes: true },
+  });
+  return r._sum.sizeBytes ?? 0;
+}
+
 // ── Task pipeline ────────────────────────────────────────────────────────────
 // The production workflow (Content Overview → Content/Video/Graphics →
 // Publishing → Analytics). See src/lib/tasks.ts for the stage config.

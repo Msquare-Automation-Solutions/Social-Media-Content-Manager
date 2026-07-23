@@ -33,6 +33,8 @@ type Props = {
   approvedCount: number;
   publishedCount: number;
   unreadCount: number;
+  storageBytes: number;
+  storageLimitBytes: number;
 };
 
 export function Sidebar({
@@ -49,6 +51,8 @@ export function Sidebar({
   approvedCount,
   publishedCount,
   unreadCount,
+  storageBytes,
+  storageLimitBytes,
 }: Props) {
   const pathname = usePathname();
   const upload = useUploadDialog();
@@ -239,6 +243,8 @@ export function Sidebar({
           })}
         </nav>
 
+        <StorageMeter used={storageBytes} limit={storageLimitBytes} />
+
         <div className="pt-3">
           <Link
             href="/account"
@@ -266,6 +272,35 @@ export function Sidebar({
         </div>
       </div>
     </aside>
+  );
+}
+
+function fmtBytes(n: number) {
+  if (n >= 1e9) return `${(n / 1e9).toFixed(n < 1e10 ? 2 : 1)} GB`;
+  if (n >= 1e6) return `${Math.round(n / 1e6)} MB`;
+  if (n >= 1e3) return `${Math.round(n / 1e3)} KB`;
+  return `${n} B`;
+}
+
+function StorageMeter({ used, limit }: { used: number; limit: number }) {
+  const pct = limit > 0 ? Math.min(100, (used / limit) * 100) : 0;
+  // Teal normally, amber past 75%, red past 90% — a quick at-a-glance signal.
+  const color = pct >= 90 ? "#d64545" : pct >= 75 ? "#e0912b" : "#0e9f8f";
+  return (
+    <div className="mt-2 rounded-[11px] border border-line bg-wash/[0.03] px-3 py-2.5">
+      <div className="mb-1.5 flex items-center justify-between text-[11px]">
+        <span className="inline-flex items-center gap-1.5 font-semibold text-slate">
+          <Icon name="upload" size={13} /> Storage
+        </span>
+        <span className="font-medium text-slate">{Math.round(pct)}%</span>
+      </div>
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-wash/[0.1]">
+        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: color }} />
+      </div>
+      <div className="mt-1.5 text-[10.5px] text-slate">
+        {fmtBytes(used)} of {fmtBytes(limit)} used
+      </div>
+    </div>
   );
 }
 
