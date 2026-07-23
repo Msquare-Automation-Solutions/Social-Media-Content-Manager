@@ -366,7 +366,8 @@ function TaskDrawer({ task, members, isAdmin, canEdit, meId, onClose, onEdit, ap
     // On a re-submit (e.g. after rework), pre-fill the Save dialog with the
     // details the creator used last time, so they don't retype everything.
     let defaults: SaveDefaults = t.channel ? { channelIds: [t.channel.id] } : {};
-    const prior = t.assets.filter((a) => a.stageId === stageId).at(-1);
+    const priorAssets = t.assets.filter((a) => a.stageId === stageId);
+    const prior = priorAssets.at(-1);
     if (prior) {
       try {
         const r = await fetch(`/api/assets/${prior.id}`);
@@ -388,8 +389,9 @@ function TaskDrawer({ task, members, isAdmin, canEdit, meId, onClose, onEdit, ap
 
     toast("Upload your file to submit");
     upload.open(async (asset) => {
-      // Link the file to this stage, then submit for review.
-      await api(`/api/tasks/${t.id}/assets`, "POST", { assetId: asset.id, stageId });
+      // Link the file to this stage (replacing any previous submission), then
+      // submit for review.
+      await api(`/api/tasks/${t.id}/assets`, "POST", { assetId: asset.id, stageId, replace: priorAssets.length > 0 });
       if (await api(`/api/tasks/${t.id}/stages/${stageId}`, "PATCH", { action: "submit" })) {
         toast("Submitted for review 🔔");
       }
