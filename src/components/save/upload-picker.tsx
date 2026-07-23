@@ -46,7 +46,6 @@ export function UploadPicker() {
   return (
     <div
       className="fixed inset-0 z-[90] grid place-items-center bg-black/60 p-4 backdrop-blur-[3px]"
-      onMouseDown={(e) => e.target === e.currentTarget && upload.close()}
     >
       <div className="w-[500px] max-w-[94vw] rounded-[18px] border border-line bg-card p-6 shadow-lift ring-1 ring-black/5">
         <h2 className="font-display text-[17px]">Upload files</h2>
