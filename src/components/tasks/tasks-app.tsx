@@ -118,7 +118,7 @@ export function TasksApp(props: Props) {
       {mode === "overview" && <Overview {...props} onOpen={setOpenId} onEdit={(id) => { setEditId(id); setFormOpen(true); }} onDelete={delTask} />}
       {mode === "board" && <Board tasks={tasks} onOpen={setOpenId} />}
       {mode === "mywork" && <MyWork tasks={tasks} meId={props.meId} onOpen={setOpenId} />}
-      {mode === "review" && <ReviewInbox tasks={tasks} onOpen={setOpenId} onReview={reviewStage} />}
+      {mode === "review" && <ReviewInbox tasks={tasks} meId={props.meId} onOpen={setOpenId} onReview={reviewStage} />}
       {mode === "analytics" && <Analytics tasks={tasks} />}
 
       {openTask && (
@@ -287,22 +287,31 @@ function MyWork({ tasks, meId, onOpen }: { tasks: TaskRow[]; meId: string; onOpe
 }
 
 // ── Review inbox ─────────────────────────────────────────────────────────────
-function ReviewInbox({ tasks, onOpen, onReview }: { tasks: TaskRow[]; onOpen: (id: string) => void; onReview: (t: string, s: string, o: "APPROVED" | "REWORK") => void }) {
+function ReviewInbox({ tasks, meId, onOpen, onReview }: { tasks: TaskRow[]; meId: string; onOpen: (id: string) => void; onReview: (t: string, s: string, o: "APPROVED" | "REWORK") => void }) {
   const rows: { t: TaskRow; s: TaskRow["stages"][number] }[] = [];
   for (const t of tasks) for (const s of t.stages) if (s.reviewStatus === "PENDING") rows.push({ t, s });
   if (!rows.length) return <Empty text="Nothing waiting for review." />;
   return (
     <div>
-      {rows.map(({ t, s }) => (
+      {rows.map(({ t, s }) => {
+        const mine = s.assigneeId === meId; // can't review your own work
+        return (
         <div key={s.id} className="mb-2 flex items-center gap-3 rounded-[12px] border border-line bg-card px-4 py-3 shadow-soft">
           <button onClick={() => onOpen(t.id)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
             <span className={`${badge} inline-flex items-center gap-1 bg-violet-soft text-violet`}><StageIcon stage={s.stage} size={12} /> {STAGE_LABELS[s.stage]}</span>
             <span className="min-w-0"><b className="text-[13.5px]">{t.title}</b><span className="block text-[11.5px] text-slate">by {s.assigneeName ?? "—"} · {t.contentTypeLabel}</span></span>
           </button>
-          <button onClick={() => onReview(t.id, s.id, "APPROVED")} className="btn-premium rounded-[9px] px-3.5 py-1.5 text-[12px] font-semibold">Approve</button>
-          <button onClick={() => onReview(t.id, s.id, "REWORK")} className="rounded-[9px] border border-line px-3.5 py-1.5 text-[12px] font-semibold text-ink hover:border-teal">Rework</button>
+          {mine ? (
+            <span className="text-[11.5px] font-medium text-slate">Your own work, another admin must review</span>
+          ) : (
+            <>
+              <button onClick={() => onReview(t.id, s.id, "APPROVED")} className="btn-premium rounded-[9px] px-3.5 py-1.5 text-[12px] font-semibold">Approve</button>
+              <button onClick={() => onReview(t.id, s.id, "REWORK")} className="rounded-[9px] border border-line px-3.5 py-1.5 text-[12px] font-semibold text-ink hover:border-teal">Rework</button>
+            </>
+          )}
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -472,7 +481,10 @@ function TaskDrawer({ task, members, isAdmin, canEdit, meId, onClose, onEdit, ap
             ) : (
               <div className="flex flex-wrap gap-2">
                 {isAdmin && <button onClick={() => setAssignStage(s.id)} className="rounded-[8px] border border-line px-2.5 py-1 text-[11.5px] font-semibold text-teal-dark hover:border-teal">{s.assigneeId ? "Reassign" : "Assign owner + deadline"}</button>}
-                {isAdmin && s.reviewStatus === "PENDING" && <>
+                {isAdmin && s.reviewStatus === "PENDING" && s.assigneeId === meId && (
+                  <span className="text-[11.5px] font-medium text-slate">Another admin must review your own work.</span>
+                )}
+                {isAdmin && s.reviewStatus === "PENDING" && s.assigneeId !== meId && <>
                   <button onClick={() => review(s.id, "APPROVED")} className="btn-premium rounded-[8px] px-2.5 py-1 text-[11.5px] font-semibold">Approve</button>
                   <button onClick={() => review(s.id, "REWORK")} className="rounded-[8px] border border-line px-2.5 py-1 text-[11.5px] font-semibold hover:border-teal">Rework</button>
                 </>}
