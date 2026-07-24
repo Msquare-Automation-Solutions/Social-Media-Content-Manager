@@ -30,6 +30,10 @@ function hrefFor(action: string, targetId: string | null): string | null {
     const base = action === "task.submitted" ? "/tasks/review" : "/my-work";
     return targetId ? `${base}?task=${encodeURIComponent(targetId)}` : base;
   }
+  // Content Bin additions land everyone in the bin.
+  if (action.startsWith("bin.")) {
+    return targetId ? `/content-bin?item=${encodeURIComponent(targetId)}` : "/content-bin";
+  }
   const base =
     action === "asset.approved"
       ? "/approved"

@@ -3,6 +3,7 @@ import { guard } from "@/lib/api-guard";
 import { prisma } from "@/lib/db";
 import { serializeTags } from "@/lib/json";
 import { listContentBin } from "@/lib/data";
+import { createNotifications } from "@/lib/notifications";
 import { ASSET_TYPES, BIN_STATUSES } from "@/lib/enums";
 
 export const runtime = "nodejs";
@@ -57,5 +58,23 @@ export async function POST(req: Request) {
     },
     select: { id: true },
   });
+
+  // Let the whole team know a new idea landed in the Content Bin.
+  const members = await prisma.membership.findMany({
+    where: { workspaceId: g.user.workspaceId },
+    select: { userId: true },
+  });
+  await createNotifications(
+    { id: g.user.id, name: g.user.name, avatarColor: g.user.avatarColor, workspaceId: g.user.workspaceId },
+    members.map((m) => m.userId),
+    {
+      action: "bin.added",
+      message: `added “${d.title}” to the Content Bin`,
+      targetType: "bin",
+      targetId: item.id,
+      targetLabel: d.title,
+    },
+  );
+
   return Response.json(item, { status: 201 });
 }
