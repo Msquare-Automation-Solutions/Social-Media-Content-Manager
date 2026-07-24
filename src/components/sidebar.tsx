@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
@@ -166,6 +166,47 @@ export function Sidebar({
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const toggleGroup = (k: string, open: boolean) => setOpenGroups((m) => ({ ...m, [k]: !open }));
 
+  // Rail "new work" dots. Each area has a numeric signal (count of things
+  // needing attention). We remember the signal the user last saw (per area, in
+  // localStorage) and only show the dot when the signal has GROWN since then —
+  // so the dot clears once you've visited the area and never gives a false
+  // alarm for work you've already looked at.
+  const areaSignals: Record<string, number> = {
+    tasks: myTaskCount + taskReviewCount,
+    content: queueCount + reworkCount + binCount,
+  };
+  const [seen, setSeen] = useState<Record<string, number>>({});
+  useEffect(() => {
+    try {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSeen(JSON.parse(localStorage.getItem("railSeen") || "{}"));
+    } catch {
+      /* ignore */
+    }
+  }, []);
+  // Being on an area counts as seeing it: record its current signal.
+  const activeSignal = areaSignals[activeArea];
+  useEffect(() => {
+    if (activeSignal === undefined) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSeen((prev) => {
+      if (prev[activeArea] === activeSignal) return prev;
+      const next = { ...prev, [activeArea]: activeSignal };
+      try {
+        localStorage.setItem("railSeen", JSON.stringify(next));
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  }, [activeArea, activeSignal]);
+  const areaHot = (key: string) => {
+    const sig = areaSignals[key];
+    if (sig === undefined) return false;
+    // Never dot the area you're currently viewing; otherwise dot only if new.
+    return key !== activeArea && sig > (seen[key] ?? 0);
+  };
+
   return (
     <aside className="peer/nav group/rail relative flex h-screen w-[62px] shrink-0">
       {/* Area rail, always visible */}
@@ -184,7 +225,7 @@ export function Sidebar({
             >
               <Icon name={a.icon} size={19} />
               {a.label}
-              {a.hot && <span className="absolute right-2.5 top-1.5 h-2 w-2 rounded-full bg-[#e0912b] ring-2 ring-card" />}
+              {areaHot(a.key) && <span className="absolute right-2.5 top-1.5 h-2 w-2 rounded-full bg-[#e0912b] ring-2 ring-card" />}
             </Link>
           );
         })}
