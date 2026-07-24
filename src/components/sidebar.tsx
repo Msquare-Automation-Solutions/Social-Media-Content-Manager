@@ -139,22 +139,24 @@ export function Sidebar({
         },
       ],
     },
-    {
-      key: "workspace",
-      label: "Workspace",
-      icon: "members",
-      hot: false,
-      groups: [
-        {
+    // Workspace (Members, Activity) is admin-only — hidden entirely for others.
+    ...(isAdmin
+      ? [{
           key: "workspace",
-          items: [
-            it("/members", "Members", "members", isActive("/members"), membersCount),
-            ...(isAdmin ? [it("/activity", "Activity", "activity", isActive("/activity"))] : []),
-            it("/trash", "Trash", "trash", isActive("/trash")),
+          label: "Workspace",
+          icon: "members" as IconName,
+          hot: false,
+          groups: [
+            {
+              key: "workspace",
+              items: [
+                it("/members", "Members", "members", isActive("/members"), membersCount),
+                it("/activity", "Activity", "activity", isActive("/activity")),
+              ],
+            },
           ],
-        },
-      ],
-    },
+        }]
+      : []),
   ];
   const activeArea = AREAS.find((a) => a.groups.some((g) => g.items.some((i) => i.active)))?.key ?? "home";
   const current = AREAS.find((a) => a.key === activeArea)!;
@@ -188,6 +190,15 @@ export function Sidebar({
         })}
         <div className="mt-auto flex flex-col items-center gap-2 pt-2">
           <NotificationBell initialUnread={unreadCount} />
+          <Link
+            href="/trash"
+            title="Trash"
+            className={`grid h-8 w-8 place-items-center rounded-[9px] transition ${
+              isActive("/trash") ? "bg-teal-soft text-teal-dark" : "text-slate hover:bg-wash/[0.06] hover:text-ink"
+            }`}
+          >
+            <Icon name="trash" size={17} />
+          </Link>
           <ThemeToggle />
         </div>
       </div>
