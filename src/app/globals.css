@@ -21,17 +21,33 @@
 }
 
 .dark {
-  --c-ink: 224 231 240; /* soft off-white text (less glare than pure white) */
-  --c-slate: 143 157 175; /* muted text */
-  --c-line: 45 55 71; /* borders/dividers — soft, low-contrast */
-  --c-bg: 17 23 34; /* app background — a blue-slate, not flat black */
-  --c-card: 30 39 54; /* raised surfaces — clearly above bg for depth */
+  --c-ink: 226 233 242; /* soft off-white text (less glare than pure white) */
+  --c-slate: 146 160 178; /* muted text */
+  --c-line: 48 59 77; /* borders/dividers — soft, low-contrast */
+  --c-bg: 15 20 31; /* app background — a deep blue-slate, not flat black */
+  --c-card: 30 39 55; /* raised surfaces — clearly above bg for depth */
   --c-wash: 235 240 246; /* light wash for hovers on dark */
-  --c-teal-dark: 90 224 210; /* light teal for text on teal-soft */
-  --c-teal-soft: 17 50 48; /* dark teal-tinted fill */
-  --c-violet-soft: 44 37 63;
-  --scroll-thumb: rgba(224, 231, 240, 0.16);
-  --scroll-thumb-hover: rgba(224, 231, 240, 0.3);
+  --c-teal-dark: 92 227 213; /* light teal for text on teal-soft */
+  --c-teal-soft: 17 52 50; /* dark teal-tinted fill */
+  --c-violet-soft: 47 39 67;
+  --scroll-thumb: rgba(226, 233, 242, 0.16);
+  --scroll-thumb-hover: rgba(226, 233, 242, 0.3);
+}
+
+/* Dark cards can't rely on drop shadows (dark-on-dark is invisible), so give
+   the elevation utilities a deeper shadow PLUS a faint top highlight — the
+   "lit from above" edge that makes surfaces read as raised and premium. */
+.dark .shadow-soft {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 14px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.045);
+}
+.dark .shadow-card {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35), 0 14px 36px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.055);
+}
+.dark .shadow-lift {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45), 0 24px 50px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
 }
 
 html,
@@ -57,11 +73,10 @@ body {
    the surface reads with depth and colour, never a flat black slab. */
 .dark body {
   background-image:
-    radial-gradient(72rem 60rem at 10% -10%, rgba(16, 185, 165, 0.20), transparent 58%),
-    radial-gradient(60rem 55rem at 108% -4%, rgba(129, 90, 214, 0.17), transparent 55%),
-    radial-gradient(55rem 55rem at 50% 122%, rgba(16, 185, 165, 0.10), transparent 60%),
-    linear-gradient(155deg, rgba(38, 50, 74, 0.55), transparent 45%),
-    linear-gradient(180deg, rgba(148, 163, 184, 0.06), transparent 28%);
+    radial-gradient(72rem 60rem at 8% -12%, rgba(16, 185, 165, 0.18), transparent 56%),
+    radial-gradient(64rem 58rem at 110% -6%, rgba(129, 90, 214, 0.16), transparent 54%),
+    radial-gradient(58rem 58rem at 50% 124%, rgba(20, 184, 166, 0.09), transparent 60%),
+    linear-gradient(160deg, rgba(34, 46, 70, 0.42), transparent 48%);
 }
 
 @layer base {
