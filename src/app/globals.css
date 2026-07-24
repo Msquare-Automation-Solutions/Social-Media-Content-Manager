@@ -73,11 +73,9 @@ body {
    the surface reads with depth and colour, never a flat black slab. */
 .dark body {
   background-image:
-    radial-gradient(78rem 64rem at 6% -12%, rgba(16, 185, 165, 0.30), transparent 58%),
-    radial-gradient(70rem 62rem at 112% -6%, rgba(129, 90, 214, 0.26), transparent 56%),
-    radial-gradient(62rem 60rem at 50% 126%, rgba(20, 184, 166, 0.16), transparent 62%),
-    radial-gradient(40rem 40rem at 88% 108%, rgba(129, 90, 214, 0.12), transparent 60%),
-    linear-gradient(160deg, rgba(34, 46, 70, 0.40), transparent 48%);
+    radial-gradient(78rem 64rem at 4% -12%, rgba(16, 185, 165, 0.30), transparent 58%),
+    radial-gradient(74rem 64rem at 100% -10%, rgba(129, 90, 214, 0.28), transparent 58%),
+    radial-gradient(70rem 60rem at 50% 128%, rgba(20, 184, 166, 0.22), transparent 62%);
 }
 
 @layer base {
