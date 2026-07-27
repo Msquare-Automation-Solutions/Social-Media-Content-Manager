@@ -1,6 +1,7 @@
-// App logo mark: a rounded-square in the brand teal→green gradient holding a
-// chat bubble with an AI "spark" — chat-first content generation, in one glyph.
-// Self-contained SVG (background included) so it drops in anywhere at any size.
+// App logo mark: a rounded tile in the brand teal→green gradient holding a
+// bold "generate" sparkle (with a small companion star) — the universal symbol
+// for AI content generation. Self-contained SVG (background included) so it
+// drops in anywhere at any size.
 export function Logo({ size = 32, className = "" }: { size?: number; className?: string }) {
   return (
     <svg
@@ -25,18 +26,17 @@ export function Logo({ size = 32, className = "" }: { size?: number; className?:
       {/* top-edge sheen */}
       <rect x="2" y="2" width="44" height="44" rx="13" fill="white" opacity="0.06" />
 
-      {/* Chat bubble */}
+      {/* Main generate-spark */}
       <path
-        d="M15 14h18a5 5 0 0 1 5 5v9a5 5 0 0 1-5 5H24l-7.2 5.4A1 1 0 0 1 15 42.6V33a5 5 0 0 1-5-5v-9a5 5 0 0 1 5-5Z"
+        d="M21 9c1.3 9.75 3.25 11.7 13 13-9.75 1.3-11.7 3.25-13 13-1.3-9.75-3.25-11.7-13-13 9.75-1.3 11.7-3.25 13-13Z"
         fill="white"
       />
-      {/* AI spark inside the bubble */}
+      {/* Companion spark, top-right */}
       <path
-        d="M24.5 17.5c.7 3.1 1.9 4.3 5 5-3.1.7-4.3 1.9-5 5-.7-3.1-1.9-4.3-5-5 3.1-.7 4.3-1.9 5-5Z"
-        fill="url(#mc-logo-bg)"
+        d="M34 8c.5 3.75 1.25 4.5 5 5-3.75.5-4.5 1.25-5 5-.5-3.75-1.25-4.5-5-5 3.75-.5 4.5-1.25 5-5Z"
+        fill="white"
+        opacity="0.92"
       />
-      {/* small secondary spark */}
-      <circle cx="31.5" cy="28.5" r="1.4" fill="#0BA793" />
     </svg>
   );
 }
