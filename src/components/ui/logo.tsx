@@ -1,7 +1,7 @@
 // App logo mark: a rounded tile in the brand teal→green gradient holding a
-// bold "generate" sparkle (with a small companion star) — the universal symbol
-// for AI content generation. Self-contained SVG (background included) so it
-// drops in anywhere at any size.
+// play triangle (video/visual content) with a generate-spark — "create &
+// publish media." Self-contained SVG (background included) so it drops in
+// anywhere at any size.
 export function Logo({ size = 32, className = "" }: { size?: number; className?: string }) {
   return (
     <svg
@@ -26,16 +26,16 @@ export function Logo({ size = 32, className = "" }: { size?: number; className?:
       {/* top-edge sheen */}
       <rect x="2" y="2" width="44" height="44" rx="13" fill="white" opacity="0.06" />
 
-      {/* Main generate-spark */}
+      {/* Play triangle */}
       <path
-        d="M21 9c1.3 9.75 3.25 11.7 13 13-9.75 1.3-11.7 3.25-13 13-1.3-9.75-3.25-11.7-13-13 9.75-1.3 11.7-3.25 13-13Z"
+        d="M20 15.4c-1.2-.7-2.6.1-2.6 1.5v14.2c0 1.4 1.4 2.2 2.6 1.5l12.4-7.1c1.2-.7 1.2-2.4 0-3.1L20 15.4Z"
         fill="white"
       />
-      {/* Companion spark, top-right */}
+      {/* Generate-spark, top-right */}
       <path
-        d="M34 8c.5 3.75 1.25 4.5 5 5-3.75.5-4.5 1.25-5 5-.5-3.75-1.25-4.5-5-5 3.75-.5 4.5-1.25 5-5Z"
+        d="M36 10c.45 3.35 1.15 4.05 4.5 4.5-3.35.45-4.05 1.15-4.5 4.5-.45-3.35-1.15-4.05-4.5-4.5 3.35-.45 4.05-1.15 4.5-4.5Z"
         fill="white"
-        opacity="0.92"
+        opacity="0.95"
       />
     </svg>
   );
