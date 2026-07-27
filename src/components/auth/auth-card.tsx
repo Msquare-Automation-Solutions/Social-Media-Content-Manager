@@ -1,3 +1,5 @@
+import { Logo } from "@/components/ui/logo";
+
 export function AuthCard({
   title,
   subtitle,
@@ -18,14 +20,11 @@ export function AuthCard({
       {/* Ambient depth over the gradient. */}
       <div className="pointer-events-none absolute -left-24 -top-24 h-[28rem] w-[28rem] rounded-full bg-white/10 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-40 right-[-8rem] h-[30rem] w-[30rem] rounded-full bg-emerald-400/10 blur-3xl" />
-      <div className="pointer-events-none absolute inset-0 opacity-[0.05] [background-image:radial-gradient(circle_at_1px_1px,white_1px,transparent_0)] [background-size:22px_22px]" />
 
       <div className="relative w-[400px] max-w-full animate-fade-up">
         {/* Brand mark, centered above the card. */}
         <div className="mb-6 flex flex-col items-center gap-2.5 text-white">
-          <span className="grid h-12 w-12 place-items-center rounded-[15px] bg-white/15 text-xl shadow-glow-sm backdrop-blur-sm">
-            ◆
-          </span>
+          <Logo size={52} className="shadow-glow-sm rounded-[15px]" />
           <span className="font-display text-[17px] font-bold tracking-tight">
             Social Media Content Manager
           </span>

@@ -8,6 +8,7 @@ import { LIBRARY_VIEWS, LIBRARY_SLUGS, type LibraryViewKey } from "@/lib/library
 import { initials } from "@/lib/colors";
 import { useUploadDialog } from "@/components/save/dialog-context";
 import { Icon, type IconName } from "@/components/ui/icons";
+import { Logo } from "@/components/ui/logo";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 
@@ -214,7 +215,7 @@ export function Sidebar({
     <aside className="peer/nav group/rail relative flex h-screen w-[62px] shrink-0">
       {/* Area rail, always visible */}
       <div className="z-50 flex h-full w-[62px] shrink-0 flex-col items-center gap-1 border-r border-line/70 bg-gradient-to-b from-card to-bg py-3">
-        <div className="mb-2 grid h-8 w-8 place-items-center rounded-[9px] bg-brand-teal text-[13px] text-white shadow-glow-sm">◆</div>
+        <Logo size={34} className="mb-2 rounded-[9px] shadow-glow-sm" />
         {AREAS.map((a) => {
           const on = a.key === activeArea;
           return (

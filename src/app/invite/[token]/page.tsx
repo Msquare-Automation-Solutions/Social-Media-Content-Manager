@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { hashToken } from "@/lib/tokens";
 import { AcceptInviteForm } from "./accept-form";
+import { Logo } from "@/components/ui/logo";
 
 export const dynamic = "force-dynamic";
 
@@ -22,9 +23,7 @@ export default async function InvitePage({
   return (
     <div className="fixed inset-0 grid place-items-center bg-gradient-to-b from-[#eef4f6] via-teal-soft to-[#cfe9f2] p-4">
       <div className="w-[400px] max-w-[92vw] rounded-[22px] bg-card p-8 shadow-card">
-        <div className="mx-auto mb-3.5 grid h-[46px] w-[46px] place-items-center rounded-[14px] bg-gradient-to-br from-teal to-[#0b6f88] text-xl text-white">
-          ◆
-        </div>
+        <Logo size={46} className="mx-auto mb-3.5 rounded-[14px]" />
         {valid ? (
           <>
             <h1 className="text-center font-display text-xl">Join {invite!.workspace.name}</h1>
