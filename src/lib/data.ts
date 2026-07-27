@@ -661,6 +661,17 @@ export async function getPendingReviewCount(workspaceId: string): Promise<number
   });
 }
 
+// Tasks with at least one stage sent back for rework (awaiting re-submit).
+export async function getTaskReworkCount(workspaceId: string): Promise<number> {
+  return prisma.task.count({
+    where: {
+      workspaceId,
+      deletedAt: null,
+      stages: { some: { reviewStatus: "REWORK" } },
+    },
+  });
+}
+
 /** Dropdown data for the task views: assignable members (login users) +
  * platforms + accounts. */
 export async function getTaskOptions(workspaceId: string) {

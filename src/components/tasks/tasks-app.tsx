@@ -30,7 +30,7 @@ type Member = { id: string; name: string; avatarColor: string; role?: string };
 const memberLabel = (m: Member) => (m.role ? `${m.name} — ${m.role}` : m.name);
 type Opt = { id: string; name: string; icon: string };
 type TaskType = { id: string; name: string };
-export type TasksMode = "overview" | "board" | "mywork" | "review" | "analytics";
+export type TasksMode = "overview" | "board" | "mywork" | "review" | "rework" | "analytics";
 
 type Props = {
   mode: TasksMode;
@@ -97,6 +97,7 @@ export function TasksApp(props: Props) {
     : mode === "board" ? "Tasks board"
     : mode === "mywork" ? "My Work"
     : mode === "review" ? "To review"
+    : mode === "rework" ? "In rework"
     : "Analytics";
 
   return (
@@ -119,6 +120,7 @@ export function TasksApp(props: Props) {
       {mode === "board" && <Board tasks={tasks} onOpen={setOpenId} />}
       {mode === "mywork" && <MyWork tasks={tasks} meId={props.meId} onOpen={setOpenId} />}
       {mode === "review" && <ReviewInbox tasks={tasks} meId={props.meId} onOpen={setOpenId} onReview={reviewStage} />}
+      {mode === "rework" && <ReworkList tasks={tasks} onOpen={setOpenId} />}
       {mode === "analytics" && <Analytics tasks={tasks} />}
 
       {openTask && (
@@ -166,6 +168,7 @@ function subtitle(mode: TasksMode, isAdmin: boolean) {
     case "board": return isAdmin ? "Every task and the stage it's in. Open a card to assign owners, review, and advance it." : "Where everything sits. Your own work is in My Work.";
     case "mywork": return "Everything assigned to you. Update your status, then submit for review.";
     case "review": return "Work submitted for review. Approve to advance it, or send it back for rework.";
+    case "rework": return "Stages you sent back. They stay here until the owner re-submits the fixed work.";
     case "analytics": return "How the month is tracking, planned vs published, and metrics by platform.";
   }
 }
@@ -312,6 +315,29 @@ function ReviewInbox({ tasks, meId, onOpen, onReview }: { tasks: TaskRow[]; meId
         </div>
         );
       })}
+    </div>
+  );
+}
+
+// ── Rework list ──────────────────────────────────────────────────────────────
+// Stages an admin sent back; they sit here until the owner re-submits.
+function ReworkList({ tasks, onOpen }: { tasks: TaskRow[]; onOpen: (id: string) => void }) {
+  const rows: { t: TaskRow; s: TaskRow["stages"][number] }[] = [];
+  for (const t of tasks) for (const s of t.stages) if (s.reviewStatus === "REWORK") rows.push({ t, s });
+  if (!rows.length) return <Empty text="Nothing in rework right now." />;
+  return (
+    <div>
+      {rows.map(({ t, s }) => (
+        <button key={s.id} onClick={() => onOpen(t.id)} className="mb-2 flex w-full items-center gap-3 rounded-[12px] border border-line bg-card px-4 py-3 text-left shadow-soft hover:border-teal">
+          <span className={`${badge} inline-flex items-center gap-1 bg-[#f6dcd6] text-[#c23b2a]`}><StageIcon stage={s.stage} size={12} /> {STAGE_LABELS[s.stage]}</span>
+          <span className="min-w-0 flex-1">
+            <b className="text-[13.5px]">{t.title}</b>
+            <span className="block text-[11.5px] text-slate">by {s.assigneeName ?? "—"} · {t.contentTypeLabel}</span>
+            {s.reviewNote && <span className="mt-0.5 block truncate text-[11.5px] text-[#c23b2a]">↩ {s.reviewNote}</span>}
+          </span>
+          {s.targetDate && <span className="shrink-0 text-[11px] text-slate">due {fmt(s.targetDate)}</span>}
+        </button>
+      ))}
     </div>
   );
 }
@@ -492,7 +518,10 @@ function TaskDrawer({ task, members, isAdmin, canEdit, meId, onClose, onEdit, ap
                   <select value={s.workStatus} onChange={(e) => work(s.id, e.target.value)} aria-label="Update status" className="rounded-[8px] border border-line bg-card px-2.5 py-1 text-[11.5px] font-semibold text-ink outline-none focus:border-teal">
                     {TASK_WORK_STATUSES.map((w) => <option key={w} value={w}>{TASK_WORK_LABELS[w]}</option>)}
                   </select>
-                  <button onClick={() => submit(s.id)} className="btn-premium rounded-[8px] px-2.5 py-1 text-[11.5px] font-semibold">Submit →</button>
+                  {/* Submit only once the work is marked completed (on time or delayed). */}
+                  {(s.workStatus === "COMPLETED_ON_TIME" || s.workStatus === "COMPLETED_DELAY")
+                    ? <button onClick={() => submit(s.id)} className="btn-premium rounded-[8px] px-2.5 py-1 text-[11.5px] font-semibold">Submit →</button>
+                    : <span className="text-[11px] text-slate">Mark completed to submit</span>}
                 </>}
               </div>
             )}

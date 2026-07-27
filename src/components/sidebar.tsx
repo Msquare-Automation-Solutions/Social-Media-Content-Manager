@@ -27,6 +27,7 @@ type Props = {
   binCount: number;
   myTaskCount: number;
   taskReviewCount: number;
+  taskReworkCount: number;
   membersCount: number;
   queueCount: number;
   reworkCount: number;
@@ -45,6 +46,7 @@ export function Sidebar({
   binCount,
   myTaskCount,
   taskReviewCount,
+  taskReworkCount,
   membersCount,
   queueCount,
   reworkCount,
@@ -96,6 +98,7 @@ export function Sidebar({
             it("/tasks", "Tasks board", "tasks", pathname === "/tasks"),
             it("/my-work", "My Work", "mywork", isActive("/my-work"), myTaskCount || undefined, myTaskCount > 0),
             ...(isAdmin ? [it("/tasks/review", "To review", "review", isActive("/tasks/review"), taskReviewCount || undefined, taskReviewCount > 0)] : []),
+            ...(isAdmin ? [it("/tasks/rework", "In rework", "rework", isActive("/tasks/rework"), taskReworkCount || undefined)] : []),
             it("/analytics", "Analytics", "analytics", isActive("/analytics")),
           ],
         },
@@ -172,7 +175,7 @@ export function Sidebar({
   // so the dot clears once you've visited the area and never gives a false
   // alarm for work you've already looked at.
   const areaSignals: Record<string, number> = {
-    tasks: myTaskCount + taskReviewCount,
+    tasks: myTaskCount + taskReviewCount + taskReworkCount,
     content: queueCount + reworkCount + binCount,
   };
   const [seen, setSeen] = useState<Record<string, number>>({});
