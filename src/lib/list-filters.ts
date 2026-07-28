@@ -1,6 +1,4 @@
-import { prisma } from "@/lib/db";
 import type { LibraryFilters } from "@/lib/data";
-import { isAdminRole } from "@/lib/roles";
 import type { Role } from "@/lib/enums";
 
 export type ListSearchParams = {
@@ -30,25 +28,17 @@ export type ListView = {
 };
 
 /**
- * Shared resolution of gallery/list filters from URL search params. For regular
- * users the Person filter defaults to their own creator (so people land on
- * their own work); admins (OWNER/ADMIN) default to All people. An explicit
- * `person=all` always clears it. Also maps the from/to date range.
+ * Shared resolution of gallery/list filters from URL search params. The Person
+ * filter defaults to All people for everyone (admins and creators alike) — pick
+ * a person to narrow it. An explicit `person=all` also clears it. Also maps the
+ * from/to date range.
  */
 export async function resolveListFilters(
   user: { workspaceId: string; id: string; role: Role },
   sp: ListSearchParams,
   defaultSort: SortKey = "newest",
 ): Promise<{ filters: LibraryFilters; view: ListView }> {
-  let selfId = "";
-  if (!isAdminRole(user.role)) {
-    const self = await prisma.person.findFirst({
-      where: { workspaceId: user.workspaceId, userId: user.id, deletedAt: null },
-      select: { id: true },
-    });
-    selfId = self?.id ?? "";
-  }
-  const personValue = sp.person ?? selfId; // the <select> value ("" → All for admins)
+  const personValue = sp.person ?? ""; // "" → All people (default for all roles)
   const personId = personValue && personValue !== "all" ? personValue : undefined;
   const sort = (sp.sort as SortKey) || defaultSort;
 
