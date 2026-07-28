@@ -266,7 +266,7 @@ export function Sidebar({
             href="/content-overview?new=1"
             className="btn-premium mb-3 flex items-center justify-center gap-2 rounded-[12px] px-3.5 py-2.5 font-semibold"
           >
-            <Icon name="tasks" size={17} /> Plan content
+            <span className="text-[16px] leading-none">＋</span> Plan content
           </Link>
         ) : (
           canUpload && (
