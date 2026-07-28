@@ -336,6 +336,12 @@ function Board({ tasks, onOpen }: { tasks: TaskRow[]; onOpen: (id: string) => vo
                     <span className={`${chip} bg-violet-soft text-violet`}>{t.contentTypeLabel}</span>
                     {t.channel && <span className={`${chip} bg-wash/[0.06]`}>{t.channel.name}</span>}
                   </div>
+                  {/* Where the task stands right now: the current stage's work status. */}
+                  <div className="mb-1.5">
+                    <span className={`${badge} ${workCls(st?.workStatus ?? "")}`}>
+                      {st ? (TASK_WORK_LABELS[st.workStatus as TaskWorkStatus] ?? st.workStatus) : t.publishStatus.startsWith("PUBLISHED") ? "Published" : STAGE_LABELS[t.currentStage]}
+                    </span>
+                  </div>
                   <div className="flex items-center gap-1.5 text-[11px] text-slate">
                     {t.scheduledPublishDate
                       ? <span className="inline-flex items-center gap-1">🗓 {t.publishStatus.startsWith("PUBLISHED") ? "Published" : "Publish"} {fmt(t.scheduledPublishDate)}</span>

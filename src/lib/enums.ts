@@ -62,8 +62,8 @@ export const TASK_BOARD_COLUMNS = [
   "VIDEO",
   "GRAPHICS",
   "PUBLISHING",
-  "ANALYTICS",
   "DONE",
+  "ANALYTICS",
 ] as const;
 export type TaskColumn = (typeof TASK_BOARD_COLUMNS)[number];
 
@@ -71,7 +71,7 @@ export const STAGE_LABELS: Record<string, string> = {
   CONTENT: "Content",
   VIDEO: "Video",
   GRAPHICS: "Graphics",
-  PUBLISHING: "Publishing",
+  PUBLISHING: "In queue",
   ANALYTICS: "Analytics",
   DONE: "Done",
 };

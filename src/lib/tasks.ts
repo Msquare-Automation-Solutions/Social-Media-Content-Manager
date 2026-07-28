@@ -87,9 +87,9 @@ export function computeCurrentStage(
     if (st && st.reviewStatus !== "APPROVED") return key;
   }
   const published = publishStatus.startsWith("PUBLISHED");
-  if (!published) return "PUBLISHING";
-  if (!hasMetrics) return "ANALYTICS";
-  return "DONE";
+  if (!published) return "PUBLISHING"; // "In queue" — approved, awaiting publish
+  if (!hasMetrics) return "DONE"; // published, awaiting analytics
+  return "ANALYTICS"; // metrics recorded — fully complete
 }
 
 // ── Analytics rollup (pure, unit-testable) ───────────────────────────────────
