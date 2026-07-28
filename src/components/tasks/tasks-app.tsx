@@ -930,7 +930,17 @@ function TaskForm({ task, channels, accounts, taskTypes, members, isAdmin, onClo
           <div className="grid grid-cols-2 gap-3">
             <label className={lab}>
               Publishing owner
-              <select value={publisherId} onChange={(e) => setPublisherId(e.target.value)} className={cls + " mt-1 font-normal"}>
+              <select
+                value={publisherId}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  // The publisher doubles as the analytics owner by default,
+                  // until the analytics owner is picked separately.
+                  setAnalystId((prev) => (prev === "" || prev === publisherId ? v : prev));
+                  setPublisherId(v);
+                }}
+                className={cls + " mt-1 font-normal"}
+              >
                 <option value="">Unassigned</option>
                 {members.map((m) => <option key={m.id} value={m.id}>{memberLabel(m)}</option>)}
               </select>
