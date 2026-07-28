@@ -62,6 +62,22 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     },
   });
 
+  // Publishing the content publishes its task too, so you don't have to mark it
+  // published in both places. Only flips a task that isn't already published.
+  if (target === "PUBLISHED") {
+    const links = await prisma.taskAsset.findMany({
+      where: { assetId: asset.id },
+      select: { taskId: true },
+    });
+    const taskIds = links.map((l) => l.taskId);
+    if (taskIds.length) {
+      await prisma.task.updateMany({
+        where: { id: { in: taskIds }, workspaceId: g.user.workspaceId, publishStatus: { notIn: ["PUBLISHED_ON_TIME", "PUBLISHED_DELAY"] } },
+        data: { publishStatus: "PUBLISHED_ON_TIME", publishedDate: new Date() },
+      });
+    }
+  }
+
   const action =
     target === "APPROVED"
       ? "asset.approved"

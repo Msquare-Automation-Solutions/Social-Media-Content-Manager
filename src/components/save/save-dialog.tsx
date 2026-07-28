@@ -150,8 +150,6 @@ function SaveDialogInner({
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Inline add-person (admins) / add-platform
-  const [personFormOpen, setPersonFormOpen] = useState(false);
-  const [newPerson, setNewPerson] = useState({ name: "", email: "", label: "" });
   const [platFormOpen, setPlatFormOpen] = useState(false);
   const [newPlat, setNewPlat] = useState("");
   const [acctFormOpen, setAcctFormOpen] = useState(false);
@@ -206,30 +204,6 @@ function SaveDialogInner({
     window.addEventListener("paste", onPaste);
     return () => window.removeEventListener("paste", onPaste);
   }, []);
-
-  async function addPerson() {
-    const name = newPerson.name.trim();
-    if (!name) return;
-    setAdding(true);
-    try {
-      const r = await fetch("/api/people", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newPerson),
-      });
-      if (!r.ok) throw new Error();
-      const person = await r.json();
-      await qc.invalidateQueries({ queryKey: ["options"] });
-      setPersonId(person.id);
-      setPersonFormOpen(false);
-      setNewPerson({ name: "", email: "", label: "" });
-      toast(`Person “${person.name}” added ✓`);
-    } catch {
-      toast("Couldn't add person.");
-    } finally {
-      setAdding(false);
-    }
-  }
 
   async function addPlatform() {
     const name = newPlat.trim();
@@ -474,54 +448,21 @@ function SaveDialogInner({
 
       {/* Person / creator. Admins pick any creator; everyone else is attributed
           to themselves (reassignable later via Edit). Defaults to the uploader. */}
-      <Field label="Person / creator" error={errors.personId}>
+      <Field label="Creator" error={errors.personId}>
         {options?.isAdmin ? (
-          <>
-            <div className="flex gap-2">
-              <select
-                value={effectivePersonId}
-                onChange={(e) => setPersonId(e.target.value)}
-                className="flex-1 rounded-[10px] border border-line px-3 py-2.5 outline-none focus:border-teal"
-              >
-                {(options?.people ?? []).map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                    {p.label ? ` · ${p.label}` : ""}
-                    {p.id === options?.mePersonId ? " (you)" : ""}
-                  </option>
-                ))}
-              </select>
-              <button
-                onClick={() => setPersonFormOpen((v) => !v)}
-                className="whitespace-nowrap rounded-[10px] border border-dashed border-line px-3 text-[12.5px] font-semibold text-teal-dark hover:border-teal hover:bg-teal-soft"
-              >
-                ＋ Add person
-              </button>
-            </div>
-            {personFormOpen && (
-              <div className="mt-2 flex flex-wrap gap-2 rounded-[11px] bg-bg p-3">
-                <input
-                  placeholder="Name"
-                  value={newPerson.name}
-                  onChange={(e) => setNewPerson({ ...newPerson, name: e.target.value })}
-                  className="flex-1 rounded-[9px] border border-line px-2.5 py-2 outline-none"
-                />
-                <input
-                  placeholder="Role label (optional)"
-                  value={newPerson.label}
-                  onChange={(e) => setNewPerson({ ...newPerson, label: e.target.value })}
-                  className="flex-1 rounded-[9px] border border-line px-2.5 py-2 outline-none"
-                />
-                <button
-                  onClick={addPerson}
-                  disabled={adding || !newPerson.name.trim()}
-                  className="rounded-[9px] bg-teal px-3.5 py-2 text-[12.5px] font-semibold text-white disabled:opacity-50"
-                >
-                  Add
-                </button>
-              </div>
-            )}
-          </>
+          <select
+            value={effectivePersonId}
+            onChange={(e) => setPersonId(e.target.value)}
+            className="w-full rounded-[10px] border border-line px-3 py-2.5 outline-none focus:border-teal"
+          >
+            {(options?.people ?? []).map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+                {p.label ? ` · ${p.label}` : ""}
+                {p.id === options?.mePersonId ? " (you)" : ""}
+              </option>
+            ))}
+          </select>
         ) : (
           <div className="flex items-center gap-2.5 rounded-[10px] border border-line bg-bg px-3 py-2.5">
             <span

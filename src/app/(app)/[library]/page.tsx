@@ -1,5 +1,6 @@
 import { redirect, notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/session";
+import { listCreatorPeople } from "@/lib/people";
 import { prisma } from "@/lib/db";
 import { getLibraryAssets } from "@/lib/data";
 import { resolveListFilters, type ListSearchParams } from "@/lib/list-filters";
@@ -29,11 +30,7 @@ export default async function LibraryPage({
 
   const [assets, people, channels, accounts] = await Promise.all([
     getLibraryAssets(user.workspaceId, view, filters),
-    prisma.person.findMany({
-      where: { workspaceId: user.workspaceId, deletedAt: null },
-      orderBy: { createdAt: "asc" },
-      select: { id: true, name: true },
-    }),
+    listCreatorPeople(user.workspaceId),
     prisma.socialChannel.findMany({
       where: { workspaceId: user.workspaceId },
       orderBy: { createdAt: "asc" },

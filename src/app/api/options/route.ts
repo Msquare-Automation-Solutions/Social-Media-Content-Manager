@@ -1,6 +1,6 @@
 import { guard } from "@/lib/api-guard";
 import { prisma } from "@/lib/db";
-import { ensureSelfPerson } from "@/lib/people";
+import { ensureSelfPerson, listCreatorPeople } from "@/lib/people";
 import { isAdminRole } from "@/lib/roles";
 
 export const runtime = "nodejs";
@@ -18,11 +18,8 @@ export async function GET() {
     g.user.role !== "VIEWER" ? await ensureSelfPerson(g.user) : null;
 
   const [people, channels, accounts] = await Promise.all([
-    prisma.person.findMany({
-      where: { workspaceId: g.user.workspaceId, deletedAt: null },
-      orderBy: { createdAt: "asc" },
-      select: { id: true, name: true, label: true, avatarColor: true },
-    }),
+    // Creators = login members (one Person per member, auto-ensured).
+    listCreatorPeople(g.user.workspaceId),
     prisma.socialChannel.findMany({
       where: { workspaceId: g.user.workspaceId },
       orderBy: { createdAt: "asc" },

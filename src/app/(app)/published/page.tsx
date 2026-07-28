@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/session";
+import { listCreatorPeople } from "@/lib/people";
 import { prisma } from "@/lib/db";
 import { getPublishedAssets } from "@/lib/data";
 import { isAdminRole } from "@/lib/roles";
@@ -20,11 +21,7 @@ export default async function PublishedPage({
 
   const [assets, people, channels, accounts] = await Promise.all([
     getPublishedAssets(user.workspaceId, filters),
-    prisma.person.findMany({
-      where: { workspaceId: user.workspaceId, deletedAt: null },
-      orderBy: { createdAt: "asc" },
-      select: { id: true, name: true },
-    }),
+    listCreatorPeople(user.workspaceId),
     prisma.socialChannel.findMany({
       where: { workspaceId: user.workspaceId },
       orderBy: { createdAt: "asc" },
