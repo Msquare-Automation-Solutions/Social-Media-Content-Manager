@@ -7,7 +7,7 @@ import { classifyFiles } from "@/lib/upload";
 
 export function UploadPicker() {
   const upload = useUploadDialog();
-  const { queueUploads, openLink } = useSaveDialog();
+  const { openUploadFile, openLink } = useSaveDialog();
   const { toast } = useToast();
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
@@ -18,8 +18,18 @@ export function UploadPicker() {
   function handleFiles(files: FileList | File[]) {
     const { drafts, errors } = classifyFiles(files);
     errors.forEach((e) => toast(e));
-    if (drafts.length > 0) queueUploads(drafts);
-    else if (errors.length === 0) toast("No files selected.");
+    if (drafts.length === 0) {
+      if (errors.length === 0) toast("No files selected.");
+      return;
+    }
+    if (drafts.length === 1) {
+      openUploadFile(drafts[0]);
+    } else {
+      // Bundle the selection into ONE content piece: first file is the cover,
+      // the rest ride along as attachments.
+      const [first, ...rest] = drafts;
+      openUploadFile({ ...first, extras: rest.map((d) => d.file) });
+    }
   }
 
   function addLink() {

@@ -198,6 +198,20 @@ export async function createAsset(
         })),
       },
       accounts: { create: accountIds.map((accountId) => ({ accountId })) },
+      ...(args.attachments && args.attachments.length
+        ? {
+            files: {
+              create: args.attachments.map((f, i) => ({
+                url: f.url,
+                filename: f.filename ?? null,
+                mimeType: f.mimeType ?? null,
+                sizeBytes: f.sizeBytes ?? null,
+                thumbnailUrl: f.thumbnailUrl ?? null,
+                order: i + 1, // primary file is the asset itself (order 0)
+              })),
+            },
+          }
+        : {}),
     },
     select: { id: true, type: true, title: true },
   });

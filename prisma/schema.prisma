@@ -244,6 +244,26 @@ model MediaAsset {
   accounts  AssetAccount[]
   versions  AssetVersion[]
   taskLinks TaskAsset[]
+  files     MediaAssetFile[]
+}
+
+// Extra files bundled into one content piece (e.g. a carousel's images). The
+// MediaAsset itself holds the primary/cover file; these are the additional
+// attachments, shown together in the drawer with per-file download.
+model MediaAssetFile {
+  id           String   @id @default(cuid())
+  assetId      String
+  url          String
+  filename     String?
+  mimeType     String?
+  sizeBytes    Int?
+  thumbnailUrl String?
+  order        Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  asset MediaAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([assetId, order])
 }
 
 model AssetChannel {

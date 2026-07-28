@@ -40,6 +40,19 @@ export const saveAssetSchema = z
     // Present for uploads: the URL the file was already uploaded to (R2 direct
     // upload, or /uploads/... in dev). Not necessarily absolute, so no .url().
     fileUrl: z.string().optional(),
+    // Extra files bundled into this one content piece (already uploaded).
+    attachments: z
+      .array(
+        z.object({
+          url: z.string().min(1),
+          filename: z.string().optional(),
+          mimeType: z.string().optional(),
+          sizeBytes: z.number().int().nonnegative().optional(),
+          thumbnailUrl: z.string().optional(),
+        }),
+      )
+      .max(40)
+      .optional(),
   })
   .refine((d) => d.source !== "LINK" || !!d.url, {
     message: "A link URL is required",

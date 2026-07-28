@@ -21,6 +21,7 @@ async function loadOwned(id: string, workspaceId: string) {
     include: {
       person: { select: { id: true, name: true, avatarColor: true, userId: true } },
       createdBy: { select: { name: true } },
+      files: { orderBy: { order: "asc" } },
       channels: { include: { channel: true } },
       accounts: { include: { account: { select: { id: true, name: true, icon: true, color: true } } } },
       taskLinks: {
@@ -67,6 +68,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     createdAt: a.createdAt.toISOString(),
     updatedAt: a.updatedAt.toISOString(),
     uploadedBy: a.createdBy?.name ?? null,
+    files: a.files.map((f) => ({
+      id: f.id, url: f.url, filename: f.filename, mimeType: f.mimeType,
+      sizeBytes: f.sizeBytes, thumbnailUrl: f.thumbnailUrl,
+    })),
     person: a.person,
     channels: a.channels.map((c) => ({
       ...c.channel,

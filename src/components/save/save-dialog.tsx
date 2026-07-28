@@ -35,6 +35,7 @@ type Draft = {
   mimeType?: string;
   sizeBytes?: number;
   file?: File;
+  extras?: File[];
   url?: string;
   imagePreviewUrl?: string;
   gradientSeed: string;
@@ -79,9 +80,13 @@ function draftFromTarget(
     mimeType: f.mimeType,
     sizeBytes: f.sizeBytes,
     file: f.file,
+    extras: f.extras,
     imagePreviewUrl: f.previewUrl,
     gradientSeed: f.name,
-    fileMeta: `${f.mimeType || "file"} · ${formatBytes(f.sizeBytes)}`,
+    fileMeta:
+      f.extras && f.extras.length
+        ? `${f.extras.length + 1} files · cover: ${f.name}`
+        : `${f.mimeType || "file"} · ${formatBytes(f.sizeBytes)}`,
   };
 }
 
@@ -282,9 +287,18 @@ function SaveDialogInner({
     // Upload the original file straight to storage first (bypasses the
     // serverless body-size limit); the API then only gets its URL + metadata.
     let fileUrl: string | undefined;
+    let attachments: { url: string; filename: string; mimeType: string; sizeBytes: number }[] | undefined;
     if (draft.file) {
       try {
         fileUrl = await uploadToStorage(draft.file);
+        // Upload any bundled extra files too; they attach to this one content.
+        if (draft.extras && draft.extras.length) {
+          attachments = [];
+          for (const f of draft.extras) {
+            const url = await uploadToStorage(f);
+            attachments.push({ url, filename: f.name, mimeType: f.type || "application/octet-stream", sizeBytes: f.size });
+          }
+        }
       } catch (e) {
         toast(e instanceof Error && e.message ? e.message : "Upload failed.");
         setSaving(false);
@@ -297,6 +311,7 @@ function SaveDialogInner({
       type: category,
       source: draft.source,
       fileUrl,
+      attachments,
       personId: effectivePersonId,
       channels: [...channels].map((id) => ({
         channelId: id,

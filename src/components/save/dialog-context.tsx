@@ -29,7 +29,8 @@ export type UploadFileDraft = {
   previewUrl?: string; // object URL for image preview
   mimeType: string;
   sizeBytes: number;
-  file: File;
+  file: File; // the primary/cover file
+  extras?: File[]; // additional files bundled into the same content piece
 };
 
 // An external file reference (e.g. a Google Drive / Dropbox / YouTube link).

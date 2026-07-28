@@ -8,7 +8,7 @@ import { classifyFiles } from "@/lib/upload";
 // "Drag-drop anywhere", a full-window overlay appears while dragging files,
 // and dropped files route straight into the batch Save queue.
 export function GlobalDrop({ canUpload }: { canUpload: boolean }) {
-  const { queueUploads } = useSaveDialog();
+  const { openUploadFile } = useSaveDialog();
   const { toast } = useToast();
   const [dragging, setDragging] = useState(false);
 
@@ -37,7 +37,12 @@ export function GlobalDrop({ canUpload }: { canUpload: boolean }) {
       setDragging(false);
       const { drafts, errors } = classifyFiles(e.dataTransfer!.files);
       errors.forEach((msg) => toast(msg));
-      if (drafts.length) queueUploads(drafts);
+      if (drafts.length === 1) openUploadFile(drafts[0]);
+      else if (drafts.length > 1) {
+        // Dropped several → one content piece (first is the cover).
+        const [first, ...rest] = drafts;
+        openUploadFile({ ...first, extras: rest.map((d) => d.file) });
+      }
     };
 
     window.addEventListener("dragenter", onEnter);
@@ -50,7 +55,7 @@ export function GlobalDrop({ canUpload }: { canUpload: boolean }) {
       window.removeEventListener("dragover", onOver);
       window.removeEventListener("drop", onDrop);
     };
-  }, [canUpload, queueUploads, toast]);
+  }, [canUpload, openUploadFile, toast]);
 
   if (!dragging) return null;
   return (

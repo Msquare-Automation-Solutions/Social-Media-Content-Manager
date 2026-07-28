@@ -51,6 +51,7 @@ type AssetDetail = {
   createdAt: string;
   updatedAt: string;
   uploadedBy: string | null;
+  files: { id: string; url: string; filename: string | null; mimeType: string | null; sizeBytes: number | null; thumbnailUrl: string | null }[];
   person: { id: string; name: string; avatarColor: string };
   channels: {
     id: string;
@@ -364,6 +365,39 @@ export function AssetDrawer({
                 />
               ) : (
                 <AssetPreview asset={asset} className="h-[220px] rounded-[12px]" />
+              )}
+
+              {/* Bundled attachments (extra files in this one content piece). */}
+              {asset.files.length > 0 && (
+                <div className="mt-4">
+                  <div className="mb-2 text-[11px] font-extrabold uppercase tracking-[0.06em] text-ink">
+                    Files ({asset.files.length + 1})
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    {asset.files.map((f) => (
+                      <div key={f.id} className="overflow-hidden rounded-[10px] border border-line bg-wash/[0.03]">
+                        <a href={f.url} target="_blank" rel="noopener noreferrer" className="block">
+                          {f.mimeType?.startsWith("image/") ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={f.thumbnailUrl ?? f.url} alt={f.filename ?? ""} className="h-[92px] w-full object-cover" />
+                          ) : f.mimeType?.startsWith("video/") ? (
+                            <span className="grid h-[92px] w-full place-items-center bg-wash/[0.06] text-[22px]">🎬</span>
+                          ) : (
+                            <span className="grid h-[92px] w-full place-items-center bg-wash/[0.06] text-[12px] font-bold text-slate">
+                              {(f.filename?.match(/\.([a-z0-9]+)$/i)?.[1] ?? "FILE").toUpperCase()}
+                            </span>
+                          )}
+                        </a>
+                        <div className="flex items-center gap-1 px-2 py-1.5">
+                          <span className="min-w-0 flex-1 truncate text-[11px]" title={f.filename ?? ""}>
+                            {f.filename ?? "File"}
+                          </span>
+                          <a href={f.url} download title="Download" className="shrink-0 text-[12px] text-slate hover:text-ink">↓</a>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
 
               {/* Meta */}
