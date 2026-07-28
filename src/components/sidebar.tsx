@@ -129,7 +129,6 @@ export function Sidebar({
         {
           key: "review",
           label: "Review & publish",
-          collapsible: true,
           items: [
             it("/review", isPrimaryOwner ? "Review queue" : "Pending", "review", isActive("/review"), queueCount || undefined, queueCount > 0),
             it("/rework", "Needs rework", "rework", isActive("/rework"), reworkCount || undefined, reworkCount > 0),

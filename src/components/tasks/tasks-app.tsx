@@ -6,7 +6,6 @@ import { BackButton } from "@/components/ui/back-button";
 import { useToast } from "@/components/ui/toast";
 import { Icon, type IconName } from "@/components/ui/icons";
 import { useUploadDialog, type SaveDefaults } from "@/components/save/dialog-context";
-import { initials } from "@/lib/colors";
 import type { TaskRow } from "@/lib/data";
 import {
   TASK_BOARD_COLUMNS,
@@ -338,7 +337,9 @@ function Board({ tasks, onOpen }: { tasks: TaskRow[]; onOpen: (id: string) => vo
                     {t.channel && <span className={`${chip} bg-wash/[0.06]`}>{t.channel.name}</span>}
                   </div>
                   <div className="flex items-center gap-1.5 text-[11px] text-slate">
-                    {t.currentStage === "DONE" ? "✓ Published" : st?.assigneeName ? <>{av(st.assigneeName, st.assigneeColor)} {st.assigneeName}</> : <span className="font-semibold text-[#e0912b]">● Unassigned</span>}
+                    {t.scheduledPublishDate
+                      ? <span className="inline-flex items-center gap-1">🗓 {t.publishStatus.startsWith("PUBLISHED") ? "Published" : "Publish"} {fmt(t.scheduledPublishDate)}</span>
+                      : <span className="text-slate">No publish date</span>}
                     {st?.reviewStatus === "PENDING" && <span className={`${badge} ml-auto bg-[#fbeecb] text-[#c98a12]`}>review</span>}
                     {st?.reviewStatus === "REWORK" && <span className={`${badge} ml-auto bg-[#fbe2dd] text-[#c23b2a]`}>rework</span>}
                   </div>
@@ -946,9 +947,6 @@ function Kpi({ v, l }: { v: number | string; l: string }) {
 }
 function Empty({ text }: { text: string }) {
   return <div className="grid place-items-center py-20 text-center text-[13px] text-slate">{text}</div>;
-}
-function av(name: string, color: string | null) {
-  return <span className="grid h-[18px] w-[18px] place-items-center rounded-full text-[9px] font-bold text-white" style={{ background: color ?? "#889" }}>{initials(name)}</span>;
 }
 function fmt(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
