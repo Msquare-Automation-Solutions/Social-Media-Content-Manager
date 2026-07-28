@@ -318,15 +318,16 @@ function Overview({ tasks, canEdit, isAdmin, onOpen, onEdit, onDelete }: Props &
 // ── Board (kanban) ───────────────────────────────────────────────────────────
 function Board({ tasks, onOpen }: { tasks: TaskRow[]; onOpen: (id: string) => void }) {
   return (
-    <div className="flex gap-3 overflow-x-auto pb-6">
+    <div className="flex h-[calc(100vh-165px)] gap-3 overflow-x-auto pb-2">
       {TASK_BOARD_COLUMNS.map((col) => {
         const items = tasks.filter((t) => t.currentStage === col);
         return (
-          <div key={col} className="w-[240px] flex-shrink-0 rounded-card border border-line bg-wash/[0.03] p-2.5">
+          <div key={col} className="flex w-[240px] flex-shrink-0 flex-col rounded-card border border-line bg-wash/[0.03] p-2.5">
             <div className="mb-2.5 flex items-center gap-2 px-1 text-[12.5px] font-bold">
               <StageIcon stage={col} size={16} /> {STAGE_LABELS[col]}
               <span className="ml-auto rounded-full bg-card px-1.5 text-[11px] text-slate">{items.length}</span>
             </div>
+            <div className="-mr-1 flex-1 overflow-y-auto overscroll-contain pr-1">
             {items.map((t) => {
               const st = t.stages.find((s) => s.stage === t.currentStage);
               return (
@@ -353,6 +354,7 @@ function Board({ tasks, onOpen }: { tasks: TaskRow[]; onOpen: (id: string) => vo
               );
             })}
             {!items.length && <div className="px-1 py-1 text-[11px] text-slate">—</div>}
+            </div>
           </div>
         );
       })}
