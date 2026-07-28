@@ -9,6 +9,7 @@ export type CurrentUser = {
   name: string;
   avatarColor: string;
   avatarUrl: string | null;
+  canSelfApprove: boolean;
   workspaceId: string;
   workspaceName: string;
   role: Role;
@@ -36,6 +37,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     name: membership.user.name,
     avatarColor: membership.user.avatarColor,
     avatarUrl: membership.user.avatarUrl,
+    canSelfApprove: membership.user.canSelfApprove,
     workspaceId: membership.workspaceId,
     workspaceName: membership.workspace.name,
     role: membership.role as Role,

@@ -77,6 +77,7 @@ type Props = {
   isAdmin: boolean;
   canEdit: boolean;
   meId: string;
+  meCanSelfApprove?: boolean;
   initialTaskId?: string | null;
 };
 
@@ -154,7 +155,7 @@ export function TasksApp(props: Props) {
       {mode === "overview" && <Overview {...props} onOpen={setOpenId} onEdit={(id) => { setEditId(id); setFormOpen(true); }} onDelete={delTask} />}
       {mode === "board" && <Board tasks={tasks} onOpen={setOpenId} />}
       {mode === "mywork" && <MyWork tasks={tasks} meId={props.meId} onOpen={setOpenId} />}
-      {mode === "review" && <ReviewInbox tasks={tasks} meId={props.meId} onOpen={setOpenId} onReview={reviewStage} />}
+      {mode === "review" && <ReviewInbox tasks={tasks} meId={props.meId} meCanSelfApprove={props.meCanSelfApprove} onOpen={setOpenId} onReview={reviewStage} />}
       {mode === "rework" && <ReworkList tasks={tasks} onOpen={setOpenId} />}
       {mode === "analytics" && <Analytics tasks={tasks} />}
 
@@ -399,14 +400,14 @@ function MyWork({ tasks, meId, onOpen }: { tasks: TaskRow[]; meId: string; onOpe
 }
 
 // ── Review inbox ─────────────────────────────────────────────────────────────
-function ReviewInbox({ tasks, meId, onOpen, onReview }: { tasks: TaskRow[]; meId: string; onOpen: (id: string) => void; onReview: (t: string, s: string, o: "APPROVED" | "REWORK") => void }) {
+function ReviewInbox({ tasks, meId, meCanSelfApprove, onOpen, onReview }: { tasks: TaskRow[]; meId: string; meCanSelfApprove?: boolean; onOpen: (id: string) => void; onReview: (t: string, s: string, o: "APPROVED" | "REWORK") => void }) {
   const rows: { t: TaskRow; s: TaskRow["stages"][number] }[] = [];
   for (const t of tasks) for (const s of t.stages) if (s.reviewStatus === "PENDING") rows.push({ t, s });
   if (!rows.length) return <Empty text="Nothing waiting for review." />;
   return (
     <div>
       {rows.map(({ t, s }) => {
-        const mine = s.assigneeId === meId; // can't review your own work
+        const mine = s.assigneeId === meId && !meCanSelfApprove; // can't review your own work (unless super admin)
         return (
         <div key={s.id} className="mb-2 flex items-center gap-3 rounded-[12px] border border-line bg-card px-4 py-3 shadow-soft">
           <button onClick={() => onOpen(t.id)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
@@ -490,7 +491,7 @@ function Analytics({ tasks }: { tasks: TaskRow[] }) {
 }
 
 // ── Task drawer ──────────────────────────────────────────────────────────────
-function TaskDrawer({ task, members, isAdmin, canEdit, meId, onClose, onEdit, api, refresh, toast }: Props & { task: TaskRow; onClose: () => void; onEdit: () => void; api: (u: string, m: string, b?: unknown) => Promise<boolean>; refresh: () => void; toast: (m: string) => void }) {
+function TaskDrawer({ task, members, isAdmin, canEdit, meId, meCanSelfApprove, onClose, onEdit, api, refresh, toast }: Props & { task: TaskRow; onClose: () => void; onEdit: () => void; api: (u: string, m: string, b?: unknown) => Promise<boolean>; refresh: () => void; toast: (m: string) => void }) {
   const [assignStage, setAssignStage] = useState<string | null>(null);
   const upload = useUploadDialog();
   const t = task;
@@ -609,10 +610,10 @@ function TaskDrawer({ task, members, isAdmin, canEdit, meId, onClose, onEdit, ap
             ) : (
               <div className="flex flex-wrap gap-2">
                 {isAdmin && <button onClick={() => setAssignStage(s.id)} className="rounded-[8px] border border-line px-2.5 py-1 text-[11.5px] font-semibold text-teal-dark hover:border-teal">{s.assigneeId ? "Reassign" : "Assign owner + deadline"}</button>}
-                {isAdmin && s.reviewStatus === "PENDING" && s.assigneeId === meId && (
+                {isAdmin && s.reviewStatus === "PENDING" && s.assigneeId === meId && !meCanSelfApprove && (
                   <span className="text-[11.5px] font-medium text-slate">Another admin must review your own work.</span>
                 )}
-                {isAdmin && s.reviewStatus === "PENDING" && s.assigneeId !== meId && <>
+                {isAdmin && s.reviewStatus === "PENDING" && (s.assigneeId !== meId || meCanSelfApprove) && <>
                   <button onClick={() => review(s.id, "APPROVED")} className="btn-premium rounded-[8px] px-2.5 py-1 text-[11.5px] font-semibold">Approve</button>
                   <button onClick={() => review(s.id, "REWORK")} className="rounded-[8px] border border-line px-2.5 py-1 text-[11.5px] font-semibold hover:border-teal">Rework</button>
                 </>}

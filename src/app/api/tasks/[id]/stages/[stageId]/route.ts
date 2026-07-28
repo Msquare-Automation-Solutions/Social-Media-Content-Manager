@@ -116,8 +116,9 @@ export async function PATCH(
 
   // review (admins only)
   if (!admin) return new Response("Requires ADMIN", { status: 403 });
-  // You can't review your own work — even as an admin. Another admin must.
-  if (isAssignee) return new Response("Cannot review your own submission", { status: 403 });
+  // You can't review your own work — even as an admin — unless you're a super
+  // admin (canSelfApprove). Otherwise another admin must review it.
+  if (isAssignee && !g.user.canSelfApprove) return new Response("Cannot review your own submission", { status: 403 });
   const approved = d.outcome === "APPROVED";
   await prisma.taskStage.update({
     where: { id: stageId },

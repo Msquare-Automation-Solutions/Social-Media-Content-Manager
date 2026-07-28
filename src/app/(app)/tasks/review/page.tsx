@@ -27,6 +27,7 @@ export default async function TasksReviewPage({
       isAdmin
       canEdit
       meId={user.id}
+      meCanSelfApprove={user.canSelfApprove}
       initialTaskId={sp.task ?? null}
     />
   );

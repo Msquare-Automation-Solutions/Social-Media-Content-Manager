@@ -27,6 +27,7 @@ export default async function MyWorkPage({
       isAdmin={isAdminRole(user.role)}
       canEdit={user.role !== "VIEWER"}
       meId={user.id}
+      meCanSelfApprove={user.canSelfApprove}
       initialTaskId={sp.task ?? null}
     />
   );

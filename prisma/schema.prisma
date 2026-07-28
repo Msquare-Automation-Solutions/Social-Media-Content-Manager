@@ -25,6 +25,7 @@ model User {
   passwordHash      String
   avatarColor       String    @default("#0e9f8f")
   avatarUrl         String?
+  canSelfApprove    Boolean   @default(false) // "super admin" — may review own work
   createdAt         DateTime  @default(now())
   // Bumped on password reset/change to invalidate older JWT sessions.
   passwordChangedAt DateTime  @default(now())

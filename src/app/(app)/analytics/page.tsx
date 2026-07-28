@@ -21,6 +21,7 @@ export default async function AnalyticsPage() {
       isAdmin={isAdminRole(user.role)}
       canEdit={user.role !== "VIEWER"}
       meId={user.id}
+      meCanSelfApprove={user.canSelfApprove}
     />
   );
 }

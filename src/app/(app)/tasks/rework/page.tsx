@@ -27,6 +27,7 @@ export default async function TasksReworkPage({
       isAdmin
       canEdit
       meId={user.id}
+      meCanSelfApprove={user.canSelfApprove}
       initialTaskId={sp.task ?? null}
     />
   );
