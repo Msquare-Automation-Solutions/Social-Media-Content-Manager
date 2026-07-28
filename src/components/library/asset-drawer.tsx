@@ -15,6 +15,12 @@ import { useToast } from "@/components/ui/toast";
 
 // Types browsers render inline (new-tab preview). Office formats (docx/xlsx/…)
 // can't preview natively, so we only offer Download for those.
+function fmtBytes(n: number): string {
+  if (n >= 1e9) return `${(n / 1e9).toFixed(1)} GB`;
+  if (n >= 1e6) return `${(n / 1e6).toFixed(1)} MB`;
+  if (n >= 1e3) return `${Math.round(n / 1e3)} KB`;
+  return `${n} B`;
+}
 function canOpenInline(mimeType: string | null): boolean {
   if (!mimeType) return false;
   return (
@@ -44,6 +50,7 @@ type AssetDetail = {
   reviewedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  uploadedBy: string | null;
   person: { id: string; name: string; avatarColor: string };
   channels: {
     id: string;
@@ -413,6 +420,10 @@ export function AssetDrawer({
                       ? "External link"
                       : "Upload"}
                 </Row>
+                {asset.uploadedBy && <Row label="Uploaded by">{asset.uploadedBy}</Row>}
+                {asset.filename && <Row label="File">{asset.filename}</Row>}
+                {asset.mimeType && <Row label="Type">{asset.mimeType}</Row>}
+                {asset.sizeBytes != null && <Row label="Size">{fmtBytes(asset.sizeBytes)}</Row>}
                 {asset.source === "LINK" && asset.url && (
                   <Row label="Link">
                     <a

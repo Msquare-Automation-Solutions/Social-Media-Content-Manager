@@ -20,6 +20,7 @@ async function loadOwned(id: string, workspaceId: string) {
     where: { id, workspaceId },
     include: {
       person: { select: { id: true, name: true, avatarColor: true, userId: true } },
+      createdBy: { select: { name: true } },
       channels: { include: { channel: true } },
       accounts: { include: { account: { select: { id: true, name: true, icon: true, color: true } } } },
       taskLinks: {
@@ -65,6 +66,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     reviewedAt: a.reviewedAt ? a.reviewedAt.toISOString() : null,
     createdAt: a.createdAt.toISOString(),
     updatedAt: a.updatedAt.toISOString(),
+    uploadedBy: a.createdBy?.name ?? null,
     person: a.person,
     channels: a.channels.map((c) => ({
       ...c.channel,
