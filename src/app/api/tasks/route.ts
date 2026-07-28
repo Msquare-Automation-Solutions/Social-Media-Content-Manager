@@ -33,6 +33,8 @@ const schema = z.object({
   accountId: z.string().nullable().optional(),
   plannedDate: z.string().datetime().nullable().optional(),
   scheduledPublishDate: z.string().datetime().nullable().optional(),
+  publisherId: z.string().nullable().optional(),
+  analystId: z.string().nullable().optional(),
   weekLabel: z.string().trim().max(40).optional(),
   binItemId: z.string().nullable().optional(),
 });
@@ -73,6 +75,8 @@ export async function POST(req: Request) {
       weekLabel: week,
       plannedDate: d.plannedDate ? new Date(d.plannedDate) : null,
       scheduledPublishDate: d.scheduledPublishDate ? new Date(d.scheduledPublishDate) : null,
+      publisherId: d.publisherId ?? null,
+      analystId: d.analystId ?? null,
       binItemId: d.binItemId ?? null,
       currentStage: stages[0]?.stage ?? "PUBLISHING",
       stages: {

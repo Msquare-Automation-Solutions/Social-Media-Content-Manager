@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { logActivity } from "@/lib/activity";
 import { recomputeCurrentStage } from "@/lib/task-server";
 import { weekLabelForDate } from "@/lib/tasks";
+import { isAdminRole } from "@/lib/roles";
 import { TASK_PUBLISH_STATUSES, TASK_STAGES } from "@/lib/enums";
 
 export const runtime = "nodejs";
@@ -39,6 +40,8 @@ const patchSchema = z.object({
   contentLink: z.string().trim().max(2000).nullable().optional(),
   scheduledPublishDate: z.string().datetime().nullable().optional(),
   publishedDate: z.string().datetime().nullable().optional(),
+  publisherId: z.string().nullable().optional(),
+  analystId: z.string().nullable().optional(),
   // Analytics.
   metricClicks: z.number().int().nonnegative().nullable().optional(),
   metricLeads: z.number().int().nonnegative().nullable().optional(),
@@ -75,7 +78,18 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     d.metricImpressions !== undefined ||
     d.metricReach !== undefined ||
     d.metricSaves !== undefined ||
-    d.metricShares !== undefined;
+    d.metricShares !== undefined ||
+    d.metricsNote !== undefined;
+
+  // Only the assigned analyst (or an admin) may record/edit metrics; only the
+  // assigned publisher (or an admin) may mark it published.
+  const admin = isAdminRole(g.user.role);
+  if (recordingMetrics && !admin && task.analystId !== g.user.id) {
+    return new Response("Only the assigned analyst can record metrics", { status: 403 });
+  }
+  if (publishing && !admin && task.publisherId !== g.user.id) {
+    return new Response("Only the assigned publisher can publish", { status: 403 });
+  }
 
   await prisma.$transaction(async (tx) => {
     await tx.task.update({
@@ -91,6 +105,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         ...(week !== undefined ? { weekLabel: week } : d.weekLabel !== undefined ? { weekLabel: d.weekLabel } : {}),
         ...(d.plannedDate !== undefined ? { plannedDate: d.plannedDate ? new Date(d.plannedDate) : null } : {}),
         ...(d.binItemId !== undefined ? { binItemId: d.binItemId } : {}),
+        ...(d.publisherId !== undefined ? { publisherId: d.publisherId } : {}),
+        ...(d.analystId !== undefined ? { analystId: d.analystId } : {}),
         ...(d.publishStatus !== undefined ? { publishStatus: d.publishStatus } : {}),
         ...(d.contentLink !== undefined ? { contentLink: d.contentLink } : {}),
         ...(d.scheduledPublishDate !== undefined

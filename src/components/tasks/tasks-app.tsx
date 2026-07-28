@@ -385,6 +385,9 @@ function TaskDrawer({ task, members, isAdmin, canEdit, meId, onClose, onEdit, ap
   const [assignStage, setAssignStage] = useState<string | null>(null);
   const upload = useUploadDialog();
   const t = task;
+  // Publishing is the publisher's job (admins too); analytics the analyst's.
+  const canPublish = isAdmin || (!!t.publisherId && t.publisherId === meId);
+  const canRecordMetrics = isAdmin || (!!t.analystId && t.analystId === meId);
 
   async function assign(stageId: string, assigneeId: string, targetDate: string) {
     if (await api(`/api/tasks/${t.id}/stages/${stageId}`, "PATCH", { action: "assign", assigneeId: assigneeId || null, targetDate: targetDate ? new Date(targetDate).toISOString() : null }))
@@ -531,10 +534,12 @@ function TaskDrawer({ task, members, isAdmin, canEdit, meId, onClose, onEdit, ap
         <div className="mb-2 mt-4 text-[11px] font-extrabold uppercase tracking-[0.06em] text-ink">Publishing</div>
         <div className="text-[12px] text-slate">Status <b className="text-ink">{TASK_PUBLISH_LABELS[t.publishStatus as keyof typeof TASK_PUBLISH_LABELS] ?? t.publishStatus}</b>{t.contentLink ? <> · <a href={t.contentLink} target="_blank" rel="noreferrer" className="text-teal-dark underline">link</a></> : ""}</div>
         {t.scheduledPublishDate && <div className="text-[12px] text-slate">{t.publishStatus.startsWith("PUBLISHED") ? "Published" : "Scheduled"} for <b className="text-ink">{fmt(t.scheduledPublishDate)}</b></div>}
-        {t.currentStage === "PUBLISHING" && canEdit && <button onClick={publish} className="btn-premium mt-2 rounded-[9px] px-3.5 py-1.5 text-[12px] font-semibold">Mark published →</button>}
+        {t.publisherId && <div className="text-[12px] text-slate">Publisher <b className="text-ink">{members.find((m) => m.id === t.publisherId)?.name ?? "—"}</b></div>}
+        {t.currentStage === "PUBLISHING" && canPublish && <button onClick={publish} className="btn-premium mt-2 rounded-[9px] px-3.5 py-1.5 text-[12px] font-semibold">Mark published →</button>}
 
         <div className="mb-2 mt-4 text-[11px] font-extrabold uppercase tracking-[0.06em] text-ink">Analytics</div>
-        <MetricsEditor task={t} canEdit={canEdit} api={api} refresh={refresh} toast={toast} />
+        {t.analystId && <div className="mb-1.5 text-[12px] text-slate">Analyst <b className="text-ink">{members.find((m) => m.id === t.analystId)?.name ?? "—"}</b></div>}
+        <MetricsEditor task={t} canEdit={canRecordMetrics} api={api} refresh={refresh} toast={toast} />
 
         <div className="mb-2 mt-4 flex items-center gap-2">
           <span className="text-[11px] font-extrabold uppercase tracking-[0.06em] text-ink">Other files</span>
@@ -675,6 +680,8 @@ function TaskForm({ task, channels, accounts, taskTypes, members, isAdmin, onClo
   const [publishDate, setPublishDate] = useState(task?.scheduledPublishDate ? task.scheduledPublishDate.slice(0, 10) : todayStr());
   const [channelId, setChannelId] = useState(task?.channel?.id ?? "");
   const [accountId, setAccountId] = useState(task?.account?.id ?? "");
+  const [publisherId, setPublisherId] = useState(task?.publisherId ?? "");
+  const [analystId, setAnalystId] = useState(task?.analystId ?? "");
   const [stageSel, setStageSel] = useState<Record<string, StageSel>>(initStages);
   const [addingType, setAddingType] = useState(false);
   const [newType, setNewType] = useState("");
@@ -730,6 +737,7 @@ function TaskForm({ task, channels, accounts, taskTypes, members, isAdmin, onClo
       contentType: type, stages, channelId: channelId || null, accountId: accountId || null,
       plannedDate: date ? new Date(date).toISOString() : null,
       scheduledPublishDate: publishDate ? new Date(publishDate).toISOString() : null,
+      publisherId: publisherId || null, analystId: analystId || null,
     };
     const ok = await api(task ? `/api/tasks/${task.id}` : "/api/tasks", task ? "PATCH" : "POST", body);
     setSaving(false);
@@ -817,6 +825,24 @@ function TaskForm({ task, channels, accounts, taskTypes, members, isAdmin, onClo
             <label className={lab}>
               Publishing date <span className="font-normal">(scheduled go-live)</span>
               <input type="date" value={publishDate} onChange={(e) => setPublishDate(e.target.value)} className={cls + " mt-1 font-normal"} />
+            </label>
+          </div>
+
+          {/* Who publishes and who records analytics — get those permissions. */}
+          <div className="grid grid-cols-2 gap-3">
+            <label className={lab}>
+              Publishing owner
+              <select value={publisherId} onChange={(e) => setPublisherId(e.target.value)} className={cls + " mt-1 font-normal"}>
+                <option value="">Unassigned</option>
+                {members.map((m) => <option key={m.id} value={m.id}>{memberLabel(m)}</option>)}
+              </select>
+            </label>
+            <label className={lab}>
+              Analytics owner
+              <select value={analystId} onChange={(e) => setAnalystId(e.target.value)} className={cls + " mt-1 font-normal"}>
+                <option value="">Unassigned</option>
+                {members.map((m) => <option key={m.id} value={m.id}>{memberLabel(m)}</option>)}
+              </select>
             </label>
           </div>
 

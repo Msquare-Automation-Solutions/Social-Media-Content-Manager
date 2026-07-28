@@ -22,6 +22,18 @@ async function loadOwned(id: string, workspaceId: string) {
       person: { select: { id: true, name: true, avatarColor: true, userId: true } },
       channels: { include: { channel: true } },
       accounts: { include: { account: { select: { id: true, name: true, icon: true, color: true } } } },
+      taskLinks: {
+        include: {
+          task: {
+            select: {
+              publishStatus: true, publishedDate: true,
+              metricImpressions: true, metricReach: true, metricClicks: true,
+              metricLeads: true, metricEng: true, metricSaves: true, metricShares: true,
+              metricsNote: true,
+            },
+          },
+        },
+      },
       _count: { select: { versions: true } },
     },
   });
@@ -68,6 +80,17 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     canPublish:
       a.status === "APPROVED" && (isAdminRole(g.user.role) || a.createdById === g.user.id),
     canUnpublish: a.status === "PUBLISHED" && isAdminRole(g.user.role),
+    // Analytics from a linked, published task (shown read-only in the drawer).
+    taskMetrics: (() => {
+      const t = a.taskLinks.map((l) => l.task).find((x) => x?.publishStatus?.startsWith("PUBLISHED"));
+      if (!t) return null;
+      return {
+        publishedDate: t.publishedDate ? t.publishedDate.toISOString() : null,
+        impressions: t.metricImpressions, reach: t.metricReach, clicks: t.metricClicks,
+        leads: t.metricLeads, eng: t.metricEng, saves: t.metricSaves, shares: t.metricShares,
+        note: t.metricsNote,
+      };
+    })(),
   });
 }
 

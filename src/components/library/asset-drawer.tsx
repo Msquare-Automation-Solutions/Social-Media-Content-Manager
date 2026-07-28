@@ -59,6 +59,12 @@ type AssetDetail = {
   canEdit: boolean;
   canPublish: boolean;
   canUnpublish: boolean;
+  taskMetrics: {
+    publishedDate: string | null;
+    impressions: number | null; reach: number | null; clicks: number | null;
+    leads: number | null; eng: number | null; saves: number | null; shares: number | null;
+    note: string | null;
+  } | null;
 };
 
 export function AssetDrawer({
@@ -224,7 +230,7 @@ export function AssetDrawer({
                     <b>Rework requested:</b> {asset.reviewNote}
                   </div>
                 )}
-                {canReview ? (
+                {canReview && asset.status !== "PUBLISHED" ? (
                   <>
                     <div className="mt-3 flex flex-wrap gap-2">
                       {asset.status !== "APPROVED" && (
@@ -299,6 +305,38 @@ export function AssetDrawer({
                   </div>
                 )}
               </div>
+
+              {/* Analytics from the linked published task (read-only here). */}
+              {asset.taskMetrics && (
+                <div className="rounded-[12px] border border-line bg-wash/[0.03] px-4 py-3">
+                  <div className="mb-2 text-[11px] font-extrabold uppercase tracking-[0.06em] text-ink">
+                    Analytics
+                    {asset.taskMetrics.publishedDate && (
+                      <span className="ml-1.5 font-medium text-slate">
+                        · published {new Date(asset.taskMetrics.publishedDate).toLocaleDateString()}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-slate">
+                    {[
+                      ["Impressions", asset.taskMetrics.impressions],
+                      ["Reach", asset.taskMetrics.reach],
+                      ["Clicks", asset.taskMetrics.clicks],
+                      ["Leads", asset.taskMetrics.leads],
+                      ["Engagements", asset.taskMetrics.eng],
+                      ["Saves", asset.taskMetrics.saves],
+                      ["Shares", asset.taskMetrics.shares],
+                    ].map(([label, v]) => (
+                      <span key={label as string}>
+                        {label} <b className="text-ink">{v == null ? "·" : Number(v).toLocaleString()}</b>
+                      </span>
+                    ))}
+                  </div>
+                  {asset.taskMetrics.note && (
+                    <div className="mt-1.5 text-[12px] text-slate">📝 {asset.taskMetrics.note}</div>
+                  )}
+                </div>
+              )}
 
               {/* Preview or rendered document */}
               {asset.mimeType?.startsWith("video/") && asset.url ? (
