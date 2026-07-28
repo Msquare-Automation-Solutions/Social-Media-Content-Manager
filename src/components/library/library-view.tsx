@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { BackButton } from "@/components/ui/back-button";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import type { AssetListItem } from "@/lib/data";
 import { ASSET_STATUSES, STATUS_LABELS } from "@/lib/enums";
 import { AssetCard } from "@/components/library/asset-card";
@@ -43,7 +43,10 @@ export function LibraryView({
   const router = useRouter();
   const pathname = usePathname();
   const [pending, startTransition] = useTransition();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Open the asset drawer straight away when deep-linked via ?asset=<id>
+  // (e.g. clicking a task's submitted file jumps here and opens it).
+  const searchParams = useSearchParams();
+  const [selectedId, setSelectedId] = useState<string | null>(() => searchParams.get("asset"));
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   function toggleSelect(id: string) {
