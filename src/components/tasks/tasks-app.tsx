@@ -318,11 +318,11 @@ function Overview({ tasks, canEdit, isAdmin, onOpen, onEdit, onDelete }: Props &
 // ── Board (kanban) ───────────────────────────────────────────────────────────
 function Board({ tasks, onOpen }: { tasks: TaskRow[]; onOpen: (id: string) => void }) {
   return (
-    <div className="flex h-[calc(100vh-165px)] gap-3 overflow-x-auto pb-2">
+    <div className="flex h-[calc(100vh-165px)] gap-3 overflow-x-auto overflow-y-hidden pb-2">
       {TASK_BOARD_COLUMNS.map((col) => {
         const items = tasks.filter((t) => t.currentStage === col);
         return (
-          <div key={col} className="flex w-[240px] flex-shrink-0 flex-col rounded-card border border-line bg-wash/[0.03] p-2.5">
+          <div key={col} className="flex h-full w-[240px] flex-shrink-0 flex-col rounded-card border border-line bg-wash/[0.03] p-2.5">
             <div className="mb-2.5 flex items-center gap-2 px-1 text-[12.5px] font-bold">
               <StageIcon stage={col} size={16} /> {STAGE_LABELS[col]}
               <span className="ml-auto rounded-full bg-card px-1.5 text-[11px] text-slate">{items.length}</span>
@@ -330,8 +330,9 @@ function Board({ tasks, onOpen }: { tasks: TaskRow[]; onOpen: (id: string) => vo
             <div className="-mr-1 flex-1 overflow-y-auto overscroll-contain pr-1">
             {items.map((t) => {
               const st = t.stages.find((s) => s.stage === t.currentStage);
+              const att = publishAttention(t);
               return (
-                <button key={t.id} onClick={() => onOpen(t.id)} className="mb-2 block w-full rounded-[11px] border border-line bg-card p-2.5 text-left shadow-soft transition hover:-translate-y-0.5 hover:shadow-lift">
+                <button key={t.id} onClick={() => onOpen(t.id)} className={`mb-2 block w-full rounded-[11px] border bg-card p-2.5 text-left shadow-soft transition hover:-translate-y-0.5 hover:shadow-lift ${att ? (att.tone === "red" ? "border-[#c23b2a]/60" : "border-[#e0912b]/60") : "border-line"}`}>
                   <div className="mb-1.5 text-[13px] font-semibold">{t.title}</div>
                   <div className="mb-1.5 flex flex-wrap gap-1">
                     <span className={`${chip} bg-violet-soft text-violet`}>{t.contentTypeLabel}</span>
@@ -345,7 +346,7 @@ function Board({ tasks, onOpen }: { tasks: TaskRow[]; onOpen: (id: string) => vo
                   </div>
                   <div className="flex items-center gap-1.5 text-[11px] text-slate">
                     {t.scheduledPublishDate
-                      ? <span className="inline-flex items-center gap-1">🗓 {t.publishStatus.startsWith("PUBLISHED") ? "Published" : "Publish"} {fmt(t.scheduledPublishDate)}</span>
+                      ? <span className={`inline-flex items-center gap-1 ${att ? (att.tone === "red" ? "font-semibold text-[#c23b2a]" : "font-semibold text-[#a5721a]") : ""}`}>🗓 {t.publishStatus.startsWith("PUBLISHED") ? "Published" : "Publish"} {fmt(t.scheduledPublishDate)}{att ? ` · ${att.label}` : ""}</span>
                       : <span className="text-slate">No publish date</span>}
                     {st?.reviewStatus === "PENDING" && <span className={`${badge} ml-auto bg-[#fbeecb] text-[#c98a12]`}>review</span>}
                     {st?.reviewStatus === "REWORK" && <span className={`${badge} ml-auto bg-[#fbe2dd] text-[#c23b2a]`}>rework</span>}
