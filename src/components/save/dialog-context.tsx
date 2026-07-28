@@ -127,8 +127,11 @@ export function DialogProvider({ children }: { children: ReactNode }) {
   }, []);
   const openLink = useCallback<SaveContextValue["openLink"]>((link) => {
     setUploadOpen(false);
-    setOnSaved(() => undefined);
-    setDefaults(undefined);
+    // Links come through the upload picker too, so carry the opener's onSaved
+    // callback + defaults — otherwise a link submission saves to the library
+    // but never links to the task/stage or submits for review.
+    setOnSaved(() => uploadSavedRef.current);
+    setDefaults(uploadDefaultsRef.current);
     setQueue([]);
     setTarget({ mode: "link", link });
   }, []);
