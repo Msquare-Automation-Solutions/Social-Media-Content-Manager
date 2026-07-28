@@ -2,6 +2,7 @@ import { z } from "zod";
 import { guard } from "@/lib/api-guard";
 import { prisma } from "@/lib/db";
 import { logActivity } from "@/lib/activity";
+import { createNotifications } from "@/lib/notifications";
 import { recomputeCurrentStage } from "@/lib/task-server";
 import { weekLabelForDate } from "@/lib/tasks";
 import { isAdminRole } from "@/lib/roles";
@@ -173,6 +174,20 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         data: { status: "PUBLISHED" },
       });
   }
+
+  // Notify newly-assigned publishing / analytics owners.
+  if (d.publisherId && d.publisherId !== task.publisherId)
+    await createNotifications(g.user, [d.publisherId], {
+      action: "task.assigned",
+      message: `assigned you to publish “${task.title}”`,
+      targetType: "task", targetId: id, targetLabel: task.title,
+    });
+  if (d.analystId && d.analystId !== task.analystId)
+    await createNotifications(g.user, [d.analystId], {
+      action: "task.assigned",
+      message: `assigned you to record analytics for “${task.title}”`,
+      targetType: "task", targetId: id, targetLabel: task.title,
+    });
 
   // Activity for the notable transitions.
   if (publishing)

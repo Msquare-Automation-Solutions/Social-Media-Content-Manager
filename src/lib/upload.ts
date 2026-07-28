@@ -6,6 +6,7 @@ import type { UploadFileDraft } from "@/components/save/dialog-context";
 const MAX_IMAGE = 10 * 1024 * 1024; // 10 MB
 const MAX_VIDEO = 512 * 1024 * 1024; // 512 MB
 const MAX_DOC = 25 * 1024 * 1024;
+const MAX_ARCHIVE = 512 * 1024 * 1024; // 512 MB (zip/archive bundles)
 
 export type Classified =
   | { ok: true; draft: UploadFileDraft }
@@ -39,6 +40,18 @@ export function classifyFile(file: File): Classified {
     if (file.size > MAX_DOC)
       return { ok: false, name, error: "Documents must be ≤ 25 MB" };
     category = "BLOGPOST";
+  } else if (
+    /\.(zip|rar|7z|tar|gz)$/.test(lower) ||
+    mime === "application/zip" ||
+    mime === "application/x-zip-compressed" ||
+    mime === "application/x-7z-compressed" ||
+    mime === "application/vnd.rar" ||
+    mime === "application/x-tar" ||
+    mime === "application/gzip"
+  ) {
+    if (file.size > MAX_ARCHIVE)
+      return { ok: false, name, error: "Archives must be ≤ 512 MB" };
+    category = "OTHER";
   } else {
     return { ok: false, name, error: "Unsupported file type" };
   }

@@ -9,12 +9,14 @@ export function BulkBar({
   count,
   ids,
   people,
+  canDelete = false,
   onClear,
   onDone,
 }: {
   count: number;
   ids: string[];
   people: Person[];
+  canDelete?: boolean;
   onClear: () => void;
   onDone: () => void;
 }) {
@@ -116,16 +118,18 @@ export function BulkBar({
           <BarBtn active={panel === "tags"} onClick={() => setPanel(panel === "tags" ? null : "tags")}>
             Edit tags
           </BarBtn>
-          <button
-            disabled={busy}
-            onClick={() => {
-              if (confirm(`Move ${count} item${count === 1 ? "" : "s"} to Trash?`))
-                run({ action: "delete" }, (n) => `Moved ${n} item${n === 1 ? "" : "s"} to Trash`);
-            }}
-            className="rounded-[9px] border border-line px-3 py-1.5 text-[12.5px] font-semibold text-[#c23b2a] transition hover:border-[#c23b2a] disabled:opacity-50"
-          >
-            Delete
-          </button>
+          {canDelete && (
+            <button
+              disabled={busy}
+              onClick={() => {
+                if (confirm(`Move ${count} item${count === 1 ? "" : "s"} to Trash?`))
+                  run({ action: "delete" }, (n) => `Moved ${n} item${n === 1 ? "" : "s"} to Trash`);
+              }}
+              className="rounded-[9px] border border-line px-3 py-1.5 text-[12.5px] font-semibold text-[#c23b2a] transition hover:border-[#c23b2a] disabled:opacity-50"
+            >
+              Delete
+            </button>
+          )}
           <button
             onClick={onClear}
             className="rounded-[9px] px-2 py-1.5 text-[12.5px] font-semibold text-slate hover:text-ink"

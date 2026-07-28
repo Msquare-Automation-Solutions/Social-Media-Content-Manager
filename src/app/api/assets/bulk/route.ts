@@ -5,6 +5,7 @@ import { snapshotAsset, canMutateAsset } from "@/lib/assets";
 import { serializeTags, parseTags } from "@/lib/json";
 import { storage, keyFromUrl } from "@/lib/storage";
 import { logActivity, type ActionKey } from "@/lib/activity";
+import { isAdminRole } from "@/lib/roles";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,6 +36,11 @@ export async function POST(req: Request) {
   const parsed = schema.safeParse(await req.json());
   if (!parsed.success) return new Response("Bad request", { status: 400 });
   const { ids, action, personId, tags } = parsed.data;
+
+  // Deleting/purging content is admin-only.
+  if ((action === "delete" || action === "purge") && !isAdminRole(g.user.role)) {
+    return new Response("Only admins can delete content", { status: 403 });
+  }
 
   // Validate the target person up front for setPerson.
   let targetPersonName: string | undefined;

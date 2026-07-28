@@ -530,13 +530,15 @@ export function AssetDrawer({
                       />
                     </>
                   )}
-                  <button
-                    onClick={del}
-                    disabled={busy}
-                    className="ml-auto rounded-[10px] border border-line px-3.5 py-2 text-[13px] font-semibold text-[#c23b2a] hover:border-[#c23b2a] disabled:opacity-50"
-                  >
-                    🗑 Delete
-                  </button>
+                  {canReview && (
+                    <button
+                      onClick={del}
+                      disabled={busy}
+                      className="ml-auto rounded-[10px] border border-line px-3.5 py-2 text-[13px] font-semibold text-[#c23b2a] hover:border-[#c23b2a] disabled:opacity-50"
+                    >
+                      🗑 Delete
+                    </button>
+                  )}
                 </>
               )}
             </div>

@@ -66,7 +66,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 // Hard-delete (soft) — removes the item from the bin into the normal 30-day
 // Trash flow. Discarding (status) is separate and keeps the item in the bin.
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const g = await guard("EDITOR");
+  const g = await guard("ADMIN");
   if (!g.ok) return g.response;
 
   const { id } = await params;

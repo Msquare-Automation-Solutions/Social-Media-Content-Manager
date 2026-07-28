@@ -274,7 +274,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
 // ── Soft delete ─────────────────────────────────────────────────────────────
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const g = await guard("EDITOR");
+  const g = await guard("ADMIN");
   if (!g.ok) return g.response;
 
   const asset = await prisma.mediaAsset.findFirst({
@@ -282,7 +282,6 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     include: { person: { select: { userId: true } } },
   });
   if (!asset || asset.deletedAt) return new Response("Not found", { status: 404 });
-  if (!canMutateAsset(g.user, asset)) return new Response("Forbidden", { status: 403 });
 
   await prisma.mediaAsset.update({
     where: { id: asset.id },

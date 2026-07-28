@@ -211,6 +211,7 @@ export function LibraryView({
           count={selected.size}
           ids={[...selected]}
           people={people}
+          canDelete={canReview}
           onClear={() => setSelected(new Set())}
           onDone={() => {
             setSelected(new Set());

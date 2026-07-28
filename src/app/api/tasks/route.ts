@@ -107,5 +107,18 @@ export async function POST(req: Request) {
       targetId: task.id,
       targetLabel: task.title,
     });
+  // Also notify the publishing and analytics owners assigned at plan time.
+  if (d.publisherId)
+    await createNotifications(g.user, [d.publisherId], {
+      action: "task.assigned",
+      message: `assigned you to publish “${task.title}”`,
+      targetType: "task", targetId: task.id, targetLabel: task.title,
+    });
+  if (d.analystId)
+    await createNotifications(g.user, [d.analystId], {
+      action: "task.assigned",
+      message: `assigned you to record analytics for “${task.title}”`,
+      targetType: "task", targetId: task.id, targetLabel: task.title,
+    });
   return Response.json({ id: task.id }, { status: 201 });
 }

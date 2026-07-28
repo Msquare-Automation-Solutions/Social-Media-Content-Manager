@@ -43,10 +43,12 @@ const hostOf = (u: string) => {
 export function ContentBinView({
   items,
   canEdit,
+  isAdmin,
   filters,
 }: {
   items: ContentBinRow[];
   canEdit: boolean;
+  isAdmin: boolean;
   filters: Filters;
 }) {
   const router = useRouter();
@@ -253,6 +255,7 @@ export function ContentBinView({
               item={it}
               options={options}
               canEdit={canEdit}
+              isAdmin={isAdmin}
               onChanged={() => router.refresh()}
             />
           ))}
@@ -296,11 +299,13 @@ function BinItemRow({
   item,
   options,
   canEdit,
+  isAdmin,
   onChanged,
 }: {
   item: ContentBinRow;
   options?: Options;
   canEdit: boolean;
+  isAdmin: boolean;
   onChanged: () => void;
 }) {
   const { toast } = useToast();
@@ -466,13 +471,15 @@ function BinItemRow({
               Restore
             </button>
           )}
-          <button
-            onClick={remove}
-            disabled={busy}
-            className="rounded-[9px] border border-line px-3 py-1.5 text-[12px] font-semibold text-[#c23b2a] hover:border-[#c23b2a] disabled:opacity-50"
-          >
-            Delete
-          </button>
+          {isAdmin && (
+            <button
+              onClick={remove}
+              disabled={busy}
+              className="rounded-[9px] border border-line px-3 py-1.5 text-[12px] font-semibold text-[#c23b2a] hover:border-[#c23b2a] disabled:opacity-50"
+            >
+              Delete
+            </button>
+          )}
         </div>
       )}
 
@@ -484,6 +491,7 @@ function BinItemRow({
           accounts={accounts}
           personName={person?.name ?? item.createdBy?.name ?? "—"}
           canEdit={canEdit}
+          isAdmin={isAdmin}
           busy={busy}
           onClose={() => setOpen(false)}
           onChanged={onChanged}
@@ -508,6 +516,7 @@ function BinItemDrawer({
   accounts,
   personName,
   canEdit,
+  isAdmin,
   busy,
   onClose,
   onChanged,
@@ -520,6 +529,7 @@ function BinItemDrawer({
   accounts: { id: string; name: string; icon: string; color: string }[];
   personName: string;
   canEdit: boolean;
+  isAdmin: boolean;
   busy: boolean;
   onClose: () => void;
   onChanged: () => void;
@@ -568,6 +578,7 @@ function BinItemDrawer({
             accounts={accounts}
             personName={personName}
             canEdit={canEdit}
+            isAdmin={isAdmin}
             busy={busy}
             onClose={onClose}
             onEdit={() => setEditing(true)}
@@ -586,6 +597,7 @@ function BinDetail({
   accounts,
   personName,
   canEdit,
+  isAdmin,
   busy,
   onClose,
   onEdit,
@@ -597,6 +609,7 @@ function BinDetail({
   accounts: { id: string; name: string; icon: string; color: string }[];
   personName: string;
   canEdit: boolean;
+  isAdmin: boolean;
   busy: boolean;
   onClose: () => void;
   onEdit: () => void;
@@ -813,13 +826,15 @@ function BinDetail({
                   Restore
                 </button>
               )}
-              <button
-                onClick={onDelete}
-                disabled={busy}
-                className="rounded-[9px] border border-line px-3.5 py-1.5 text-[12.5px] font-semibold text-[#c23b2a] hover:border-[#c23b2a] disabled:opacity-50"
-              >
-                Delete
-              </button>
+              {isAdmin && (
+                <button
+                  onClick={onDelete}
+                  disabled={busy}
+                  className="rounded-[9px] border border-line px-3.5 py-1.5 text-[12.5px] font-semibold text-[#c23b2a] hover:border-[#c23b2a] disabled:opacity-50"
+                >
+                  Delete
+                </button>
+              )}
             </div>
           )}
         </div>
