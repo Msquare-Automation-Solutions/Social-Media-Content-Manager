@@ -5,10 +5,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { LIBRARY_VIEWS, LIBRARY_SLUGS, type LibraryViewKey } from "@/lib/library";
-import { initials } from "@/lib/colors";
 import { useUploadDialog } from "@/components/save/dialog-context";
 import { Icon, type IconName } from "@/components/ui/icons";
 import { Logo } from "@/components/ui/logo";
+import { Avatar } from "@/components/ui/avatar";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 
@@ -21,7 +21,7 @@ const VIEW_ICONS: Record<LibraryViewKey, IconName> = {
 };
 
 type Props = {
-  user: { name: string; email: string; role: string; avatarColor: string };
+  user: { name: string; email: string; role: string; avatarColor: string; avatarUrl?: string | null };
   workspaceName: string;
   isPrimaryOwner: boolean;
   counts: Record<LibraryViewKey, number>;
@@ -82,6 +82,7 @@ export function Sidebar({
           items: [
             it("/dashboard", "Dashboard", "dashboard", isActive("/dashboard")),
             it("/", "Workspace overview", "overview", isActive("/")),
+            ...(isAdmin ? [it("/members-overview", "Members overview", "members", isActive("/members-overview"))] : []),
           ],
         },
       ],
@@ -155,7 +156,6 @@ export function Sidebar({
               key: "workspace",
               items: [
                 it("/members", "Members", "members", isActive("/members"), membersCount),
-                it("/members-overview", "Members overview", "overview", isActive("/members-overview")),
                 it("/activity", "Activity", "activity", isActive("/activity")),
               ],
             },
@@ -246,6 +246,13 @@ export function Sidebar({
             <Icon name="trash" size={17} />
           </Link>
           <ThemeToggle />
+          <Link
+            href="/account"
+            title={`${user.name} · ${roleLabel(user.role)}`}
+            className={`rounded-full ring-2 ring-transparent transition hover:ring-teal ${isActive("/account") ? "ring-teal" : ""}`}
+          >
+            <Avatar name={user.name} color={user.avatarColor} url={user.avatarUrl} size={30} />
+          </Link>
         </div>
       </div>
 
@@ -303,29 +310,22 @@ export function Sidebar({
         <StorageMeter storage={storage} limit={storageLimitBytes} />
 
         <div className="pt-3">
-          <Link
-            href="/account"
-            className="flex items-center gap-2.5 rounded-[12px] bg-wash/[0.03] px-3 py-2.5 transition duration-200 hover:bg-wash/[0.06]"
-          >
-            <div
-              className="grid h-8 w-8 place-items-center rounded-full text-[13px] font-bold text-white shadow-soft"
-              style={{ background: user.avatarColor }}
+          {/* Compact account row — full profile + name live on the rail avatar
+              (tap it) and the Account page, keeping this footer light. */}
+          <div className="flex items-center gap-2 rounded-[10px] border border-line px-2.5 py-2">
+            <Avatar name={user.name} color={user.avatarColor} url={user.avatarUrl} size={26} />
+            <div className="min-w-0 flex-1">
+              <b className="block truncate text-[12px]">{user.name}</b>
+              <span className="block truncate text-[10.5px] text-slate">{roleLabel(user.role)}</span>
+            </div>
+            <button
+              onClick={() => signOut({ callbackUrl: "/login" })}
+              title="Sign out"
+              className="grid h-7 w-7 place-items-center rounded-[8px] text-slate hover:bg-bg hover:text-[#c23b2a]"
             >
-              {initials(user.name)}
-            </div>
-            <div className="min-w-0">
-              <b className="block text-[12.5px]">{user.name}</b>
-              <span className="block truncate text-[11px] text-slate">
-                {user.email} · {roleLabel(user.role)}
-              </span>
-            </div>
-          </Link>
-          <button
-            onClick={() => signOut({ callbackUrl: "/login" })}
-            className="mt-1.5 flex w-full items-center justify-center gap-2 rounded-[10px] border border-line py-2.5 font-medium text-slate hover:bg-bg hover:text-[#c23b2a]"
-          >
-            <Icon name="signout" size={16} /> Sign out
-          </button>
+              <Icon name="signout" size={15} />
+            </button>
+          </div>
         </div>
       </div>
     </aside>

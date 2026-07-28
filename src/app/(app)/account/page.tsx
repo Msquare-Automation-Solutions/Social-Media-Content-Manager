@@ -2,6 +2,7 @@ import { BackButton } from "@/components/ui/back-button";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/session";
 import { ChangePasswordForm } from "@/components/account/change-password-form";
+import { AvatarUploader } from "@/components/account/avatar-uploader";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,7 @@ export default async function AccountPage() {
       </div>
 
       <div className="max-w-[440px] rounded-card bg-card p-6 shadow-card">
+        <AvatarUploader name={user.name} color={user.avatarColor} initialUrl={user.avatarUrl} />
         <div className="mb-5 space-y-1 text-[13px]">
           <div>
             <span className="text-slate">Name</span> <b>{user.name}</b>

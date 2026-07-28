@@ -63,6 +63,7 @@ export default async function AppLayout({
             email: user.email,
             role: user.role,
             avatarColor: user.avatarColor ?? "#0e9f8f",
+            avatarUrl: user.avatarUrl ?? null,
           }}
           workspaceName={user.workspaceName}
           isPrimaryOwner={isPrimaryOwner}

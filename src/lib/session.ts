@@ -8,6 +8,7 @@ export type CurrentUser = {
   email: string;
   name: string;
   avatarColor: string;
+  avatarUrl: string | null;
   workspaceId: string;
   workspaceName: string;
   role: Role;
@@ -34,6 +35,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     email: membership.user.email,
     name: membership.user.name,
     avatarColor: membership.user.avatarColor,
+    avatarUrl: membership.user.avatarUrl,
     workspaceId: membership.workspaceId,
     workspaceName: membership.workspace.name,
     role: membership.role as Role,

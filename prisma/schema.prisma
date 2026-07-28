@@ -24,6 +24,7 @@ model User {
   name              String
   passwordHash      String
   avatarColor       String    @default("#0e9f8f")
+  avatarUrl         String?
   createdAt         DateTime  @default(now())
   // Bumped on password reset/change to invalidate older JWT sessions.
   passwordChangedAt DateTime  @default(now())
@@ -140,6 +141,7 @@ model Person {
   label       String?
   userId      String?
   avatarColor String    @default("#0e9f8f")
+  avatarUrl   String?
   createdAt   DateTime  @default(now())
   // Soft-delete: archived creators disappear from pickers/filters but stay
   // referenced by past assets (attribution history is preserved).

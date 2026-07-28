@@ -3,7 +3,7 @@
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
 import { BackButton } from "@/components/ui/back-button";
-import { initials } from "@/lib/colors";
+import { Avatar } from "@/components/ui/avatar";
 import type { MemberOverviewRow } from "@/lib/data";
 
 type StatusFilter = "" | "onTime" | "delay";
@@ -77,12 +77,7 @@ export function MembersOverview({
           {rows.map((m) => (
             <div key={m.userId} className="rounded-card border border-line bg-card p-4 shadow-soft">
               <div className="mb-3 flex items-center gap-2.5">
-                <span
-                  className="grid h-9 w-9 place-items-center rounded-full text-[12px] font-bold text-white"
-                  style={{ background: m.avatarColor }}
-                >
-                  {initials(m.name)}
-                </span>
+                <Avatar name={m.name} color={m.avatarColor} url={m.avatarUrl} size={36} />
                 <div className="min-w-0">
                   <b className="block truncate text-[13.5px]">{m.name}</b>
                   <span className="block truncate text-[11px] text-slate">{m.role}</span>

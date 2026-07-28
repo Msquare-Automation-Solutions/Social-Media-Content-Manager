@@ -204,6 +204,7 @@ export async function listMembers(workspaceId: string) {
           name: true,
           email: true,
           avatarColor: true,
+          avatarUrl: true,
           disabledAt: true,
           _count: { select: { createdAssets: true, chatSessions: true } },
         },
@@ -216,6 +217,7 @@ export async function listMembers(workspaceId: string) {
     name: m.user.name,
     email: m.user.email,
     avatarColor: m.user.avatarColor,
+    avatarUrl: m.user.avatarUrl,
     role: m.role,
     disabled: m.user.disabledAt !== null,
     assetCount: m.user._count.createdAssets,
@@ -670,6 +672,7 @@ export type MemberOverviewRow = {
   name: string;
   email: string;
   avatarColor: string;
+  avatarUrl: string | null;
   role: string;
   total: number;
   completedOnTime: number;
@@ -708,7 +711,7 @@ export async function getMembersOverview(
   const byUser = new Map<string, MemberOverviewRow>();
   for (const m of members) {
     byUser.set(m.userId, {
-      userId: m.userId, name: m.name, email: m.email, avatarColor: m.avatarColor,
+      userId: m.userId, name: m.name, email: m.email, avatarColor: m.avatarColor, avatarUrl: m.avatarUrl,
       role: m.role, total: 0, completedOnTime: 0, completedDelay: 0, inProgress: 0, notStarted: 0,
     });
   }

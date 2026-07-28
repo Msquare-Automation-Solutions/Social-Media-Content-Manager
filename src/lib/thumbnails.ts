@@ -25,6 +25,15 @@ export async function makeImageThumbnail(
   return storage.save(`thumbs/${keyBase}.png`, png, "image/png");
 }
 
+/** Resize an uploaded image to a square ~256px avatar PNG and store it. */
+export async function makeAvatar(input: Buffer, keyBase: string): Promise<string> {
+  const png = await sharp(input)
+    .resize(256, 256, { fit: "cover", position: "attention" })
+    .png()
+    .toBuffer();
+  return storage.save(`avatars/${keyBase}.png`, png, "image/png");
+}
+
 /** Generate a branded title-on-gradient cover card and store it as PNG. */
 export async function generateCover(
   title: string,
