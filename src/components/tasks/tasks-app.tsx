@@ -226,7 +226,14 @@ function publishAttention(t: TaskRow): { label: string; tone: "red" | "amber" } 
 }
 
 // ── Overview (planning table) ────────────────────────────────────────────────
-function Overview({ tasks, canEdit, isAdmin, onOpen, onEdit, onDelete }: Props & { onOpen: (id: string) => void; onEdit: (id: string) => void; onDelete: (id: string) => void }) {
+function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }: Props & { onOpen: (id: string) => void; onEdit: (id: string) => void; onDelete: (id: string) => void }) {
+  // The owner shown for the current stage: production stages use the stage
+  // assignee; In queue → the publisher; Analytics → the analyst.
+  const ownerName = (t: TaskRow): string | null => {
+    if (t.currentStage === "PUBLISHING") return members.find((m) => m.id === t.publisherId)?.name ?? null;
+    if (t.currentStage === "ANALYTICS") return members.find((m) => m.id === t.analystId)?.name ?? null;
+    return t.stages.find((s) => s.stage === t.currentStage)?.assigneeName ?? null;
+  };
   const [typeFilter, setTypeFilter] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
@@ -284,7 +291,6 @@ function Overview({ tasks, canEdit, isAdmin, onOpen, onEdit, onDelete }: Props &
                 <Fragment key={w}>
                   <tr className="bg-wash/[0.04]"><td colSpan={8} className="px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.04em] text-slate">{w}</td></tr>
                   {arr.map((t) => {
-                    const st = t.stages.find((s) => s.stage === t.currentStage);
                     const att = publishAttention(t);
                     return (
                       <tr key={t.id} onClick={() => onOpen(t.id)} className={`cursor-pointer border-b border-line hover:bg-wash/[0.03] ${att ? (att.tone === "red" ? "bg-[#c23b2a]/[0.06]" : "bg-[#e0912b]/[0.06]") : ""}`}>
@@ -297,7 +303,7 @@ function Overview({ tasks, canEdit, isAdmin, onOpen, onEdit, onDelete }: Props &
                           {att && <span className={`${badge} ml-1.5 ${att.tone === "red" ? "bg-[#f6dcd6] text-[#c23b2a]" : "bg-[#f7e7cc] text-[#a5721a]"}`}>{att.label}</span>}
                         </td>
                         <td className="px-3 py-2.5"><span className={`${badge} ${t.publishStatus.startsWith("PUBLISHED") ? "bg-[#d7f2e5] text-[#2e9e6b]" : "bg-wash/[0.07] text-slate"}`}>{TASK_PUBLISH_LABELS[t.publishStatus as keyof typeof TASK_PUBLISH_LABELS] ?? t.publishStatus}</span></td>
-                        <td className="px-3 py-2.5"><span className="inline-flex items-center gap-1.5"><StageIcon stage={t.currentStage} /> {STAGE_LABELS[t.currentStage]} {t.currentStage !== "DONE" && (st?.assigneeName ? `· ${st.assigneeName}` : <span className="text-[#e0912b]">· unassigned</span>)}</span></td>
+                        <td className="px-3 py-2.5"><span className="inline-flex items-center gap-1.5"><StageIcon stage={t.currentStage} /> {STAGE_LABELS[t.currentStage]} {t.currentStage !== "DONE" && (ownerName(t) ? `· ${ownerName(t)}` : <span className="text-[#e0912b]">· unassigned</span>)}</span></td>
                         <td className="whitespace-nowrap px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center gap-1">
                             {canEdit && <button onClick={() => onEdit(t.id)} title="Edit" aria-label="Edit" className="grid h-7 w-7 place-items-center rounded-[8px] text-slate hover:bg-wash/[0.08] hover:text-teal-dark">✎</button>}
