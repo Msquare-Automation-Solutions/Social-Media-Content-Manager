@@ -665,6 +665,65 @@ export async function getPendingReviewCount(workspaceId: string): Promise<number
   });
 }
 
+export type MemberOverviewRow = {
+  userId: string;
+  name: string;
+  email: string;
+  avatarColor: string;
+  role: string;
+  total: number;
+  completedOnTime: number;
+  completedDelay: number;
+  inProgress: number; // WIP (on track or delayed)
+  notStarted: number; // yet to initiate
+};
+
+// Per-member task workload: counts of stages assigned to each member, grouped
+// by work status, over an optional planned-date window. Powers the Members
+// overview tiles.
+export async function getMembersOverview(
+  workspaceId: string,
+  range: { from?: string; to?: string } = {},
+): Promise<MemberOverviewRow[]> {
+  const plannedDate: { gte?: Date; lte?: Date } = {};
+  if (range.from) plannedDate.gte = new Date(range.from);
+  if (range.to) {
+    const end = new Date(range.to);
+    end.setHours(23, 59, 59, 999);
+    plannedDate.lte = end;
+  }
+  const stages = await prisma.taskStage.findMany({
+    where: {
+      assigneeId: { not: null },
+      task: {
+        workspaceId,
+        deletedAt: null,
+        ...(range.from || range.to ? { plannedDate } : {}),
+      },
+    },
+    select: { assigneeId: true, workStatus: true },
+  });
+
+  const members = await listMembers(workspaceId);
+  const byUser = new Map<string, MemberOverviewRow>();
+  for (const m of members) {
+    byUser.set(m.userId, {
+      userId: m.userId, name: m.name, email: m.email, avatarColor: m.avatarColor,
+      role: m.role, total: 0, completedOnTime: 0, completedDelay: 0, inProgress: 0, notStarted: 0,
+    });
+  }
+  for (const s of stages) {
+    const row = s.assigneeId ? byUser.get(s.assigneeId) : undefined;
+    if (!row) continue;
+    row.total++;
+    if (s.workStatus === "COMPLETED_ON_TIME") row.completedOnTime++;
+    else if (s.workStatus === "COMPLETED_DELAY") row.completedDelay++;
+    else if (s.workStatus === "WIP_ON_TRACK" || s.workStatus === "WIP_DELAY") row.inProgress++;
+    else row.notStarted++;
+  }
+  return [...byUser.values()];
+}
+
 // Tasks with at least one stage sent back for rework (awaiting re-submit).
 export async function getTaskReworkCount(workspaceId: string): Promise<number> {
   return prisma.task.count({
