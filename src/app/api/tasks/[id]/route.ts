@@ -217,7 +217,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
 // Soft-delete → Trash (30-day restore handled by the shared trash flow).
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const g = await guard("EDITOR");
+  const g = await guard("ADMIN");
   if (!g.ok) return g.response;
   const { id } = await params;
   const task = await own(id, g.user.workspaceId);

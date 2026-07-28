@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BackButton } from "@/components/ui/back-button";
 import { useToast } from "@/components/ui/toast";
@@ -209,46 +209,109 @@ function subtitle(mode: TasksMode, isAdmin: boolean) {
   }
 }
 
+// How close a task is to its scheduled publish date (unpublished only), so the
+// overview can flag what needs attention.
+function publishAttention(t: TaskRow): { label: string; tone: "red" | "amber" } | null {
+  if (!t.scheduledPublishDate || t.publishStatus.startsWith("PUBLISHED")) return null;
+  const now = new Date();
+  const t0 = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const d = new Date(t.scheduledPublishDate);
+  const d0 = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const days = Math.round((d0 - t0) / 86400000);
+  if (days < 0) return { label: "Overdue", tone: "red" };
+  if (days === 0) return { label: "Due today", tone: "red" };
+  if (days <= 2) return { label: days === 1 ? "Due tomorrow" : `Due in ${days}d`, tone: "amber" };
+  return null;
+}
+
 // ── Overview (planning table) ────────────────────────────────────────────────
-function Overview({ tasks, canEdit, onOpen, onEdit, onDelete }: Props & { onOpen: (id: string) => void; onEdit: (id: string) => void; onDelete: (id: string) => void }) {
-  if (!tasks.length) return <Empty text="No tasks yet, plan your first piece." />;
+function Overview({ tasks, canEdit, isAdmin, onOpen, onEdit, onDelete }: Props & { onOpen: (id: string) => void; onEdit: (id: string) => void; onDelete: (id: string) => void }) {
+  const [typeFilter, setTypeFilter] = useState("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+
+  const types = [...new Set(tasks.map((t) => t.contentTypeLabel))].sort();
+  const filtered = tasks.filter((t) => {
+    if (typeFilter && t.contentTypeLabel !== typeFilter) return false;
+    if (from || to) {
+      const d = t.scheduledPublishDate ? t.scheduledPublishDate.slice(0, 10) : "";
+      if (!d) return false;
+      if (from && d < from) return false;
+      if (to && d > to) return false;
+    }
+    return true;
+  });
+
+  const fsel = "rounded-[9px] border border-line bg-card px-2.5 py-2 text-[12.5px] text-ink outline-none focus:border-teal";
+
   const weeks = new Map<string, TaskRow[]>();
-  for (const t of tasks) { const k = t.weekLabel || "Unscheduled"; (weeks.get(k) || weeks.set(k, []).get(k)!).push(t); }
+  for (const t of filtered) { const k = t.weekLabel || "Unscheduled"; (weeks.get(k) || weeks.set(k, []).get(k)!).push(t); }
+
   return (
-    <div className="overflow-x-auto rounded-card border border-line bg-card shadow-soft">
-      <table className="w-full border-collapse text-[12.5px]">
-        <thead>
-          <tr className="border-b border-line text-left text-[11px] uppercase tracking-[0.04em] text-slate">
-            <th className="px-3 py-2.5">Theme</th><th className="px-3 py-2.5">Type</th><th className="px-3 py-2.5">Platform / Account</th>
-            <th className="px-3 py-2.5">Brief</th><th className="px-3 py-2.5">Content</th><th className="px-3 py-2.5">Publish</th><th className="px-3 py-2.5">Stage · Owner</th><th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {[...weeks.entries()].map(([w, arr]) => (
-            <>
-              <tr key={w} className="bg-wash/[0.04]"><td colSpan={8} className="px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.04em] text-slate">{w}</td></tr>
-              {arr.map((t) => {
-                const st = t.stages.find((s) => s.stage === t.currentStage);
-                return (
-                  <tr key={t.id} onClick={() => onOpen(t.id)} className="cursor-pointer border-b border-line hover:bg-wash/[0.03]">
-                    <td className="px-3 py-2.5 font-semibold">{t.title}</td>
-                    <td className="px-3 py-2.5">{t.contentTypeLabel}</td>
-                    <td className="px-3 py-2.5">{t.channel?.name ?? "—"} · {t.account?.name ?? "—"}</td>
-                    <td className="max-w-[160px] truncate px-3 py-2.5 text-slate">{t.brief || "—"}</td>
-                    <td className="px-3 py-2.5">{t.content ? "📄 drafted" : <span className="text-slate">—</span>}</td>
-                    <td className="px-3 py-2.5"><span className={`${badge} ${t.publishStatus.startsWith("PUBLISHED") ? "bg-[#d7f2e5] text-[#2e9e6b]" : "bg-wash/[0.07] text-slate"}`}>{TASK_PUBLISH_LABELS[t.publishStatus as keyof typeof TASK_PUBLISH_LABELS] ?? t.publishStatus}</span></td>
-                    <td className="px-3 py-2.5"><span className="inline-flex items-center gap-1.5"><StageIcon stage={t.currentStage} /> {STAGE_LABELS[t.currentStage]} {t.currentStage !== "DONE" && (st?.assigneeName ? `· ${st.assigneeName}` : <span className="text-[#e0912b]">· unassigned</span>)}</span></td>
-                    <td className="whitespace-nowrap px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
-                      {canEdit && <button onClick={() => onEdit(t.id)} className="rounded-[8px] border border-line px-2.5 py-1 text-[11.5px] font-semibold text-teal-dark hover:border-teal">Edit</button>}
-                      {canEdit && <button onClick={() => onDelete(t.id)} className="ml-1.5 rounded-[8px] border border-line px-2.5 py-1 text-[11.5px] font-semibold text-[#c23b2a] hover:border-[#c23b2a]">Delete</button>}
-                    </td>
-                  </tr>
-                );
-              })}
-            </>
-          ))}
-        </tbody>
-      </table>
+    <div>
+      <div className="mb-4 flex flex-wrap items-end gap-2.5">
+        <label className="text-[11.5px] font-semibold text-slate">Post type
+          <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className={fsel + " mt-1 block font-normal"}>
+            <option value="">All types</option>
+            {types.map((t) => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </label>
+        <label className="text-[11.5px] font-semibold text-slate">Publish from
+          <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={fsel + " mt-1 block font-normal"} />
+        </label>
+        <label className="text-[11.5px] font-semibold text-slate">Publish to
+          <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={fsel + " mt-1 block font-normal"} />
+        </label>
+        {(typeFilter || from || to) && (
+          <button onClick={() => { setTypeFilter(""); setFrom(""); setTo(""); }} className="rounded-[9px] border border-line px-3 py-2 text-[12px] font-semibold text-slate hover:border-teal">Clear</button>
+        )}
+      </div>
+
+      {filtered.length === 0 ? (
+        <Empty text={tasks.length ? "No tasks match these filters." : "No tasks yet, plan your first piece."} />
+      ) : (
+        <div className="overflow-x-auto rounded-card border border-line bg-card shadow-soft">
+          <table className="w-full border-collapse text-[12.5px]">
+            <thead>
+              <tr className="border-b border-line text-left text-[11px] uppercase tracking-[0.04em] text-slate">
+                <th className="px-3 py-2.5">Theme</th><th className="px-3 py-2.5">Type</th><th className="px-3 py-2.5">Platform / Account</th>
+                <th className="px-3 py-2.5">Brief</th><th className="px-3 py-2.5">Publish date</th><th className="px-3 py-2.5">Publish</th><th className="px-3 py-2.5">Stage · Owner</th><th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {[...weeks.entries()].map(([w, arr]) => (
+                <Fragment key={w}>
+                  <tr className="bg-wash/[0.04]"><td colSpan={8} className="px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.04em] text-slate">{w}</td></tr>
+                  {arr.map((t) => {
+                    const st = t.stages.find((s) => s.stage === t.currentStage);
+                    const att = publishAttention(t);
+                    return (
+                      <tr key={t.id} onClick={() => onOpen(t.id)} className={`cursor-pointer border-b border-line hover:bg-wash/[0.03] ${att ? (att.tone === "red" ? "bg-[#c23b2a]/[0.06]" : "bg-[#e0912b]/[0.06]") : ""}`}>
+                        <td className={`px-3 py-2.5 font-semibold ${att ? (att.tone === "red" ? "border-l-2 border-[#c23b2a]" : "border-l-2 border-[#e0912b]") : ""}`}>{t.title}</td>
+                        <td className="px-3 py-2.5">{t.contentTypeLabel}</td>
+                        <td className="px-3 py-2.5">{t.channel?.name ?? "—"} · {t.account?.name ?? "—"}</td>
+                        <td className="max-w-[160px] truncate px-3 py-2.5 text-slate">{t.brief || "—"}</td>
+                        <td className="whitespace-nowrap px-3 py-2.5">
+                          {t.scheduledPublishDate ? fmt(t.scheduledPublishDate) : <span className="text-slate">—</span>}
+                          {att && <span className={`${badge} ml-1.5 ${att.tone === "red" ? "bg-[#f6dcd6] text-[#c23b2a]" : "bg-[#f7e7cc] text-[#a5721a]"}`}>{att.label}</span>}
+                        </td>
+                        <td className="px-3 py-2.5"><span className={`${badge} ${t.publishStatus.startsWith("PUBLISHED") ? "bg-[#d7f2e5] text-[#2e9e6b]" : "bg-wash/[0.07] text-slate"}`}>{TASK_PUBLISH_LABELS[t.publishStatus as keyof typeof TASK_PUBLISH_LABELS] ?? t.publishStatus}</span></td>
+                        <td className="px-3 py-2.5"><span className="inline-flex items-center gap-1.5"><StageIcon stage={t.currentStage} /> {STAGE_LABELS[t.currentStage]} {t.currentStage !== "DONE" && (st?.assigneeName ? `· ${st.assigneeName}` : <span className="text-[#e0912b]">· unassigned</span>)}</span></td>
+                        <td className="whitespace-nowrap px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center gap-1">
+                            {canEdit && <button onClick={() => onEdit(t.id)} title="Edit" aria-label="Edit" className="grid h-7 w-7 place-items-center rounded-[8px] text-slate hover:bg-wash/[0.08] hover:text-teal-dark">✎</button>}
+                            {isAdmin && <button onClick={() => onDelete(t.id)} title="Delete" aria-label="Delete" className="grid h-7 w-7 place-items-center rounded-[8px] text-slate hover:bg-wash/[0.08] hover:text-[#c23b2a]">🗑</button>}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </Fragment>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
