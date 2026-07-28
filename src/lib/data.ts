@@ -526,7 +526,7 @@ export type TaskRow = {
   metricShares: number | null;
   metricsNote: string | null;
   binItemId: string | null;
-  assets: { id: string; title: string; thumbnailUrl: string | null; type: string; stageId: string | null }[];
+  assets: { id: string; title: string; thumbnailUrl: string | null; type: string; filename: string | null; stageId: string | null }[];
   createdAt: string;
   stages: TaskStageRow[];
 };
@@ -562,7 +562,7 @@ export async function listTasks(
     include: {
       stages: { orderBy: { order: "asc" } },
       assets: {
-        select: { stageId: true, asset: { select: { id: true, title: true, thumbnailUrl: true, type: true } } },
+        select: { stageId: true, asset: { select: { id: true, title: true, thumbnailUrl: true, type: true, filename: true } } },
       },
     },
   });

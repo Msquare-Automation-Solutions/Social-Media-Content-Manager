@@ -26,6 +26,42 @@ function assetSlug(type: string): string {
   return LIBRARY_SLUGS[view];
 }
 
+// A submitted file, shown so its identity is clear WITHOUT downloading: the
+// name, its extension/type, a thumbnail when available, and a Download link.
+// Clicking the row opens the item in the library.
+type SubmittedAsset = TaskRow["assets"][number];
+function fileExt(name: string | null): string {
+  const m = name?.match(/\.([a-z0-9]+)$/i);
+  return m ? m[1].toUpperCase() : "";
+}
+function SubmittedFile({ a }: { a: SubmittedAsset }) {
+  const ext = fileExt(a.filename);
+  const kind = ext || contentTypeLabel(a.type);
+  return (
+    <div className="flex w-[230px] items-center gap-2 rounded-[9px] border border-line bg-wash/[0.03] p-1.5">
+      <a href={`/${assetSlug(a.type)}?asset=${a.id}`} title="Open" className="flex min-w-0 flex-1 items-center gap-2">
+        <span className="grid h-[38px] w-[52px] shrink-0 place-items-center overflow-hidden rounded-[7px] border border-line bg-wash/[0.05]">
+          {a.thumbnailUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={a.thumbnailUrl} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <span className="text-[10px] font-bold text-slate">{ext || "FILE"}</span>
+          )}
+        </span>
+        <span className="min-w-0">
+          <span className="block truncate text-[12px] font-medium text-ink">{a.title}</span>
+          <span className="block truncate text-[10.5px] text-slate">{a.filename ?? kind} · {kind}</span>
+        </span>
+      </a>
+      {a.filename && (
+        <a href={`/api/assets/${a.id}/download`} title="Download" className="grid h-7 w-7 shrink-0 place-items-center rounded-[7px] text-[13px] text-slate hover:bg-wash/[0.08] hover:text-ink">
+          ↓
+        </a>
+      )}
+    </div>
+  );
+}
+
 type Member = { id: string; name: string; avatarColor: string; role?: string };
 const memberLabel = (m: Member) => (m.role ? `${m.name} — ${m.role}` : m.name);
 type Opt = { id: string; name: string; icon: string };
@@ -490,17 +526,7 @@ function TaskDrawer({ task, members, isAdmin, canEdit, meId, onClose, onEdit, ap
             {t.assets.filter((a) => a.stageId === s.id).length > 0 && (
               <div className="mb-2 flex flex-wrap gap-2">
                 {t.assets.filter((a) => a.stageId === s.id).map((a) => (
-                  <a key={a.id} href={`/${assetSlug(a.type)}?asset=${a.id}`} title={a.title} className="w-[76px]">
-                    <span className="grid h-[48px] w-[76px] place-items-center overflow-hidden rounded-[8px] border border-line bg-wash/[0.05]">
-                      {a.thumbnailUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={a.thumbnailUrl} alt="" className="h-full w-full object-cover" />
-                      ) : (
-                        <span className="text-[15px]">📄</span>
-                      )}
-                    </span>
-                    <span className="mt-0.5 block truncate text-[10.5px] text-slate">{a.title}</span>
-                  </a>
+                  <SubmittedFile key={a.id} a={a} />
                 ))}
               </div>
             )}
@@ -550,17 +576,7 @@ function TaskDrawer({ task, members, isAdmin, canEdit, meId, onClose, onEdit, ap
         ) : (
           <div className="flex flex-wrap gap-2">
             {t.assets.filter((a) => !a.stageId).map((a) => (
-              <a key={a.id} href={`/${assetSlug(a.type)}?asset=${a.id}`} title={a.title} className="w-[92px]">
-                <span className="grid h-[58px] w-[92px] place-items-center overflow-hidden rounded-[9px] border border-line bg-wash/[0.05]">
-                  {a.thumbnailUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={a.thumbnailUrl} alt="" className="h-full w-full object-cover" />
-                  ) : (
-                    <span className="text-[18px]">📄</span>
-                  )}
-                </span>
-                <span className="mt-1 block truncate text-[11px] text-slate">{a.title}</span>
-              </a>
+              <SubmittedFile key={a.id} a={a} />
             ))}
           </div>
         )}
