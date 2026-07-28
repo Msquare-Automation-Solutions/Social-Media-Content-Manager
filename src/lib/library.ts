@@ -8,7 +8,7 @@ export const LIBRARY_VIEWS = [
   { key: "IMAGE", label: "Image/Posts", icon: "📸", types: ["IMAGE"] },
   { key: "THUMBNAIL", label: "Carousels", icon: "🗂️", types: ["THUMBNAIL"] },
   { key: "VIDEO", label: "Video", icon: "🎬", types: ["VIDEO", "VIDEO_SCRIPT"] },
-  { key: "BLOGPOST", label: "Articles", icon: "📰", types: ["BLOGPOST"] },
+  { key: "BLOGPOST", label: "Article/Blog", icon: "📰", types: ["BLOGPOST"] },
   { key: "OTHER", label: "Other", icon: "📦", types: ["OTHER"] },
 ] as const;
 
@@ -39,7 +39,7 @@ export const CATEGORY_OPTIONS = [
   { value: "IMAGE", label: "Image/Posts" },
   { value: "THUMBNAIL", label: "Carousels" },
   { value: "VIDEO", label: "Video" },
-  { value: "BLOGPOST", label: "Articles" },
+  { value: "BLOGPOST", label: "Article/Blog" },
   { value: "OTHER", label: "Other" },
 ] as const;
 
@@ -47,7 +47,7 @@ export const TYPE_LABELS: Record<string, string> = {
   IMAGE: "Image/Posts",
   THUMBNAIL: "Carousels",
   VIDEO: "Video",
-  BLOGPOST: "Articles",
+  BLOGPOST: "Article/Blog",
   VIDEO_SCRIPT: "Video script",
   OTHER: "Other",
 };
