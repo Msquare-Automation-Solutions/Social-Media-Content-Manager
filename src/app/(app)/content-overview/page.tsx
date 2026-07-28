@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 export default async function ContentOverviewPage({
   searchParams,
 }: {
-  searchParams: Promise<{ task?: string }>;
+  searchParams: Promise<{ task?: string; new?: string }>;
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
@@ -28,6 +28,7 @@ export default async function ContentOverviewPage({
       meId={user.id}
       meCanSelfApprove={user.canSelfApprove}
       initialTaskId={sp.task ?? null}
+      openNew={sp.new === "1"}
     />
   );
 }

@@ -261,13 +261,22 @@ export function Sidebar({
           <span className="min-w-0 flex-1 truncate" title={workspaceName}>{workspaceName}</span>
         </div>
 
-        {canUpload && (
-          <button
-            onClick={() => upload.open()}
+        {isAdmin ? (
+          <Link
+            href="/content-overview?new=1"
             className="btn-premium mb-3 flex items-center justify-center gap-2 rounded-[12px] px-3.5 py-2.5 font-semibold"
           >
-            <Icon name="upload" size={17} /> Upload files
-          </button>
+            <Icon name="tasks" size={17} /> Plan content
+          </Link>
+        ) : (
+          canUpload && (
+            <button
+              onClick={() => upload.open()}
+              className="btn-premium mb-3 flex items-center justify-center gap-2 rounded-[12px] px-3.5 py-2.5 font-semibold"
+            >
+              <Icon name="upload" size={17} /> Upload files
+            </button>
+          )
         )}
 
         <nav className="-mr-2 flex min-h-0 flex-1 flex-col gap-[2px] overflow-y-auto overflow-x-hidden overscroll-contain pr-2">

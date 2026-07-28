@@ -80,6 +80,7 @@ type Props = {
   meId: string;
   meCanSelfApprove?: boolean;
   initialTaskId?: string | null;
+  openNew?: boolean;
 };
 
 // Standard line icons per stage (same set as the sidebar / workspace overview).
@@ -110,7 +111,7 @@ export function TasksApp(props: Props) {
   const router = useRouter();
   const { toast } = useToast();
   const [openId, setOpenId] = useState<string | null>(props.initialTaskId ?? null);
-  const [formOpen, setFormOpen] = useState(false);
+  const [formOpen, setFormOpen] = useState(Boolean(props.openNew && props.isAdmin));
   const [editId, setEditId] = useState<string | null>(null);
 
   const openTask = tasks.find((t) => t.id === openId) || null;
