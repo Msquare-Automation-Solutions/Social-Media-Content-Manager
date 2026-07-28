@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { BackButton } from "@/components/ui/back-button";
 import { useToast } from "@/components/ui/toast";
 import { Icon, type IconName } from "@/components/ui/icons";
+import { PlatformIcon } from "@/components/ui/platform-icon";
 import { useUploadDialog, type SaveDefaults } from "@/components/save/dialog-context";
 import type { TaskRow } from "@/lib/data";
 import {
@@ -59,6 +60,19 @@ function SubmittedFile({ a }: { a: SubmittedAsset }) {
       )}
     </div>
   );
+}
+
+// A small emoji icon for a (custom, open-ended) content type, by keyword.
+function contentTypeIcon(label: string): string {
+  const n = label.toLowerCase();
+  if (/(reel|video|short)/.test(n)) return "🎬";
+  if (/carousel/.test(n)) return "🗂️";
+  if (/(poster|graphic|creative|image|design)/.test(n)) return "🖼️";
+  if (/(blog|article|website)/.test(n)) return "📝";
+  if (/(thumbnail)/.test(n)) return "🎯";
+  if (/(script)/.test(n)) return "🎞️";
+  if (/(post|authority|caption|tweet|thread)/.test(n)) return "📢";
+  return "🏷️";
 }
 
 type Member = { id: string; name: string; avatarColor: string; role?: string };
@@ -336,8 +350,8 @@ function Board({ tasks, onOpen }: { tasks: TaskRow[]; onOpen: (id: string) => vo
                 <button key={t.id} onClick={() => onOpen(t.id)} className={`mb-2 block w-full rounded-[11px] border bg-card p-2.5 text-left shadow-soft transition hover:-translate-y-0.5 hover:shadow-lift ${att ? (att.tone === "red" ? "border-[#c23b2a]/60" : "border-[#e0912b]/60") : "border-line"}`}>
                   <div className="mb-1.5 text-[13px] font-semibold">{t.title}</div>
                   <div className="mb-1.5 flex flex-wrap gap-1">
-                    <span className={`${chip} bg-violet-soft text-violet`}>{t.contentTypeLabel}</span>
-                    {t.channel && <span className={`${chip} bg-wash/[0.06]`}>{t.channel.name}</span>}
+                    <span className={`${chip} inline-flex items-center gap-1 bg-violet-soft text-violet`}>{contentTypeIcon(t.contentTypeLabel)} {t.contentTypeLabel}</span>
+                    {t.channel && <span className={`${chip} inline-flex items-center gap-1 bg-wash/[0.06]`}><PlatformIcon name={t.channel.name} icon={t.channel.icon} size={12} /> {t.channel.name}</span>}
                   </div>
                   {/* Where the task stands right now: the current stage's work status. */}
                   <div className="mb-1.5">
