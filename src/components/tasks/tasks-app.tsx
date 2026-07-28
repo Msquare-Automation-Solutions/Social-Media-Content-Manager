@@ -349,9 +349,9 @@ function Board({ tasks, onOpen }: { tasks: TaskRow[]; onOpen: (id: string) => vo
               return (
                 <button key={t.id} onClick={() => onOpen(t.id)} className={`mb-2 block w-full rounded-[11px] border bg-card p-2.5 text-left shadow-soft transition hover:-translate-y-0.5 hover:shadow-lift ${att ? (att.tone === "red" ? "border-[#c23b2a]/60" : "border-[#e0912b]/60") : "border-line"}`}>
                   <div className="mb-1.5 text-[13px] font-semibold">{t.title}</div>
-                  <div className="mb-1.5 flex flex-wrap gap-1">
-                    <span className={`${chip} inline-flex items-center gap-1 bg-violet-soft text-violet`}>{contentTypeIcon(t.contentTypeLabel)} {t.contentTypeLabel}</span>
-                    {t.channel && <span className={`${chip} inline-flex items-center gap-1 bg-wash/[0.06]`}><PlatformIcon name={t.channel.name} icon={t.channel.icon} size={12} /> {t.channel.name}</span>}
+                  <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
+                    <span title={t.contentTypeLabel} className="grid h-6 w-6 place-items-center rounded-full bg-violet-soft text-[13px]">{contentTypeIcon(t.contentTypeLabel)}</span>
+                    {t.channel && <span title={t.channel.name} className="grid h-6 w-6 place-items-center rounded-full bg-wash/[0.06]"><PlatformIcon name={t.channel.name} icon={t.channel.icon} size={14} /></span>}
                   </div>
                   {/* Where the task stands right now: the current stage's work status. */}
                   <div className="mb-1.5">
