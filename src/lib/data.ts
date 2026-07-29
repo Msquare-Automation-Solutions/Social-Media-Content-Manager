@@ -14,6 +14,7 @@ export type LibraryFilters = {
   sort?: "newest" | "name" | "postdate";
   from?: string; // yyyy-mm-dd — createdAt range (inclusive)
   to?: string;
+  publishableOnly?: boolean; // Approved/Published panels: only files meant to publish
 };
 
 // A Prisma `createdAt` filter from an inclusive yyyy-mm-dd range (mirrors the
@@ -499,6 +500,7 @@ export type TaskStageRow = {
   targetDate: string | null;
   workStatus: string;
   reviewStatus: string;
+  publishable: boolean;
   submittedAt: string | null;
   completedDate: string | null;
   reviewNote: string | null;
@@ -633,6 +635,7 @@ export async function listTasks(
         targetDate: s.targetDate ? s.targetDate.toISOString() : null,
         workStatus: s.workStatus,
         reviewStatus: s.reviewStatus,
+        publishable: s.publishable,
         submittedAt: s.submittedAt ? s.submittedAt.toISOString() : null,
         completedDate: s.completedDate ? s.completedDate.toISOString() : null,
         reviewNote: s.reviewNote,
@@ -1306,6 +1309,7 @@ export async function getAssetsByStatus(
       workspaceId,
       deletedAt: null,
       status,
+      ...(filters.publishableOnly ? { publishable: true } : {}),
       ...(filters.type ? { type: { in: typesForView(filters.type as LibraryViewKey) } } : {}),
       ...(filters.personId ? { personId: filters.personId } : {}),
       ...(filters.channelId ? { channels: { some: { channelId: filters.channelId } } } : {}),
@@ -1322,11 +1326,12 @@ export async function getAssetsByStatus(
 }
 
 export function getApprovedAssets(workspaceId: string, filters: LibraryFilters) {
-  return getAssetsByStatus(workspaceId, "APPROVED", filters);
+  // Approved panel = only files that are actually going to be published.
+  return getAssetsByStatus(workspaceId, "APPROVED", { ...filters, publishableOnly: true });
 }
 
 export function getPublishedAssets(workspaceId: string, filters: LibraryFilters) {
-  return getAssetsByStatus(workspaceId, "PUBLISHED", filters);
+  return getAssetsByStatus(workspaceId, "PUBLISHED", { ...filters, publishableOnly: true });
 }
 
 /**

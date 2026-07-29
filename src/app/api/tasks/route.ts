@@ -26,6 +26,7 @@ const schema = z.object({
         stage: z.enum(TASK_STAGES),
         assigneeId: z.string().nullable().optional(),
         targetDate: z.string().datetime().nullable().optional(),
+        publishable: z.boolean().optional(),
       }),
     )
     .min(1, "Pick at least one stage"),
@@ -85,6 +86,7 @@ export async function POST(req: Request) {
           order: i,
           assigneeId: s.assigneeId ?? null,
           targetDate: s.targetDate ? new Date(s.targetDate) : null,
+          publishable: s.publishable ?? true,
         })),
       },
     },

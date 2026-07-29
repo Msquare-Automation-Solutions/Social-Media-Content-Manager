@@ -231,6 +231,7 @@ model MediaAsset {
   source        String
   chatMessageId String?
   status        String    @default("PENDING") // PENDING | REWORK | APPROVED | PUBLISHED
+  publishable   Boolean   @default(true) // false = internal working file (kept out of Approved/Published panels)
   reviewNote    String? // admin's rework comment
   reviewedAt    DateTime?
   createdAt     DateTime  @default(now())
@@ -407,6 +408,7 @@ model TaskStage {
   targetDate    DateTime?
   workStatus    String    @default("YTI")
   reviewStatus  String    @default("NOT_SUBMITTED")
+  publishable   Boolean   @default(true) // does this stage produce the file that gets published?
   submittedAt   DateTime?
   completedDate DateTime?
   reviewNote    String?

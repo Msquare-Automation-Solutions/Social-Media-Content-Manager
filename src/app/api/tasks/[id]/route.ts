@@ -32,6 +32,7 @@ const patchSchema = z.object({
         stage: z.enum(TASK_STAGES),
         assigneeId: z.string().nullable().optional(),
         targetDate: z.string().datetime().nullable().optional(),
+        publishable: z.boolean().optional(),
       }),
     )
     .min(1)
@@ -164,10 +165,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         const assignData = {
           ...(w.assigneeId !== undefined ? { assigneeId: w.assigneeId } : {}),
           ...(w.targetDate !== undefined ? { targetDate: w.targetDate ? new Date(w.targetDate) : null } : {}),
+          ...(w.publishable !== undefined ? { publishable: w.publishable } : {}),
         };
         if (have.has(w.stage))
           await tx.taskStage.update({ where: { id: have.get(w.stage)!.id }, data: { order: i, ...assignData } });
-        else await tx.taskStage.create({ data: { taskId: id, stage: w.stage, order: i, ...assignData } });
+        else await tx.taskStage.create({ data: { taskId: id, stage: w.stage, order: i, publishable: w.publishable ?? true, ...assignData } });
       }
     }
 

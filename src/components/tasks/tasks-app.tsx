@@ -787,15 +787,17 @@ function AssignForm({ members, current, onCancel, onSave }: { members: Member[];
 // ── Create / edit form ───────────────────────────────────────────────────────
 function TaskForm({ task, channels, accounts, taskTypes, members, isAdmin, onClose, onSaved, api, toast }: { task: TaskRow | null; channels: Opt[]; accounts: Opt[]; taskTypes: TaskType[]; members: Member[]; isAdmin: boolean; onClose: () => void; onSaved: () => void; api: (u: string, m: string, b?: unknown) => Promise<boolean>; toast: (m: string) => void }) {
   const STAGE_OPTS = ["CONTENT", "VIDEO", "GRAPHICS"] as const;
-  type StageSel = { on: boolean; assigneeId: string; due: string };
+  type StageSel = { on: boolean; assigneeId: string; due: string; publishable: boolean };
   const initStages = (): Record<string, StageSel> => {
     const out: Record<string, StageSel> = {};
     const suggested = suggestStages(task ? contentTypeLabel(task.contentType) : taskTypes[0]?.name ?? "");
     for (const s of STAGE_OPTS) {
       const existing = task?.stages.find((x) => x.stage === s);
+      // Content is usually an internal input; video/graphics produce the file
+      // that actually gets published — so default the publish flag by stage.
       out[s] = existing
-        ? { on: true, assigneeId: existing.assigneeId ?? "", due: existing.targetDate ? existing.targetDate.slice(0, 10) : "" }
-        : { on: task ? false : suggested.includes(s), assigneeId: "", due: "" };
+        ? { on: true, assigneeId: existing.assigneeId ?? "", due: existing.targetDate ? existing.targetDate.slice(0, 10) : "", publishable: existing.publishable }
+        : { on: task ? false : suggested.includes(s), assigneeId: "", due: "", publishable: s !== "CONTENT" };
     }
     return out;
   };
@@ -861,6 +863,7 @@ function TaskForm({ task, channels, accounts, taskTypes, members, isAdmin, onClo
       stage: s,
       assigneeId: stageSel[s].assigneeId || null,
       targetDate: stageSel[s].due ? new Date(stageSel[s].due).toISOString() : null,
+      publishable: stageSel[s].publishable,
     }));
     const body = {
       title: title.trim(), brief: brief.trim(), content: content.trim(), remarks: remarks.trim(),
@@ -928,12 +931,16 @@ function TaskForm({ task, channels, accounts, taskTypes, members, isAdmin, onClo
                       {STAGE_LABELS[s]}
                     </label>
                     {sel.on && (
-                      <div className="mt-2 flex flex-wrap gap-2">
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
                         <select value={sel.assigneeId} onChange={(e) => setStage(s, { assigneeId: e.target.value })} className="flex-1 rounded-[8px] border border-line bg-card px-2 py-1.5 text-[12px] font-normal text-ink outline-none focus:border-teal">
                           <option value="">Unassigned</option>
                           {members.map((m) => <option key={m.id} value={m.id}>{memberLabel(m)}</option>)}
                         </select>
                         <input type="date" value={sel.due} onChange={(e) => setStage(s, { due: e.target.value })} className="rounded-[8px] border border-line bg-card px-2 py-1.5 text-[12px] font-normal text-ink outline-none focus:border-teal" />
+                        <label className="flex items-center gap-1.5 rounded-[8px] border border-line px-2 py-1.5 text-[11.5px] font-normal text-slate" title="This stage produces the file that gets published (shows in the Approved panel)">
+                          <input type="checkbox" checked={sel.publishable} onChange={(e) => setStage(s, { publishable: e.target.checked })} className="h-3.5 w-3.5 accent-[#0e9f8f]" />
+                          Gets published
+                        </label>
                       </div>
                     )}
                   </div>

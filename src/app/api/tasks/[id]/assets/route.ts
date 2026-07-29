@@ -59,6 +59,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         where: { id: stageId, taskId: id },
         data: { submittedAt: new Date(), reviewStatus: "PENDING" },
       });
+      // The file inherits whether its stage produces a publishable deliverable,
+      // so internal files (e.g. the content draft) stay out of the Approved panel.
+      const stage = await tx.taskStage.findFirst({ where: { id: stageId, taskId: id }, select: { publishable: true } });
+      await tx.mediaAsset.update({ where: { id: assetId }, data: { publishable: stage?.publishable ?? true } });
     }
   });
   return Response.json({ ok: true }, { status: 201 });

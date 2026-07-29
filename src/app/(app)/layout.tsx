@@ -33,10 +33,10 @@ export default async function AppLayout({
         where: { workspaceId: user.workspaceId, deletedAt: null, status: "REWORK" },
       }),
       prisma.mediaAsset.count({
-        where: { workspaceId: user.workspaceId, deletedAt: null, status: "APPROVED" },
+        where: { workspaceId: user.workspaceId, deletedAt: null, status: "APPROVED", publishable: true },
       }),
       prisma.mediaAsset.count({
-        where: { workspaceId: user.workspaceId, deletedAt: null, status: "PUBLISHED" },
+        where: { workspaceId: user.workspaceId, deletedAt: null, status: "PUBLISHED", publishable: true },
       }),
       unreadNotificationCount(user.id),
       getStorageUsage(user.workspaceId),
