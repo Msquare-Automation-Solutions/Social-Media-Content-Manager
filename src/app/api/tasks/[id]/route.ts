@@ -11,6 +11,8 @@ import { TASK_PUBLISH_STATUSES, TASK_STAGES } from "@/lib/enums";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+
 const patchSchema = z.object({
   // Overview fields (EDITOR).
   title: z.string().trim().min(1).max(200).optional(),
@@ -72,6 +74,18 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const week =
     d.plannedDate !== undefined && d.plannedDate ? weekLabelForDate(d.plannedDate) : undefined;
   const publishing = d.publishStatus !== undefined && d.publishStatus.startsWith("PUBLISHED");
+  // When publishing, the actual publish moment is now; it's "delayed" if that
+  // day is past the scheduled publish date. (Compared at day granularity.)
+  const publishedAt = new Date();
+  const isDelayed =
+    publishing && task.scheduledPublishDate
+      ? startOfDay(publishedAt) > startOfDay(task.scheduledPublishDate)
+      : false;
+  const finalPublishStatus = publishing
+    ? isDelayed
+      ? "PUBLISHED_DELAY"
+      : "PUBLISHED_ON_TIME"
+    : undefined;
   const recordingMetrics =
     d.metricClicks !== undefined ||
     d.metricLeads !== undefined ||
@@ -108,7 +122,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         ...(d.binItemId !== undefined ? { binItemId: d.binItemId } : {}),
         ...(d.publisherId !== undefined ? { publisherId: d.publisherId } : {}),
         ...(d.analystId !== undefined ? { analystId: d.analystId } : {}),
-        ...(d.publishStatus !== undefined ? { publishStatus: d.publishStatus } : {}),
+        ...(publishing
+          ? { publishStatus: finalPublishStatus }
+          : d.publishStatus !== undefined
+            ? { publishStatus: d.publishStatus }
+            : {}),
         ...(d.contentLink !== undefined ? { contentLink: d.contentLink } : {}),
         ...(d.scheduledPublishDate !== undefined
           ? { scheduledPublishDate: d.scheduledPublishDate ? new Date(d.scheduledPublishDate) : null }
@@ -116,7 +134,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         ...(d.publishedDate !== undefined
           ? { publishedDate: d.publishedDate ? new Date(d.publishedDate) : null }
           : publishing
-            ? { publishedDate: task.scheduledPublishDate ?? new Date() }
+            ? { publishedDate: publishedAt }
             : {}),
         ...(d.metricClicks !== undefined ? { metricClicks: d.metricClicks } : {}),
         ...(d.metricLeads !== undefined ? { metricLeads: d.metricLeads } : {}),

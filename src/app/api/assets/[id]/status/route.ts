@@ -71,15 +71,20 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     });
     const taskIds = links.map((l) => l.taskId);
     if (taskIds.length) {
-      // Tasks about to flip to published — grab their analysts to notify.
+      // Tasks about to flip to published — grab schedule + analyst.
       const toPublish = await prisma.task.findMany({
         where: { id: { in: taskIds }, workspaceId: g.user.workspaceId, publishStatus: { notIn: ["PUBLISHED_ON_TIME", "PUBLISHED_DELAY"] } },
-        select: { id: true, title: true, analystId: true },
+        select: { id: true, title: true, analystId: true, scheduledPublishDate: true },
       });
-      await prisma.task.updateMany({
-        where: { id: { in: taskIds }, workspaceId: g.user.workspaceId, publishStatus: { notIn: ["PUBLISHED_ON_TIME", "PUBLISHED_DELAY"] } },
-        data: { publishStatus: "PUBLISHED_ON_TIME", publishedDate: new Date() },
-      });
+      const now = new Date();
+      const day = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+      for (const tk of toPublish) {
+        const delayed = tk.scheduledPublishDate ? day(now) > day(tk.scheduledPublishDate) : false;
+        await prisma.task.update({
+          where: { id: tk.id },
+          data: { publishStatus: delayed ? "PUBLISHED_DELAY" : "PUBLISHED_ON_TIME", publishedDate: now },
+        });
+      }
       for (const tk of toPublish) {
         if (tk.analystId)
           await createNotifications(g.user, [tk.analystId], {
