@@ -24,7 +24,8 @@ describe("weekLabelForDate", () => {
   it("derives month + week-of-month", () => {
     expect(weekLabelForDate("2026-07-03")).toBe("July W1");
     expect(weekLabelForDate("2026-07-10")).toBe("July W2");
-    expect(weekLabelForDate("2026-07-30")).toBe("July W5");
+    expect(weekLabelForDate("2026-07-30")).toBe("August W1"); // trailing stub → next month W1
+    expect(weekLabelForDate("2026-12-30")).toBe("January W1"); // year wraps
   });
   it("returns empty for an invalid date", () => {
     expect(weekLabelForDate("nope")).toBe("");
@@ -44,13 +45,13 @@ describe("computeCurrentStage", () => {
     const done = vid.map((s) => ({ ...s, reviewStatus: "APPROVED" }));
     expect(computeCurrentStage(done, "NOT_PUBLISHED", false)).toBe("PUBLISHING");
   });
-  it("moves to Analytics once published without metrics", () => {
+  it("moves to Done once published without metrics", () => {
     const done = vid.map((s) => ({ ...s, reviewStatus: "APPROVED" }));
-    expect(computeCurrentStage(done, "PUBLISHED_ON_TIME", false)).toBe("ANALYTICS");
+    expect(computeCurrentStage(done, "PUBLISHED_ON_TIME", false)).toBe("DONE");
   });
-  it("is Done once published with metrics", () => {
+  it("is Analytics once published with metrics", () => {
     const done = vid.map((s) => ({ ...s, reviewStatus: "APPROVED" }));
-    expect(computeCurrentStage(done, "PUBLISHED_ON_TIME", true)).toBe("DONE");
+    expect(computeCurrentStage(done, "PUBLISHED_ON_TIME", true)).toBe("ANALYTICS");
   });
 });
 

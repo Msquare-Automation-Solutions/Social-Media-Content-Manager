@@ -65,6 +65,9 @@ export function weekLabelForDate(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
   const week = Math.ceil(d.getDate() / 7);
+  // A month's trailing stub (day 29+, "week 5") belongs to the next month's
+  // first week — e.g. 29 Jul → August W1.
+  if (week >= 5) return `${MONTHS[(d.getMonth() + 1) % 12]} W1`;
   return `${MONTHS[d.getMonth()]} W${week}`;
 }
 
