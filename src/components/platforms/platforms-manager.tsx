@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BackButton } from "@/components/ui/back-button";
 import { PlatformIcon } from "@/components/ui/platform-icon";
 import { useToast } from "@/components/ui/toast";
+import { uploadToStorage } from "@/lib/upload-client";
 
 type Channel = { id: string; name: string; icon: string; color: string };
+const isImageIcon = (icon: string) => /^(https?:\/\/|\/)/.test(icon);
 
 export function PlatformsManager({ initial }: { initial: Channel[] }) {
   const { toast } = useToast();
@@ -64,23 +66,24 @@ export function PlatformsManager({ initial }: { initial: Channel[] }) {
         <h2 className="font-display text-[19px]">Platforms</h2>
       </div>
       <p className="mb-5 max-w-[74ch] text-[13px] text-slate">
-        The social platforms content can target. Rename them, set an emoji icon (known brands
-        like Instagram, LinkedIn and Blog get their real logo automatically), or remove ones you
-        don’t use.
+        The social platforms content can target. Rename them, set an emoji or upload/paste a
+        logo image, or remove ones you don’t use. Known brands (Instagram, LinkedIn, Blog…)
+        show their real logo automatically.
       </p>
 
       {/* Add */}
-      <div className="mb-6 flex flex-wrap items-end gap-2">
-        <label className="text-[11.5px] font-semibold text-slate">Icon (emoji)
-          <input value={newIcon} onChange={(e) => setNewIcon(e.target.value)} placeholder="✨" maxLength={2} className={input + " mt-1 block w-16 text-center"} />
-        </label>
+      <div className="mb-6 flex flex-wrap items-end gap-2.5">
+        <div className="flex flex-col gap-1 text-[11px] font-semibold text-slate">
+          Icon
+          <IconField name={newName || "?"} icon={newIcon} onChange={setNewIcon} />
+        </div>
         <label className="text-[11.5px] font-semibold text-slate">New platform
           <input value={newName} onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()} placeholder="e.g. Threads" className={input + " mt-1 block w-56 font-normal"} />
         </label>
         <button onClick={add} disabled={busy || !newName.trim()} className="btn-premium rounded-[10px] px-4 py-2 text-[12.5px] font-semibold disabled:opacity-50">Add platform</button>
       </div>
 
-      <div className="max-w-[560px] overflow-hidden rounded-card border border-line bg-card shadow-soft">
+      <div className="max-w-[620px] overflow-hidden rounded-card border border-line bg-card shadow-soft">
         {channels.length === 0 ? (
           <div className="px-4 py-8 text-center text-[13px] text-slate">No platforms yet.</div>
         ) : (
@@ -91,17 +94,65 @@ export function PlatformsManager({ initial }: { initial: Channel[] }) {
   );
 }
 
+// Emoji field + upload/paste image logo (same as accounts), with a live preview.
+function IconField({ name, icon, onChange }: { name: string; icon: string; onChange: (v: string) => void }) {
+  const { toast } = useToast();
+  const fileInput = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  async function pick(file: File | null | undefined) {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) return toast("Pick an image file.");
+    if (file.size > 2 * 1024 * 1024) return toast("Logo must be ≤ 2 MB.");
+    setUploading(true);
+    try {
+      onChange(await uploadToStorage(file));
+    } catch {
+      toast("Couldn’t upload logo.");
+    } finally {
+      setUploading(false);
+    }
+  }
+  const pickRef = useRef(pick);
+  useEffect(() => { pickRef.current = pick; });
+  useEffect(() => {
+    function onPaste(e: ClipboardEvent) {
+      const img = Array.from(e.clipboardData?.items ?? []).find((it) => it.type.startsWith("image/"));
+      const file = img?.getAsFile();
+      if (file) { e.preventDefault(); pickRef.current(file); }
+    }
+    window.addEventListener("paste", onPaste);
+    return () => window.removeEventListener("paste", onPaste);
+  }, []);
+
+  return (
+    <div className="mt-1 flex items-center gap-2">
+      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white shadow-soft ring-1 ring-black/5">
+        <PlatformIcon name={name} icon={icon || "✨"} size={18} />
+      </span>
+      {isImageIcon(icon) ? (
+        <button type="button" onClick={() => onChange("")} title="Use an emoji instead" className="rounded-[9px] border border-line px-2.5 py-2 text-[11.5px] font-normal text-slate hover:border-teal">
+          Custom logo · ✕
+        </button>
+      ) : (
+        <input value={icon} onChange={(e) => onChange(e.target.value)} placeholder="✨" maxLength={2} className="w-14 rounded-[9px] border border-line bg-card px-2 py-2 text-center font-normal text-ink outline-none focus:border-teal" />
+      )}
+      <button type="button" onClick={() => fileInput.current?.click()} disabled={uploading} title="Upload an image, or paste one (⌘/Ctrl+V)" className="rounded-[9px] border border-line px-2.5 py-2 text-[11.5px] font-semibold text-teal-dark hover:border-teal disabled:opacity-50">
+        {uploading ? "Uploading…" : "Upload / paste logo"}
+      </button>
+      <input ref={fileInput} type="file" accept="image/*" className="hidden" onChange={(e) => pick(e.target.files?.[0] ?? null)} />
+    </div>
+  );
+}
+
 function Row({ c, onSave, onRemove, inputCls }: { c: Channel; onSave: (id: string, patch: Partial<Channel>) => void; onRemove: (c: Channel) => void; inputCls: string }) {
   const [name, setName] = useState(c.name);
   const [icon, setIcon] = useState(c.icon);
   const dirty = name.trim() !== c.name || icon !== c.icon;
   return (
-    <div className="flex items-center gap-3 border-b border-line px-4 py-3 last:border-0">
-      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-wash/[0.06]">
-        <PlatformIcon name={name} icon={icon} size={18} />
-      </span>
-      <input value={icon} onChange={(e) => setIcon(e.target.value)} maxLength={2} className={inputCls + " w-14 text-center"} title="Emoji icon" />
-      <input value={name} onChange={(e) => setName(e.target.value)} className={inputCls + " flex-1"} />
+    <div className="flex flex-wrap items-center gap-3 border-b border-line px-4 py-3 last:border-0">
+      <IconField name={name} icon={icon} onChange={setIcon} />
+      <input value={name} onChange={(e) => setName(e.target.value)} className={inputCls + " flex-1 min-w-[140px]"} />
       {dirty && (
         <button onClick={() => onSave(c.id, { name: name.trim(), icon })} className="rounded-[9px] bg-teal px-3 py-2 text-[12.5px] font-semibold text-white">Save</button>
       )}
