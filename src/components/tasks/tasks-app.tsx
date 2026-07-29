@@ -415,11 +415,11 @@ function MyWork({ tasks, meId, onOpen }: { tasks: TaskRow[]; meId: string; onOpe
         </div>
       ))}
 
-      {analytics.length > 0 && (
-        <div>
+      <div>
           <div className="mb-2 mt-4 text-[11px] font-extrabold uppercase tracking-[0.06em] text-ink">
             Analytics <span className="text-slate">({analyticsPending.length} to record)</span>
           </div>
+          {analytics.length === 0 && <div className="mb-1 text-[12.5px] text-slate">—</div>}
           {[...analyticsPending, ...analyticsDone].map((t) => {
             const done = hasMetrics(t);
             return (
@@ -433,8 +433,7 @@ function MyWork({ tasks, meId, onOpen }: { tasks: TaskRow[]; meId: string; onOpe
               </button>
             );
           })}
-        </div>
-      )}
+      </div>
     </div>
   );
 }
