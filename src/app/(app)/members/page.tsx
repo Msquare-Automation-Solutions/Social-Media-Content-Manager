@@ -35,8 +35,10 @@ export default async function MembersPage() {
         currentUserId={user.id}
         canManage={isAdmin}
       />
-      <AccountsSection accounts={accounts} canManage={isAdmin} />
-      {isAdmin && <PlatformsManager initial={channels} embedded />}
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
+        <AccountsSection accounts={accounts} canManage={isAdmin} />
+        {isAdmin && <PlatformsManager initial={channels} embedded />}
+      </div>
     </div>
   );
 }
