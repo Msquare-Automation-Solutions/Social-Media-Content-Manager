@@ -84,8 +84,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     canEdit: canMutateAsset(g.user, a),
     // Publish workflow (Part C): the creator of an item or any admin may mark an
     // APPROVED item PUBLISHED; only admins can undo a publish back to APPROVED.
+    // Only publishable files can be published (internal/working files can't).
     canPublish:
-      a.status === "APPROVED" && (isAdminRole(g.user.role) || a.createdById === g.user.id),
+      a.publishable && a.status === "APPROVED" && (isAdminRole(g.user.role) || a.createdById === g.user.id),
     canUnpublish: a.status === "PUBLISHED" && isAdminRole(g.user.role),
     // Analytics from a linked, published task (shown read-only in the drawer).
     taskMetrics: (() => {

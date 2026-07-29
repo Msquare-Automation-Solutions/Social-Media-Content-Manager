@@ -51,6 +51,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (asset.status !== "APPROVED") {
       return new Response("Only approved content can be published", { status: 400 });
     }
+    if (!asset.publishable) {
+      return new Response("This file is marked as not for publishing", { status: 400 });
+    }
   }
 
   await prisma.mediaAsset.update({
