@@ -50,6 +50,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       update: { stageId },
       create: { taskId: id, assetId, stageId },
     });
+
+    // A file submitted to a stage IS a submission — stamp the stage's submitted
+    // time to now and put it back in review, so the date always reflects the
+    // latest hand-in (even when re-uploading to an already-submitted stage).
+    if (stageId) {
+      await tx.taskStage.updateMany({
+        where: { id: stageId, taskId: id },
+        data: { submittedAt: new Date(), reviewStatus: "PENDING" },
+      });
+    }
   });
   return Response.json({ ok: true }, { status: 201 });
 }
