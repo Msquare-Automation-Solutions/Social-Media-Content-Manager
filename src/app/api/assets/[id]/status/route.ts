@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { isAdminRole } from "@/lib/roles";
 import { logActivity } from "@/lib/activity";
 import { createNotifications, reviewNotificationRecipients } from "@/lib/notifications";
+import { recomputeCurrentStage } from "@/lib/task-server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -64,6 +65,28 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       reviewedAt: new Date(),
     },
   });
+
+  // Approving/reworking the content mirrors onto the task stage(s) it was
+  // submitted for, so you don't have to approve again inside the task.
+  if (target === "APPROVED" || target === "REWORK") {
+    const links = await prisma.taskAsset.findMany({
+      where: { assetId: asset.id, stageId: { not: null } },
+      select: { taskId: true, stageId: true },
+    });
+    if (links.length) {
+      await prisma.taskStage.updateMany({
+        where: { id: { in: links.map((l) => l.stageId!) } },
+        data: {
+          reviewStatus: target,
+          reviewedAt: new Date(),
+          reviewNote: target === "REWORK" ? parsed.data.note! : null,
+        },
+      });
+      for (const taskId of [...new Set(links.map((l) => l.taskId))]) {
+        await recomputeCurrentStage(taskId);
+      }
+    }
+  }
 
   // Publishing the content publishes its task too, so you don't have to mark it
   // published in both places. Only flips a task that isn't already published.
