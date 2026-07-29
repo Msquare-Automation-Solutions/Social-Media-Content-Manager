@@ -102,6 +102,10 @@ const revCls = (r: string) =>
   : r === "APPROVED" ? "bg-[#d7f2e5] text-[#2e9e6b]"
   : r === "REWORK" ? "bg-[#fbe2dd] text-[#c23b2a]"
   : "bg-wash/[0.07] text-slate";
+const pubCls = (p: string) =>
+  p === "PUBLISHED_ON_TIME" ? "bg-[#d7f2e5] text-[#2e9e6b]"
+  : p === "PUBLISHED_DELAY" ? "bg-[#f3d8bf] text-[#b5651d]" // delayed → amber/orange
+  : "bg-wash/[0.07] text-slate";
 
 const chip = "rounded-full px-2 py-0.5 text-[10.5px] font-semibold";
 const badge = "rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.04em]";
@@ -303,7 +307,7 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
                           {t.scheduledPublishDate ? fmt(t.scheduledPublishDate) : <span className="text-slate">—</span>}
                           {att && <span className={`${badge} ml-1.5 ${att.tone === "red" ? "bg-[#f6dcd6] text-[#c23b2a]" : "bg-[#f7e7cc] text-[#a5721a]"}`}>{att.label}</span>}
                         </td>
-                        <td className="px-3 py-2.5"><span className={`${badge} ${t.publishStatus.startsWith("PUBLISHED") ? "bg-[#d7f2e5] text-[#2e9e6b]" : "bg-wash/[0.07] text-slate"}`}>{TASK_PUBLISH_LABELS[t.publishStatus as keyof typeof TASK_PUBLISH_LABELS] ?? t.publishStatus}</span></td>
+                        <td className="px-3 py-2.5"><span className={`${badge} ${pubCls(t.publishStatus)}`}>{TASK_PUBLISH_LABELS[t.publishStatus as keyof typeof TASK_PUBLISH_LABELS] ?? t.publishStatus}</span></td>
                         <td className="px-3 py-2.5"><span className="inline-flex items-center gap-1.5"><StageIcon stage={t.currentStage} /> {STAGE_LABELS[t.currentStage]} {t.currentStage !== "DONE" && (ownerName(t) ? `· ${ownerName(t)}` : <span className="text-[#e0912b]">· unassigned</span>)}</span></td>
                         <td className="whitespace-nowrap px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center gap-1">
