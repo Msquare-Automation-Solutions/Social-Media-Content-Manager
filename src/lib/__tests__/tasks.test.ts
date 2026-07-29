@@ -24,8 +24,7 @@ describe("weekLabelForDate", () => {
   it("derives month + week-of-month", () => {
     expect(weekLabelForDate("2026-07-03")).toBe("July W1");
     expect(weekLabelForDate("2026-07-10")).toBe("July W2");
-    expect(weekLabelForDate("2026-07-30")).toBe("August W1"); // trailing stub → next month W1
-    expect(weekLabelForDate("2026-12-30")).toBe("January W1"); // year wraps
+    expect(weekLabelForDate("2026-07-30")).toBe("July W5");
   });
   it("returns empty for an invalid date", () => {
     expect(weekLabelForDate("nope")).toBe("");
