@@ -669,7 +669,8 @@ function TaskDrawer({ task, members, isAdmin, canEdit, meId, meCanSelfApprove, o
 
         <div className="mb-2 mt-4 text-[11px] font-extrabold uppercase tracking-[0.06em] text-ink">Publishing</div>
         <div className="text-[12px] text-slate">Status <b className="text-ink">{TASK_PUBLISH_LABELS[t.publishStatus as keyof typeof TASK_PUBLISH_LABELS] ?? t.publishStatus}</b>{t.contentLink ? <> · <a href={t.contentLink} target="_blank" rel="noreferrer" className="text-teal-dark underline">link</a></> : ""}</div>
-        {t.scheduledPublishDate && <div className="text-[12px] text-slate">{t.publishStatus.startsWith("PUBLISHED") ? "Published" : "Scheduled"} for <b className="text-ink">{fmt(t.scheduledPublishDate)}</b></div>}
+        {t.scheduledPublishDate && <div className="text-[12px] text-slate">Scheduled for <b className="text-ink">{fmt(t.scheduledPublishDate)}</b></div>}
+        {t.publishStatus.startsWith("PUBLISHED") && t.publishedDate && <div className="text-[12px] text-slate">Published on <b className="text-ink">{fmt(t.publishedDate)}</b></div>}
         {t.publisherId && <div className="text-[12px] text-slate">Publisher <b className="text-ink">{members.find((m) => m.id === t.publisherId)?.name ?? "—"}</b></div>}
         {t.currentStage === "PUBLISHING" && canPublish && <button onClick={publish} className="btn-premium mt-2 rounded-[9px] px-3.5 py-1.5 text-[12px] font-semibold">Mark published →</button>}
 
