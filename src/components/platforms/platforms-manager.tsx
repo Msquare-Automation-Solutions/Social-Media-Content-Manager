@@ -9,7 +9,7 @@ import { uploadToStorage } from "@/lib/upload-client";
 type Channel = { id: string; name: string; icon: string; color: string };
 const isImageIcon = (icon: string) => /^(https?:\/\/|\/)/.test(icon);
 
-export function PlatformsManager({ initial }: { initial: Channel[] }) {
+export function PlatformsManager({ initial, embedded = false }: { initial: Channel[]; embedded?: boolean }) {
   const { toast } = useToast();
   const [channels, setChannels] = useState<Channel[]>(initial);
   const [busy, setBusy] = useState(false);
@@ -59,17 +59,8 @@ export function PlatformsManager({ initial }: { initial: Channel[] }) {
 
   const input = "rounded-[9px] border border-line bg-card px-3 py-2 text-[13px] text-ink outline-none focus:border-teal";
 
-  return (
-    <div className="flex-1 overflow-y-auto px-7 py-6">
-      <div className="mb-1.5 flex items-center gap-3.5">
-        <BackButton />
-        <h2 className="font-display text-[19px]">Platforms</h2>
-      </div>
-      <p className="mb-5 max-w-[74ch] text-[13px] text-slate">
-        The social platforms content can target. Rename them, set an emoji or upload/paste a
-        logo image, or remove ones you don’t use. Known brands (Instagram, LinkedIn, Blog…)
-        show their real logo automatically.
-      </p>
+  const body = (
+    <>
 
       {/* Add */}
       <div className="mb-6 flex flex-wrap items-end gap-2.5">
@@ -90,6 +81,34 @@ export function PlatformsManager({ initial }: { initial: Channel[] }) {
           channels.map((c) => <Row key={c.id} c={c} onSave={save} onRemove={remove} inputCls={input} />)
         )}
       </div>
+    </>
+  );
+
+  if (embedded) {
+    return (
+      <section className="mt-8">
+        <div className="mb-3 flex items-center gap-3">
+          <h3 className="font-display text-[15px] font-semibold">Platforms</h3>
+          <span className="rounded-full bg-wash/[0.05] px-2 py-0.5 text-[11px] font-semibold text-slate">{channels.length}</span>
+          <p className="text-[12px] text-slate">Social platforms content can target.</p>
+        </div>
+        {body}
+      </section>
+    );
+  }
+
+  return (
+    <div className="flex-1 overflow-y-auto px-7 py-6">
+      <div className="mb-1.5 flex items-center gap-3.5">
+        <BackButton />
+        <h2 className="font-display text-[19px]">Platforms</h2>
+      </div>
+      <p className="mb-5 max-w-[74ch] text-[13px] text-slate">
+        The social platforms content can target. Rename them, set an emoji or upload/paste a
+        logo image, or remove ones you don’t use. Known brands (Instagram, LinkedIn, Blog…)
+        show their real logo automatically.
+      </p>
+      {body}
     </div>
   );
 }

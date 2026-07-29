@@ -211,6 +211,12 @@ export async function listMembers(workspaceId: string) {
       },
     },
   });
+  // Each member's designation lives on their linked creator (Person) label.
+  const people = await prisma.person.findMany({
+    where: { workspaceId, userId: { not: null } },
+    select: { userId: true, label: true },
+  });
+  const labelByUser = new Map(people.map((p) => [p.userId!, p.label ?? ""]));
   return rows.map((m) => ({
     membershipId: m.id,
     userId: m.user.id,
@@ -219,6 +225,7 @@ export async function listMembers(workspaceId: string) {
     avatarColor: m.user.avatarColor,
     avatarUrl: m.user.avatarUrl,
     role: m.role,
+    designation: labelByUser.get(m.user.id) ?? "",
     disabled: m.user.disabledAt !== null,
     assetCount: m.user._count.createdAssets,
     chatCount: m.user._count.chatSessions,

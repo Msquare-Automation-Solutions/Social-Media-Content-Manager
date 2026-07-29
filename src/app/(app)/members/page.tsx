@@ -1,10 +1,11 @@
 import { BackButton } from "@/components/ui/back-button";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/session";
-import { listMembers, listCreators, listAccounts } from "@/lib/data";
+import { prisma } from "@/lib/db";
+import { listMembers, listAccounts } from "@/lib/data";
 import { MembersTable } from "@/components/members/members-table";
-import { CreatorsSection } from "@/components/members/creators-section";
 import { AccountsSection } from "@/components/members/accounts-section";
+import { PlatformsManager } from "@/components/platforms/platforms-manager";
 
 export const dynamic = "force-dynamic";
 
@@ -12,10 +13,14 @@ export default async function MembersPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const [members, creators, accounts] = await Promise.all([
+  const [members, accounts, channels] = await Promise.all([
     listMembers(user.workspaceId),
-    listCreators(user.workspaceId),
     listAccounts(user.workspaceId),
+    prisma.socialChannel.findMany({
+      where: { workspaceId: user.workspaceId },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, name: true, icon: true, color: true },
+    }),
   ]);
   const isAdmin = user.role === "ADMIN" || user.role === "OWNER";
 
@@ -30,8 +35,8 @@ export default async function MembersPage() {
         currentUserId={user.id}
         canManage={isAdmin}
       />
-      <CreatorsSection creators={creators} canManage={user.role !== "VIEWER"} />
       <AccountsSection accounts={accounts} canManage={isAdmin} />
+      {isAdmin && <PlatformsManager initial={channels} embedded />}
     </div>
   );
 }

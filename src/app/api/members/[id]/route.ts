@@ -15,6 +15,8 @@ export const dynamic = "force-dynamic";
 const schema = z.object({
   role: z.enum(ROLES).refine((r) => r !== "OWNER", "Cannot assign OWNER").optional(),
   disabled: z.boolean().optional(),
+  designation: z.string().trim().max(60).nullable().optional(),
+  name: z.string().trim().min(1).max(80).optional(),
 });
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -26,13 +28,44 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   const membership = await prisma.membership.findFirst({
     where: { id: (await params).id, workspaceId: g.user.workspaceId },
-    include: { user: { select: { name: true } } },
+    include: { user: { select: { name: true, email: true, avatarColor: true, avatarUrl: true } } },
   });
   if (!membership) return new Response("Not found", { status: 404 });
-  if (membership.role === "OWNER") {
-    return new Response("Cannot modify an owner", { status: 403 });
+  // Owners are protected from role/deactivation changes, but their name and
+  // designation can still be edited.
+  if (membership.role === "OWNER" && (parsed.data.role !== undefined || parsed.data.disabled !== undefined)) {
+    return new Response("Cannot change an owner's role or status", { status: 403 });
   }
-  const targetName = membership.user.name;
+  const targetName = parsed.data.name ?? membership.user.name;
+
+  // Rename the member (and keep their linked creator record's name in sync).
+  if (parsed.data.name !== undefined) {
+    await prisma.user.update({ where: { id: membership.userId }, data: { name: parsed.data.name } });
+    await prisma.person.updateMany({
+      where: { workspaceId: g.user.workspaceId, userId: membership.userId },
+      data: { name: parsed.data.name },
+    });
+  }
+
+  // Designation → the member's linked creator (Person) label, used in pickers.
+  if (parsed.data.designation !== undefined) {
+    const label = parsed.data.designation || null;
+    const person = await prisma.person.findFirst({
+      where: { workspaceId: g.user.workspaceId, userId: membership.userId },
+      select: { id: true },
+    });
+    if (person) {
+      await prisma.person.update({ where: { id: person.id }, data: { label } });
+    } else {
+      await prisma.person.create({
+        data: {
+          workspaceId: g.user.workspaceId, userId: membership.userId, label,
+          name: membership.user.name, email: membership.user.email,
+          avatarColor: membership.user.avatarColor, avatarUrl: membership.user.avatarUrl,
+        },
+      });
+    }
+  }
 
   if (parsed.data.role !== undefined) {
     await prisma.membership.update({
