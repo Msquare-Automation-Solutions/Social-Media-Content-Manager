@@ -25,6 +25,8 @@ export const ACTIONS = {
   "creator.updated": { category: "creator", verb: "edited creator" },
   "creator.deleted": { category: "creator", verb: "removed creator" },
   "platform.created": { category: "platform", verb: "added platform" },
+  "platform.updated": { category: "platform", verb: "edited platform" },
+  "platform.deleted": { category: "platform", verb: "removed platform" },
   "account.created": { category: "account", verb: "created account" },
   "account.role_changed": { category: "account", verb: "changed the role of" },
   "account.deactivated": { category: "account", verb: "deactivated" },

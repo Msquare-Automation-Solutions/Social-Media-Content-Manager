@@ -155,6 +155,7 @@ export function Sidebar({
               key: "workspace",
               items: [
                 it("/members", "Members", "members", isActive("/members"), membersCount),
+                it("/platforms", "Platforms", "images", isActive("/platforms")),
                 it("/activity", "Activity", "activity", isActive("/activity")),
               ],
             },
