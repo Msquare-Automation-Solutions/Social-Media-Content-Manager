@@ -14,6 +14,7 @@ export async function GET(req: Request) {
   const g = await guard();
   if (!g.ok) return g.response;
   const userId = g.user.id;
+  const workspaceId = g.user.workspaceId;
 
   const encoder = new TextEncoder();
   let closed = false;
@@ -34,18 +35,22 @@ export async function GET(req: Request) {
       const tick = async () => {
         if (closed) return;
         try {
-          const [unread, top] = await Promise.all([
+          // Own inbox + a workspace-wide "something changed" revision so every
+          // client refreshes in near-real-time when anyone acts (approve, submit,
+          // publish, edit…). ActivityLog covers logged actions; asset/task
+          // updatedAt covers status/content edits.
+          const [unread, top, act, asset, taskAgg] = await Promise.all([
             prisma.notification.count({ where: { recipientId: userId, readAt: null } }),
-            prisma.notification.findFirst({
-              where: { recipientId: userId },
-              orderBy: { createdAt: "desc" },
-              select: { id: true },
-            }),
+            prisma.notification.findFirst({ where: { recipientId: userId }, orderBy: { createdAt: "desc" }, select: { id: true } }),
+            prisma.activityLog.findFirst({ where: { workspaceId }, orderBy: { createdAt: "desc" }, select: { id: true } }),
+            prisma.mediaAsset.aggregate({ where: { workspaceId }, _max: { updatedAt: true } }),
+            prisma.task.aggregate({ where: { workspaceId }, _max: { updatedAt: true } }),
           ]);
-          const sig = `${unread}:${top?.id ?? ""}`;
+          const rev = `${act?.id ?? ""}:${asset._max.updatedAt?.getTime() ?? 0}:${taskAgg._max.updatedAt?.getTime() ?? 0}`;
+          const sig = `${unread}:${top?.id ?? ""}:${rev}`;
           if (sig !== last) {
             last = sig;
-            send({ unread, topId: top?.id ?? null });
+            send({ unread, topId: top?.id ?? null, rev });
           }
         } catch {
           // Transient DB hiccup — keep the stream alive and try again next tick.
@@ -53,7 +58,7 @@ export async function GET(req: Request) {
       };
 
       await tick(); // initial state so the client syncs on connect
-      interval = setInterval(tick, 4000);
+      interval = setInterval(tick, 2500);
 
       req.signal.addEventListener("abort", () => {
         closed = true;
