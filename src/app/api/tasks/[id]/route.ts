@@ -173,6 +173,14 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         where: { id: { in: links.map((l) => l.assetId) }, workspaceId: g.user.workspaceId },
         data: { status: "PUBLISHED" },
       });
+    // Nudge the analytics owner to record metrics now that it's live.
+    const analyst = d.analystId !== undefined ? d.analystId : task.analystId;
+    if (analyst)
+      await createNotifications(g.user, [analyst], {
+        action: "task.analytics",
+        message: `“${task.title}” is published — add its analytics`,
+        targetType: "task", targetId: id, targetLabel: task.title,
+      });
   }
 
   // Notify newly-assigned publishing / analytics owners.

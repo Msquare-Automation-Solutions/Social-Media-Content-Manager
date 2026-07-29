@@ -381,9 +381,16 @@ function MyWork({ tasks, meId, onOpen }: { tasks: TaskRow[]; meId: string; onOpe
     const r = x.s.reviewStatus;
     groups[r === "APPROVED" ? "Done" : r === "PENDING" ? "In review" : r === "REWORK" ? "Needs rework" : "To do"].push(x);
   }
+  // Analytics I own: published tasks where I'm the analyst. Ones without metrics
+  // yet are surfaced first as action items.
+  const hasMetrics = (t: TaskRow) =>
+    [t.metricImpressions, t.metricReach, t.metricClicks, t.metricLeads, t.metricEng, t.metricSaves, t.metricShares].some((v) => v != null);
+  const analytics = tasks.filter((t) => t.analystId === meId && t.publishStatus.startsWith("PUBLISHED"));
+  const analyticsPending = analytics.filter((t) => !hasMetrics(t));
+  const analyticsDone = analytics.filter(hasMetrics);
   return (
     <div>
-      {mine.length === 0 && (
+      {mine.length === 0 && analytics.length === 0 && (
         <p className="mb-1 text-[13px] text-slate">Nothing assigned to you yet.</p>
       )}
       {Object.entries(groups).map(([g, arr]) => (
@@ -403,6 +410,27 @@ function MyWork({ tasks, meId, onOpen }: { tasks: TaskRow[]; meId: string; onOpe
           {!arr.length && <div className="mb-1 text-[12.5px] text-slate">—</div>}
         </div>
       ))}
+
+      {analytics.length > 0 && (
+        <div>
+          <div className="mb-2 mt-4 text-[11px] font-extrabold uppercase tracking-[0.06em] text-ink">
+            Analytics <span className="text-slate">({analyticsPending.length} to record)</span>
+          </div>
+          {[...analyticsPending, ...analyticsDone].map((t) => {
+            const done = hasMetrics(t);
+            return (
+              <button key={t.id} onClick={() => onOpen(t.id)} className="mb-2 flex w-full items-center gap-3 rounded-[12px] border border-line bg-card px-4 py-3 text-left shadow-soft hover:border-teal">
+                <span className={`${badge} inline-flex items-center gap-1 bg-violet-soft text-violet`}><StageIcon stage="ANALYTICS" size={12} /> Analytics</span>
+                <span className="min-w-0 flex-1">
+                  <b className="text-[13.5px]">{t.title}</b>
+                  <span className="block text-[11.5px] text-slate">{t.contentTypeLabel} · {t.channel?.name ?? "—"} {t.publishedDate ? `· published ${fmt(t.publishedDate)}` : ""}</span>
+                </span>
+                <span className={`${badge} ${done ? "bg-[#d7f2e5] text-[#2e9e6b]" : "bg-[#fbeecb] text-[#c98a12]"}`}>{done ? "Recorded" : "Add metrics"}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

@@ -71,10 +71,23 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     });
     const taskIds = links.map((l) => l.taskId);
     if (taskIds.length) {
+      // Tasks about to flip to published — grab their analysts to notify.
+      const toPublish = await prisma.task.findMany({
+        where: { id: { in: taskIds }, workspaceId: g.user.workspaceId, publishStatus: { notIn: ["PUBLISHED_ON_TIME", "PUBLISHED_DELAY"] } },
+        select: { id: true, title: true, analystId: true },
+      });
       await prisma.task.updateMany({
         where: { id: { in: taskIds }, workspaceId: g.user.workspaceId, publishStatus: { notIn: ["PUBLISHED_ON_TIME", "PUBLISHED_DELAY"] } },
         data: { publishStatus: "PUBLISHED_ON_TIME", publishedDate: new Date() },
       });
+      for (const tk of toPublish) {
+        if (tk.analystId)
+          await createNotifications(g.user, [tk.analystId], {
+            action: "task.analytics",
+            message: `“${tk.title}” is published — add its analytics`,
+            targetType: "task", targetId: tk.id, targetLabel: tk.title,
+          });
+      }
     }
   }
 
