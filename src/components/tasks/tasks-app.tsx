@@ -552,7 +552,11 @@ function TaskDrawer({ task, members, isAdmin, canEdit, meId, meCanSelfApprove, o
 
     // On a re-submit (e.g. after rework), pre-fill the Save dialog with the
     // details the creator used last time, so they don't retype everything.
-    let defaults: SaveDefaults = t.channel ? { channelIds: [t.channel.id] } : {};
+    // Prefill the task's platform + account so submitters don't re-pick them.
+    let defaults: SaveDefaults = {
+      channelIds: t.channel ? [t.channel.id] : undefined,
+      accountIds: t.account ? [t.account.id] : undefined,
+    };
     const priorAssets = t.assets.filter((a) => a.stageId === stageId);
     const prior = priorAssets.at(-1);
     if (prior) {
@@ -565,8 +569,8 @@ function TaskDrawer({ task, members, isAdmin, canEdit, meId, meCanSelfApprove, o
             description: a.note ?? "",
             tags: a.tags ?? [],
             category: a.type,
-            channelIds: a.channelIds ?? defaults.channelIds,
-            accountIds: a.accountIds ?? [],
+            channelIds: a.channelIds?.length ? a.channelIds : defaults.channelIds,
+            accountIds: a.accountIds?.length ? a.accountIds : defaults.accountIds,
           };
         }
       } catch {
