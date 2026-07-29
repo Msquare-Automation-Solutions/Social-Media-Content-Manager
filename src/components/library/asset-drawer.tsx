@@ -126,13 +126,15 @@ export function AssetDrawer({
   const refreshVersions = () =>
     qc.invalidateQueries({ queryKey: ["versions", assetId] });
 
-  const { data: asset, refetch, isLoading } = useQuery<AssetDetail>({
+  const { data: asset, refetch, isLoading, isError } = useQuery<AssetDetail>({
     queryKey: ["asset", assetId],
     queryFn: async () => {
       const r = await fetch(`/api/assets/${assetId}`);
+      if (r.status === 404) throw new Error("not-found");
       if (!r.ok) throw new Error("Failed to load asset");
       return r.json();
     },
+    retry: false,
   });
 
   useEffect(() => {
@@ -195,7 +197,15 @@ export function AssetDrawer({
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}
     >
       <div className="flex h-full w-[560px] max-w-[94vw] flex-col overflow-y-auto bg-card shadow-card">
-        {isLoading || !asset ? (
+        {isError ? (
+          <div className="grid flex-1 place-items-center px-8 text-center">
+            <div>
+              <div className="mb-2 text-[15px] font-semibold text-ink">This content is no longer here</div>
+              <p className="mb-4 text-[13px] text-slate">It was deleted or moved to Trash. You can restore it from Trash (within 30 days) or upload it again.</p>
+              <button onClick={onClose} className="btn-premium rounded-[10px] px-4 py-2 text-[12.5px] font-semibold">Close</button>
+            </div>
+          </div>
+        ) : isLoading || !asset ? (
           <div className="grid flex-1 place-items-center text-slate">Loading…</div>
         ) : editing ? (
           <EditAssetDialog
