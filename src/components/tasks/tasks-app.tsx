@@ -305,7 +305,7 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
                         <td className="max-w-[160px] truncate px-3 py-2.5 text-slate">{t.brief || "—"}</td>
                         <td className="whitespace-nowrap px-3 py-2.5">
                           {t.scheduledPublishDate ? fmt(t.scheduledPublishDate) : <span className="text-slate">—</span>}
-                          {att && <span className={`${badge} ml-1.5 ${att.tone === "red" ? "bg-[#f6dcd6] text-[#c23b2a]" : "bg-[#f7e7cc] text-[#a5721a]"}`}>{att.label}</span>}
+                          {att && <span className={`${badge} ml-1.5 ${att.tone === "red" ? "bg-[#ffe0dc] text-[#f5442e]" : "bg-[#ffedcc] text-[#f5920b]"}`}>{att.label}</span>}
                         </td>
                         <td className="px-3 py-2.5"><span className={`${badge} ${pubCls(t.publishStatus)}`}>{TASK_PUBLISH_LABELS[t.publishStatus as keyof typeof TASK_PUBLISH_LABELS] ?? t.publishStatus}</span></td>
                         <td className="px-3 py-2.5"><span className="inline-flex items-center gap-1.5"><StageIcon stage={t.currentStage} /> {STAGE_LABELS[t.currentStage]} {t.currentStage !== "DONE" && (ownerName(t) ? `· ${ownerName(t)}` : <span className="text-[#e0912b]">· unassigned</span>)}</span></td>
@@ -359,7 +359,7 @@ function Board({ tasks, onOpen }: { tasks: TaskRow[]; onOpen: (id: string) => vo
                   </div>
                   <div className="flex items-center gap-1.5 text-[11px] text-slate">
                     {t.scheduledPublishDate
-                      ? <span className={`inline-flex items-center gap-1 ${att ? (att.tone === "red" ? "font-semibold text-[#c23b2a]" : "font-semibold text-[#a5721a]") : ""}`}>🗓 {t.publishStatus.startsWith("PUBLISHED") ? "Published" : "Publish"} {fmt(t.scheduledPublishDate)}{att ? ` · ${att.label}` : ""}</span>
+                      ? <span className={`inline-flex items-center gap-1 ${att ? (att.tone === "red" ? "font-semibold text-[#f5442e]" : "font-semibold text-[#f5920b]") : ""}`}>🗓 {t.publishStatus.startsWith("PUBLISHED") ? "Published" : "Publish"} {fmt(t.scheduledPublishDate)}{att ? ` · ${att.label}` : ""}</span>
                       : <span className="text-slate">No publish date</span>}
                     {st?.reviewStatus === "PENDING" && <span className={`${badge} ml-auto bg-[#fbeecb] text-[#c98a12]`}>review</span>}
                     {st?.reviewStatus === "REWORK" && <span className={`${badge} ml-auto bg-[#fbe2dd] text-[#c23b2a]`}>rework</span>}
