@@ -497,6 +497,8 @@ export type TaskStageRow = {
   assigneeId: string | null;
   assigneeName: string | null;
   assigneeColor: string | null;
+  reviewerId: string | null;
+  reviewerName: string | null;
   targetDate: string | null;
   workStatus: string;
   reviewStatus: string;
@@ -625,6 +627,7 @@ export async function listTasks(
     createdAt: t.createdAt.toISOString(),
     stages: t.stages.map((s) => {
       const u = s.assigneeId ? usById.get(s.assigneeId) : null;
+      const rv = s.reviewerId ? usById.get(s.reviewerId) : null;
       return {
         id: s.id,
         stage: s.stage,
@@ -632,6 +635,8 @@ export async function listTasks(
         assigneeId: s.assigneeId,
         assigneeName: u?.name ?? null,
         assigneeColor: u?.avatarColor ?? null,
+        reviewerId: s.reviewerId,
+        reviewerName: rv?.name ?? null,
         targetDate: s.targetDate ? s.targetDate.toISOString() : null,
         workStatus: s.workStatus,
         reviewStatus: s.reviewStatus,

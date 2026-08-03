@@ -25,6 +25,7 @@ const schema = z.object({
       z.object({
         stage: z.enum(TASK_STAGES),
         assigneeId: z.string().nullable().optional(),
+        reviewerId: z.string().nullable().optional(),
         targetDate: z.string().datetime().nullable().optional(),
         publishable: z.boolean().optional(),
       }),
@@ -85,6 +86,7 @@ export async function POST(req: Request) {
           stage: s.stage,
           order: i,
           assigneeId: s.assigneeId ?? null,
+          reviewerId: s.reviewerId ?? null,
           targetDate: s.targetDate ? new Date(s.targetDate) : null,
           publishable: s.publishable ?? true,
         })),

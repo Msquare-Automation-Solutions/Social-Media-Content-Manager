@@ -102,8 +102,10 @@ export async function PATCH(
         ...(stage.completedDate ? {} : { completedDate: new Date() }),
       },
     });
+    // Notify the designated reviewer (if any) plus the admins.
     const admins = await adminRecipients(g.user.workspaceId);
-    await createNotifications(actor, admins, {
+    const recipients = stage.reviewerId ? [stage.reviewerId, ...admins] : admins;
+    await createNotifications(actor, recipients, {
       action: "task.submitted",
       message: `submitted the ${label} stage of “${task.title}” for review`,
       targetType: "task",
@@ -114,10 +116,11 @@ export async function PATCH(
     return Response.json({ ok: true });
   }
 
-  // review (admins only)
-  if (!admin) return new Response("Requires ADMIN", { status: 403 });
-  // You can't review your own work — even as an admin — unless you're a super
-  // admin (canSelfApprove). Otherwise another admin must review it.
+  // review — admins OR the stage's designated reviewer.
+  const isReviewer = stage.reviewerId === g.user.id;
+  if (!admin && !isReviewer) return new Response("Requires ADMIN or being the assigned reviewer", { status: 403 });
+  // You can't review your own work — even as an admin/reviewer — unless you're a
+  // super admin (canSelfApprove). Otherwise someone else must review it.
   if (isAssignee && !g.user.canSelfApprove) return new Response("Cannot review your own submission", { status: 403 });
   const approved = d.outcome === "APPROVED";
   await prisma.taskStage.update({

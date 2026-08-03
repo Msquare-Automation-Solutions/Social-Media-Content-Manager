@@ -31,6 +31,7 @@ const patchSchema = z.object({
       z.object({
         stage: z.enum(TASK_STAGES),
         assigneeId: z.string().nullable().optional(),
+        reviewerId: z.string().nullable().optional(),
         targetDate: z.string().datetime().nullable().optional(),
         publishable: z.boolean().optional(),
       }),
@@ -164,6 +165,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         const w = want[i];
         const assignData = {
           ...(w.assigneeId !== undefined ? { assigneeId: w.assigneeId } : {}),
+          ...(w.reviewerId !== undefined ? { reviewerId: w.reviewerId } : {}),
           ...(w.targetDate !== undefined ? { targetDate: w.targetDate ? new Date(w.targetDate) : null } : {}),
           ...(w.publishable !== undefined ? { publishable: w.publishable } : {}),
         };

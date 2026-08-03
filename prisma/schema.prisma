@@ -404,7 +404,8 @@ model TaskStage {
   taskId        String
   stage         String
   order         Int       @default(0)
-  assigneeId    String? // User.id
+  assigneeId    String? // User.id — who does the work
+  reviewerId    String? // User.id — who should review it
   targetDate    DateTime?
   workStatus    String    @default("YTI")
   reviewStatus  String    @default("NOT_SUBMITTED")

@@ -6,6 +6,7 @@ import { BackButton } from "@/components/ui/back-button";
 import { useToast } from "@/components/ui/toast";
 import { Icon, type IconName } from "@/components/ui/icons";
 import { PlatformIcon } from "@/components/ui/platform-icon";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { useUploadDialog, type SaveDefaults } from "@/components/save/dialog-context";
 import type { TaskRow } from "@/lib/data";
 import {
@@ -642,6 +643,7 @@ function TaskDrawer({ task, members, isAdmin, canEdit, meId, meCanSelfApprove, o
             </div>
             <div className="mb-2 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-slate">
               <span>Owner <b className="text-ink">{s.assigneeName ?? "Unassigned"}</b></span>
+              {s.reviewerName && <span>Reviewer <b className="text-ink">{s.reviewerName}</b></span>}
               {s.targetDate && <span>Deadline <b className="text-ink">{fmt(s.targetDate)}</b></span>}
               {s.submittedAt && <span>Submitted <b className="text-ink">{fmt(s.submittedAt)}</b></span>}
             </div>
@@ -662,10 +664,10 @@ function TaskDrawer({ task, members, isAdmin, canEdit, meId, meCanSelfApprove, o
             ) : (
               <div className="flex flex-wrap gap-2">
                 {isAdmin && <button onClick={() => setAssignStage(s.id)} className="rounded-[8px] border border-line px-2.5 py-1 text-[11.5px] font-semibold text-teal-dark hover:border-teal">{s.assigneeId ? "Reassign" : "Assign owner + deadline"}</button>}
-                {isAdmin && s.reviewStatus === "PENDING" && s.assigneeId === meId && !meCanSelfApprove && (
-                  <span className="text-[11.5px] font-medium text-slate">Another admin must review your own work.</span>
+                {(isAdmin || s.reviewerId === meId) && s.reviewStatus === "PENDING" && s.assigneeId === meId && !meCanSelfApprove && (
+                  <span className="text-[11.5px] font-medium text-slate">Someone else must review your own work.</span>
                 )}
-                {isAdmin && s.reviewStatus === "PENDING" && (s.assigneeId !== meId || meCanSelfApprove) && <>
+                {(isAdmin || s.reviewerId === meId) && s.reviewStatus === "PENDING" && (s.assigneeId !== meId || meCanSelfApprove) && <>
                   <button onClick={() => review(s.id, "APPROVED")} className="btn-premium rounded-[8px] px-2.5 py-1 text-[11.5px] font-semibold">Approve</button>
                   <button onClick={() => review(s.id, "REWORK")} className="rounded-[8px] border border-line px-2.5 py-1 text-[11.5px] font-semibold hover:border-teal">Rework</button>
                 </>}
@@ -787,9 +789,9 @@ function AssignForm({ members, current, onCancel, onSave }: { members: Member[];
   const [date, setDate] = useState("");
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <select value={who} onChange={(e) => setWho(e.target.value)} className="rounded-[8px] border border-line bg-card px-2 py-1.5 text-[12px] text-ink outline-none focus:border-teal">
-        {members.map((m) => <option key={m.id} value={m.id}>{memberLabel(m)}</option>)}
-      </select>
+      <div className="min-w-[160px]">
+        <SearchableSelect value={who} options={members.map((m) => ({ value: m.id, label: memberLabel(m) }))} onChange={setWho} placeholder="Owner" />
+      </div>
       <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="rounded-[8px] border border-line bg-card px-2 py-1.5 text-[12px] text-ink outline-none focus:border-teal" />
       <button onClick={() => onSave(who, date)} className="btn-premium rounded-[8px] px-3 py-1.5 text-[11.5px] font-semibold">Save</button>
       <button onClick={onCancel} className="px-2 py-1.5 text-[11.5px] font-semibold text-slate">Cancel</button>
@@ -800,7 +802,7 @@ function AssignForm({ members, current, onCancel, onSave }: { members: Member[];
 // ── Create / edit form ───────────────────────────────────────────────────────
 function TaskForm({ task, channels, accounts, taskTypes, members, isAdmin, onClose, onSaved, api, toast }: { task: TaskRow | null; channels: Opt[]; accounts: Opt[]; taskTypes: TaskType[]; members: Member[]; isAdmin: boolean; onClose: () => void; onSaved: () => void; api: (u: string, m: string, b?: unknown) => Promise<boolean>; toast: (m: string) => void }) {
   const STAGE_OPTS = ["CONTENT", "VIDEO", "GRAPHICS"] as const;
-  type StageSel = { on: boolean; assigneeId: string; due: string; publishable: boolean };
+  type StageSel = { on: boolean; assigneeId: string; reviewerId: string; due: string; publishable: boolean };
   const initStages = (): Record<string, StageSel> => {
     const out: Record<string, StageSel> = {};
     const suggested = suggestStages(task ? contentTypeLabel(task.contentType) : taskTypes[0]?.name ?? "");
@@ -809,8 +811,8 @@ function TaskForm({ task, channels, accounts, taskTypes, members, isAdmin, onClo
       // Content is usually an internal input; video/graphics produce the file
       // that actually gets published — so default the publish flag by stage.
       out[s] = existing
-        ? { on: true, assigneeId: existing.assigneeId ?? "", due: existing.targetDate ? existing.targetDate.slice(0, 10) : "", publishable: existing.publishable }
-        : { on: task ? false : suggested.includes(s), assigneeId: "", due: "", publishable: s !== "CONTENT" };
+        ? { on: true, assigneeId: existing.assigneeId ?? "", reviewerId: existing.reviewerId ?? "", due: existing.targetDate ? existing.targetDate.slice(0, 10) : "", publishable: existing.publishable }
+        : { on: task ? false : suggested.includes(s), assigneeId: "", reviewerId: "", due: "", publishable: s !== "CONTENT" };
     }
     return out;
   };
@@ -828,6 +830,9 @@ function TaskForm({ task, channels, accounts, taskTypes, members, isAdmin, onClo
   const [publisherId, setPublisherId] = useState(task?.publisherId ?? "");
   const [analystId, setAnalystId] = useState(task?.analystId ?? "");
   const [stageSel, setStageSel] = useState<Record<string, StageSel>>(initStages);
+  // Searchable option lists for the people pickers.
+  const ownerOpts = [{ value: "", label: "Unassigned" }, ...members.map((m) => ({ value: m.id, label: memberLabel(m) }))];
+  const reviewerOpts = [{ value: "", label: "No reviewer" }, ...members.map((m) => ({ value: m.id, label: memberLabel(m) }))];
   const [addingType, setAddingType] = useState(false);
   const [newType, setNewType] = useState("");
   const [manageTypes, setManageTypes] = useState(false);
@@ -875,6 +880,7 @@ function TaskForm({ task, channels, accounts, taskTypes, members, isAdmin, onClo
     const stages = chosen.map((s) => ({
       stage: s,
       assigneeId: stageSel[s].assigneeId || null,
+      reviewerId: stageSel[s].reviewerId || null,
       targetDate: stageSel[s].due ? new Date(stageSel[s].due).toISOString() : null,
       publishable: stageSel[s].publishable,
     }));
@@ -945,11 +951,13 @@ function TaskForm({ task, channels, accounts, taskTypes, members, isAdmin, onClo
                     </label>
                     {sel.on && (
                       <div className="mt-2 flex flex-wrap items-center gap-2">
-                        <select value={sel.assigneeId} onChange={(e) => setStage(s, { assigneeId: e.target.value })} className="flex-1 rounded-[8px] border border-line bg-card px-2 py-1.5 text-[12px] font-normal text-ink outline-none focus:border-teal">
-                          <option value="">Unassigned</option>
-                          {members.map((m) => <option key={m.id} value={m.id}>{memberLabel(m)}</option>)}
-                        </select>
+                        <div className="min-w-[150px] flex-1">
+                          <SearchableSelect value={sel.assigneeId} options={ownerOpts} onChange={(v) => setStage(s, { assigneeId: v })} placeholder="Unassigned" />
+                        </div>
                         <input type="date" value={sel.due} onChange={(e) => setStage(s, { due: e.target.value })} className="rounded-[8px] border border-line bg-card px-2 py-1.5 text-[12px] font-normal text-ink outline-none focus:border-teal" />
+                        <div className="min-w-[150px] flex-1" title="Who should review this stage">
+                          <SearchableSelect value={sel.reviewerId} options={reviewerOpts} onChange={(v) => setStage(s, { reviewerId: v })} placeholder="Reviewer" />
+                        </div>
                         <label className="flex items-center gap-1.5 rounded-[8px] border border-line px-2 py-1.5 text-[11.5px] font-normal text-slate" title="This stage produces the file that gets published (shows in the Approved panel)">
                           <input type="checkbox" checked={sel.publishable} onChange={(e) => setStage(s, { publishable: e.target.checked })} className="h-3.5 w-3.5 accent-[#0e9f8f]" />
                           Gets published
@@ -982,27 +990,25 @@ function TaskForm({ task, channels, accounts, taskTypes, members, isAdmin, onClo
           <div className="grid grid-cols-2 gap-3">
             <label className={lab}>
               Publishing owner
-              <select
-                value={publisherId}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  // The publisher doubles as the analytics owner by default,
-                  // until the analytics owner is picked separately.
-                  setAnalystId((prev) => (prev === "" || prev === publisherId ? v : prev));
-                  setPublisherId(v);
-                }}
-                className={cls + " mt-1 font-normal"}
-              >
-                <option value="">Unassigned</option>
-                {members.map((m) => <option key={m.id} value={m.id}>{memberLabel(m)}</option>)}
-              </select>
+              <div className="mt-1">
+                <SearchableSelect
+                  value={publisherId}
+                  options={ownerOpts}
+                  placeholder="Unassigned"
+                  onChange={(v) => {
+                    // The publisher doubles as the analytics owner by default,
+                    // until the analytics owner is picked separately.
+                    setAnalystId((prev) => (prev === "" || prev === publisherId ? v : prev));
+                    setPublisherId(v);
+                  }}
+                />
+              </div>
             </label>
             <label className={lab}>
               Analytics owner
-              <select value={analystId} onChange={(e) => setAnalystId(e.target.value)} className={cls + " mt-1 font-normal"}>
-                <option value="">Unassigned</option>
-                {members.map((m) => <option key={m.id} value={m.id}>{memberLabel(m)}</option>)}
-              </select>
+              <div className="mt-1">
+                <SearchableSelect value={analystId} options={ownerOpts} placeholder="Unassigned" onChange={setAnalystId} />
+              </div>
             </label>
           </div>
 
