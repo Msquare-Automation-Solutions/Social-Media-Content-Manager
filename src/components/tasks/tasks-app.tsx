@@ -240,12 +240,15 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
     return t.stages.find((s) => s.stage === t.currentStage)?.assigneeName ?? null;
   };
   const [typeFilter, setTypeFilter] = useState("");
+  const [platform, setPlatform] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
 
   const types = [...new Set(tasks.map((t) => t.contentTypeLabel))].sort();
+  const platforms = [...new Map(tasks.filter((t) => t.channel).map((t) => [t.channel!.id, t.channel!.name])).entries()];
   const filtered = tasks.filter((t) => {
     if (typeFilter && t.contentTypeLabel !== typeFilter) return false;
+    if (platform && t.channel?.id !== platform) return false;
     if (from || to) {
       const d = t.scheduledPublishDate ? t.scheduledPublishDate.slice(0, 10) : "";
       if (!d) return false;
@@ -269,14 +272,20 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
             {types.map((t) => <option key={t} value={t}>{t}</option>)}
           </select>
         </label>
+        <label className="text-[11.5px] font-semibold text-slate">Platform
+          <select value={platform} onChange={(e) => setPlatform(e.target.value)} className={fsel + " mt-1 block font-normal"}>
+            <option value="">All platforms</option>
+            {platforms.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+          </select>
+        </label>
         <label className="text-[11.5px] font-semibold text-slate">Publish from
           <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={fsel + " mt-1 block font-normal"} />
         </label>
         <label className="text-[11.5px] font-semibold text-slate">Publish to
           <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={fsel + " mt-1 block font-normal"} />
         </label>
-        {(typeFilter || from || to) && (
-          <button onClick={() => { setTypeFilter(""); setFrom(""); setTo(""); }} className="rounded-[9px] border border-line px-3 py-2 text-[12px] font-semibold text-slate hover:border-teal">Clear</button>
+        {(typeFilter || platform || from || to) && (
+          <button onClick={() => { setTypeFilter(""); setPlatform(""); setFrom(""); setTo(""); }} className="rounded-[9px] border border-line px-3 py-2 text-[12px] font-semibold text-slate hover:border-teal">Clear</button>
         )}
       </div>
 
