@@ -240,6 +240,7 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
     if (t.currentStage === "ANALYTICS") return members.find((m) => m.id === t.analystId)?.name ?? null;
     return t.stages.find((s) => s.stage === t.currentStage)?.assigneeName ?? null;
   };
+  const [q, setQ] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [platform, setPlatform] = useState("");
   const [from, setFrom] = useState("");
@@ -247,7 +248,9 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
 
   const types = [...new Set(tasks.map((t) => t.contentTypeLabel))].sort();
   const platforms = [...new Map(tasks.filter((t) => t.channel).map((t) => [t.channel!.id, t.channel!.name])).entries()];
+  const query = q.trim().toLowerCase();
   const filtered = tasks.filter((t) => {
+    if (query && !`${t.title} ${t.brief} ${t.contentTypeLabel}`.toLowerCase().includes(query)) return false;
     if (typeFilter && t.contentTypeLabel !== typeFilter) return false;
     if (platform && t.channel?.id !== platform) return false;
     if (from || to) {
@@ -267,6 +270,9 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-end gap-2.5">
+        <label className="text-[11.5px] font-semibold text-slate">Search
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Theme, brief, type…" className={fsel + " mt-1 block w-56 font-normal"} />
+        </label>
         <label className="text-[11.5px] font-semibold text-slate">Post type
           <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className={fsel + " mt-1 block font-normal"}>
             <option value="">All types</option>
@@ -285,8 +291,8 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
         <label className="text-[11.5px] font-semibold text-slate">Publish to
           <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={fsel + " mt-1 block font-normal"} />
         </label>
-        {(typeFilter || platform || from || to) && (
-          <button onClick={() => { setTypeFilter(""); setPlatform(""); setFrom(""); setTo(""); }} className="rounded-[9px] border border-line px-3 py-2 text-[12px] font-semibold text-slate hover:border-teal">Clear</button>
+        {(q || typeFilter || platform || from || to) && (
+          <button onClick={() => { setQ(""); setTypeFilter(""); setPlatform(""); setFrom(""); setTo(""); }} className="rounded-[9px] border border-line px-3 py-2 text-[12px] font-semibold text-slate hover:border-teal">Clear</button>
         )}
       </div>
 
