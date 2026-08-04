@@ -225,6 +225,19 @@ function subtitle(mode: TasksMode, isAdmin: boolean) {
   }
 }
 
+// Strong, unmissable styling for a task nearing/past its publish date: thick
+// border + fat left stripe + tinted surface. Inline style keeps the tint
+// deterministic (a bg-* class would collide with bg-card).
+function attnStyle(tone: "red" | "amber"): React.CSSProperties {
+  const c = tone === "red" ? "245,68,46" : "245,146,11";
+  return {
+    borderColor: `rgb(${c})`,
+    borderLeftColor: `rgb(${c})`,
+    backgroundColor: `rgba(${c},0.10)`,
+    boxShadow: `0 0 0 1px rgba(${c},0.35), 0 6px 18px rgba(${c},0.15)`,
+  };
+}
+
 // How close a task is to its scheduled publish date (unpublished only), so the
 // overview can flag what needs attention.
 function publishAttention(t: TaskRow): { label: string; tone: "red" | "amber" } | null {
@@ -323,8 +336,8 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
                   {arr.map((t) => {
                     const att = publishAttention(t);
                     return (
-                      <tr key={t.id} onClick={() => onOpen(t.id)} className={`cursor-pointer border-b border-line hover:bg-wash/[0.03] ${att ? (att.tone === "red" ? "bg-[#c23b2a]/[0.06]" : "bg-[#e0912b]/[0.06]") : ""}`}>
-                        <td className={`px-3 py-2.5 font-semibold ${att ? (att.tone === "red" ? "border-l-2 border-[#c23b2a]" : "border-l-2 border-[#e0912b]") : ""}`}>{t.title}</td>
+                      <tr key={t.id} onClick={() => onOpen(t.id)} className={`cursor-pointer border-b border-line hover:bg-wash/[0.03] ${att ? (att.tone === "red" ? "bg-[#f5442e]/[0.10]" : "bg-[#f5920b]/[0.10]") : ""}`}>
+                        <td className={`px-3 py-2.5 font-semibold ${att ? (att.tone === "red" ? "border-l-[5px] border-[#f5442e]" : "border-l-[5px] border-[#f5920b]") : ""}`}>{t.title}</td>
                         <td className="px-3 py-2.5">{t.contentTypeLabel}</td>
                         <td className="px-3 py-2.5">{t.channel?.name ?? "—"} · {t.account?.name ?? "—"}</td>
                         <td className="max-w-[160px] truncate px-3 py-2.5 text-slate">{t.brief || "—"}</td>
@@ -370,7 +383,12 @@ function Board({ tasks, onOpen }: { tasks: TaskRow[]; onOpen: (id: string) => vo
               const st = t.stages.find((s) => s.stage === t.currentStage);
               const att = publishAttention(t);
               return (
-                <button key={t.id} onClick={() => onOpen(t.id)} className={`mb-2 block w-full rounded-[11px] border bg-card p-2.5 text-left shadow-soft transition hover:-translate-y-0.5 hover:shadow-lift ${att ? (att.tone === "red" ? "border-[#c23b2a]/60" : "border-[#e0912b]/60") : "border-line"}`}>
+                <button
+                  key={t.id}
+                  onClick={() => onOpen(t.id)}
+                  className={`mb-2 block w-full rounded-[11px] p-2.5 text-left transition hover:-translate-y-0.5 hover:shadow-lift ${att ? "border-2 border-l-[6px]" : "border border-line bg-card shadow-soft"}`}
+                  style={att ? attnStyle(att.tone) : undefined}
+                >
                   <div className="mb-1.5 text-[13px] font-semibold">{t.title}</div>
                   <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
                     <span className={`${chip} bg-violet-soft text-violet`}>{t.contentTypeLabel}</span>
@@ -599,7 +617,11 @@ function ReadyList({ tasks, members, onOpen, onPublish }: { tasks: TaskRow[]; me
         const att = publishAttention(t);
         const files = t.assets.filter((a) => a.stageId);
         return (
-          <div key={t.id} className={`rounded-card border bg-card p-4 shadow-soft ${att ? (att.tone === "red" ? "border-[#c23b2a]/60" : "border-[#e0912b]/60") : "border-line"}`}>
+          <div
+            key={t.id}
+            className={`rounded-card p-4 ${att ? "border-2 border-l-[7px]" : "border border-line bg-card shadow-soft"}`}
+            style={att ? attnStyle(att.tone) : undefined}
+          >
             <div className="flex flex-wrap items-center gap-2">
               <button onClick={() => onOpen(t.id)} className="min-w-0 flex-1 text-left">
                 <b className="text-[14px]">{t.title}</b>
