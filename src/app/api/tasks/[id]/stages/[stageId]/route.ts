@@ -5,7 +5,6 @@ import { isAdminRole } from "@/lib/roles";
 import { logActivity } from "@/lib/activity";
 import { createNotifications, adminRecipients } from "@/lib/notifications";
 import { recomputeCurrentStage } from "@/lib/task-server";
-import { syncTaskDeliverable } from "@/lib/deliverable";
 import { STAGE_LABELS, TASK_WORK_STATUSES } from "@/lib/enums";
 
 export const runtime = "nodejs";
@@ -114,9 +113,6 @@ export async function PATCH(
       targetLabel: task.title,
     });
     await logActivity(g.user, { action: "task.submitted", targetType: "task", targetId: id, targetLabel: task.title });
-    // A fresh submission means this stage is no longer approved — withdraw an
-    // unpublished deliverable until everything is approved again.
-    await syncTaskDeliverable(id);
     return Response.json({ ok: true });
   }
 
@@ -143,8 +139,6 @@ export async function PATCH(
       data: { status: approved ? "APPROVED" : "REWORK", reviewNote: approved ? null : d.note ?? null, reviewedAt: new Date() },
     });
   await recomputeCurrentStage(id);
-  // Build (or withdraw) the task's single consolidated deliverable.
-  await syncTaskDeliverable(id);
   if (stage.assigneeId)
     await createNotifications(actor, [stage.assigneeId], {
       action: approved ? "task.approved" : "task.reworked",

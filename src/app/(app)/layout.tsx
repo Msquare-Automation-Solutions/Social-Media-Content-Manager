@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
-import { getAssetCounts, getBinCount, getMyOpenTaskCount, getPendingReviewCount, getTaskReworkCount, getStorageUsage } from "@/lib/data";
+import { getAssetCounts, getBinCount, getMyOpenTaskCount, getPendingReviewCount, getTaskReworkCount, getReadyToPublishCount, getStorageUsage } from "@/lib/data";
 import { unreadNotificationCount } from "@/lib/notifications";
 import { Sidebar } from "@/components/sidebar";
 import { DialogProvider } from "@/components/save/dialog-context";
@@ -18,7 +18,7 @@ export default async function AppLayout({
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const [counts, binCount, myTaskCount, taskReviewCount, taskReworkCount, membersCount, queueCount, reworkCount, approvedCount, publishedCount, unreadCount, storage] =
+  const [counts, binCount, myTaskCount, taskReviewCount, taskReworkCount, membersCount, queueCount, reworkCount, readyCount, publishedCount, unreadCount, storage] =
     await Promise.all([
       getAssetCounts(user.workspaceId),
       getBinCount(user.workspaceId),
@@ -32,9 +32,7 @@ export default async function AppLayout({
       prisma.mediaAsset.count({
         where: { workspaceId: user.workspaceId, deletedAt: null, status: "REWORK" },
       }),
-      prisma.mediaAsset.count({
-        where: { workspaceId: user.workspaceId, deletedAt: null, status: "APPROVED", publishable: true },
-      }),
+      getReadyToPublishCount(user.workspaceId),
       prisma.mediaAsset.count({
         where: { workspaceId: user.workspaceId, deletedAt: null, status: "PUBLISHED", publishable: true },
       }),
@@ -75,7 +73,7 @@ export default async function AppLayout({
           membersCount={membersCount}
           queueCount={queueCount}
           reworkCount={reworkCount}
-          approvedCount={approvedCount}
+          readyCount={readyCount}
           publishedCount={publishedCount}
           unreadCount={unreadCount}
           storage={storage}

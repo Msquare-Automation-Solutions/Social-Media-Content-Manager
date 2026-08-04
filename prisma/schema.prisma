@@ -374,9 +374,6 @@ model Task {
   publishedDate DateTime?
   publisherId   String? // user who publishes (may mark published)
   analystId     String? // user who records metrics (may edit analytics)
-  // The single consolidated deliverable (one MediaAsset bundling every stage's
-  // file) — the only thing that gets published for this task.
-  deliverableAssetId String?
   contentLink   String?
   metricClicks       Int?
   metricLeads        Int?

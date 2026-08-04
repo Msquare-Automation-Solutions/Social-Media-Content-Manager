@@ -187,9 +187,15 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   await recomputeCurrentStage(id);
 
-  // Publishing the task marks its linked media as Published in the Library too.
+  // Publishing the task marks its public-facing files Published in the Library
+  // too. Only "main file" stages (and task-level attachments) count — internal
+  // inputs like the content draft stay Approved rather than showing as published.
   if (publishing) {
-    const links = await prisma.taskAsset.findMany({ where: { taskId: id }, select: { assetId: true } });
+    const mainStageIds = task.stages.filter((s) => s.publishable).map((s) => s.id);
+    const links = await prisma.taskAsset.findMany({
+      where: { taskId: id, OR: [{ stageId: null }, { stageId: { in: mainStageIds } }] },
+      select: { assetId: true },
+    });
     if (links.length)
       await prisma.mediaAsset.updateMany({
         where: { id: { in: links.map((l) => l.assetId) }, workspaceId: g.user.workspaceId },

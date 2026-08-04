@@ -32,7 +32,7 @@ type Props = {
   membersCount: number;
   queueCount: number;
   reworkCount: number;
-  approvedCount: number;
+  readyCount: number;
   publishedCount: number;
   unreadCount: number;
   storage: { total: number; active: number; trashed: number };
@@ -51,7 +51,7 @@ export function Sidebar({
   membersCount,
   queueCount,
   reworkCount,
-  approvedCount,
+  readyCount,
   publishedCount,
   unreadCount,
   storage,
@@ -101,8 +101,8 @@ export function Sidebar({
             it("/my-work", "My Work", "mywork", isActive("/my-work"), myTaskCount || undefined, myTaskCount > 0),
             ...(isAdmin ? [it("/tasks/review", "To review", "review", isActive("/tasks/review"), taskReviewCount || undefined, taskReviewCount > 0)] : []),
             ...(isAdmin ? [it("/tasks/rework", "In rework", "rework", isActive("/tasks/rework"), taskReworkCount || undefined)] : []),
-            // Fully-approved tasks whose single deliverable is ready to go live.
-            it("/approved", "Ready to publish", "approved", isActive("/approved"), approvedCount || undefined),
+            // Tasks with every stage approved, ready to go live (published once).
+            it("/tasks/ready", "Ready to publish", "approved", isActive("/tasks/ready"), readyCount || undefined),
             it("/analytics", "Analytics", "analytics", isActive("/analytics")),
           ],
         },
@@ -177,7 +177,7 @@ export function Sidebar({
   // so the dot clears once you've visited the area and never gives a false
   // alarm for work you've already looked at.
   const areaSignals: Record<string, number> = {
-    tasks: myTaskCount + taskReviewCount + taskReworkCount,
+    tasks: myTaskCount + taskReviewCount + taskReworkCount + readyCount,
     content: queueCount + reworkCount + binCount,
   };
   const [seen, setSeen] = useState<Record<string, number>>({});

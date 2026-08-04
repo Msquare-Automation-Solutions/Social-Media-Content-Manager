@@ -527,7 +527,6 @@ export type TaskRow = {
   publishedDate: string | null;
   publisherId: string | null;
   analystId: string | null;
-  deliverableAssetId: string | null;
   contentLink: string | null;
   metricClicks: number | null;
   metricLeads: number | null;
@@ -614,7 +613,6 @@ export async function listTasks(
     publishedDate: t.publishedDate ? t.publishedDate.toISOString() : null,
     publisherId: t.publisherId,
     analystId: t.analystId,
-    deliverableAssetId: t.deliverableAssetId,
     contentLink: t.contentLink,
     metricClicks: t.metricClicks,
     metricLeads: t.metricLeads,
@@ -742,6 +740,19 @@ export async function getMembersOverview(
     else row.notStarted++;
   }
   return [...byUser.values()];
+}
+
+// Tasks ready to publish: every stage approved, not live yet. Counted as TASKS
+// (the unit you publish), matching the Ready-to-publish list.
+export async function getReadyToPublishCount(workspaceId: string): Promise<number> {
+  return prisma.task.count({
+    where: {
+      workspaceId,
+      deletedAt: null,
+      publishStatus: { notIn: ["PUBLISHED_ON_TIME", "PUBLISHED_DELAY"] },
+      stages: { some: {}, every: { reviewStatus: "APPROVED" } },
+    },
+  });
 }
 
 // Tasks with at least one stage sent back for rework (awaiting re-submit).
@@ -1332,13 +1343,8 @@ export async function getAssetsByStatus(
   return filterAndSortAssets(rows.map(mapAssetRow), filters);
 }
 
-export function getApprovedAssets(workspaceId: string, filters: LibraryFilters) {
-  // Approved panel = only files that are actually going to be published.
-  return getAssetsByStatus(workspaceId, "APPROVED", { ...filters, publishableOnly: true });
-}
-
 export function getPublishedAssets(workspaceId: string, filters: LibraryFilters) {
-  return getAssetsByStatus(workspaceId, "PUBLISHED", { ...filters, publishableOnly: true });
+  return getAssetsByStatus(workspaceId, "PUBLISHED", filters);
 }
 
 /**

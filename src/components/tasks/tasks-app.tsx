@@ -67,7 +67,7 @@ type Member = { id: string; name: string; avatarColor: string; role?: string };
 const memberLabel = (m: Member) => (m.role ? `${m.name} — ${m.role}` : m.name);
 type Opt = { id: string; name: string; icon: string };
 type TaskType = { id: string; name: string };
-export type TasksMode = "overview" | "board" | "mywork" | "review" | "rework" | "analytics";
+export type TasksMode = "overview" | "board" | "mywork" | "review" | "rework" | "ready" | "analytics";
 
 type Props = {
   mode: TasksMode;
@@ -141,6 +141,7 @@ export function TasksApp(props: Props) {
     : mode === "mywork" ? "My Work"
     : mode === "review" ? "To review"
     : mode === "rework" ? "In rework"
+    : mode === "ready" ? "Ready to publish"
     : "Analytics";
 
   return (
@@ -164,6 +165,7 @@ export function TasksApp(props: Props) {
       {mode === "mywork" && <MyWork tasks={tasks} meId={props.meId} onOpen={setOpenId} />}
       {mode === "review" && <ReviewInbox tasks={tasks} meId={props.meId} meCanSelfApprove={props.meCanSelfApprove} onOpen={setOpenId} onReview={reviewStage} />}
       {mode === "rework" && <ReworkList tasks={tasks} onOpen={setOpenId} />}
+      {mode === "ready" && <ReadyList tasks={tasks} members={props.members} onOpen={setOpenId} onPublish={publishTask} />}
       {mode === "analytics" && <Analytics tasks={tasks} />}
 
       {openTask && (
@@ -203,6 +205,12 @@ export function TasksApp(props: Props) {
     if (await api(`/api/tasks/${taskId}/stages/${stageId}`, "PATCH", { action: "review", outcome, note }))
       { toast(outcome === "APPROVED" ? "Approved ✓" : "Sent back for rework"); refresh(); }
   }
+  // Publish the whole task (its files go live together). The server decides
+  // on-time vs delayed from the scheduled date.
+  async function publishTask(taskId: string) {
+    if (await api(`/api/tasks/${taskId}`, "PATCH", { publishStatus: "PUBLISHED_ON_TIME" }))
+      { toast("Published 🚀"); refresh(); }
+  }
 }
 
 function subtitle(mode: TasksMode, isAdmin: boolean) {
@@ -212,6 +220,7 @@ function subtitle(mode: TasksMode, isAdmin: boolean) {
     case "mywork": return "Everything assigned to you. Update your status, then submit for review.";
     case "review": return "Work submitted for review. Approve to advance it, or send it back for rework.";
     case "rework": return "Stages you sent back. They stay here until the owner re-submits the fixed work.";
+    case "ready": return "Tasks with every stage approved, with all their files together. Publish the task once, from here.";
     case "analytics": return "How the month is tracking, planned vs published, and metrics by platform.";
   }
 }
@@ -507,6 +516,71 @@ function ReworkList({ tasks, onOpen }: { tasks: TaskRow[]; onOpen: (id: string) 
   );
 }
 
+// ── Ready to publish ─────────────────────────────────────────────────────────
+// Tasks whose every stage is approved and that aren't live yet. The row IS the
+// task, with all of its stages' files listed underneath — publish once, here.
+function ReadyList({ tasks, members, onOpen, onPublish }: { tasks: TaskRow[]; members: Member[]; onOpen: (id: string) => void; onPublish: (id: string) => void }) {
+  const ready = tasks.filter(
+    (t) =>
+      t.stages.length > 0 &&
+      t.stages.every((s) => s.reviewStatus === "APPROVED") &&
+      !t.publishStatus.startsWith("PUBLISHED"),
+  );
+  if (!ready.length) return <Empty text="Nothing ready yet. A task lands here once every one of its stages is approved." />;
+  return (
+    <div>
+      {ready.map((t) => {
+        const att = publishAttention(t);
+        const files = t.assets.filter((a) => a.stageId);
+        return (
+          <div key={t.id} className={`mb-3 rounded-card border bg-card p-4 shadow-soft ${att ? (att.tone === "red" ? "border-[#c23b2a]/60" : "border-[#e0912b]/60") : "border-line"}`}>
+            <div className="flex flex-wrap items-center gap-2">
+              <button onClick={() => onOpen(t.id)} className="min-w-0 flex-1 text-left">
+                <b className="text-[14px]">{t.title}</b>
+                <span className="block text-[11.5px] text-slate">
+                  {t.contentTypeLabel}
+                  {t.channel ? ` · ${t.channel.name}` : ""}
+                  {t.account ? ` · ${t.account.name}` : ""}
+                  {t.scheduledPublishDate ? ` · publish ${fmt(t.scheduledPublishDate)}` : ""}
+                </span>
+              </button>
+              {att && <span className={`${badge} ${att.tone === "red" ? "bg-[#ffe0dc] text-[#f5442e]" : "bg-[#ffedcc] text-[#f5920b]"}`}>{att.label}</span>}
+              <span className={`${badge} bg-[#d7f2e5] text-[#2e9e6b]`}>All stages approved</span>
+              <button onClick={() => onPublish(t.id)} className="btn-premium rounded-[9px] px-3.5 py-1.5 text-[12px] font-semibold">Publish →</button>
+            </div>
+
+            {/* Every stage's file, under the task it belongs to. */}
+            <div className="mt-3 flex flex-wrap gap-2">
+              {files.length === 0 ? (
+                <span className="text-[12px] text-slate">No files submitted.</span>
+              ) : (
+                t.stages.map((s) => {
+                  const stageFiles = files.filter((a) => a.stageId === s.id);
+                  if (!stageFiles.length) return null;
+                  return (
+                    <div key={s.id} className="rounded-[10px] border border-line bg-wash/[0.02] p-2">
+                      <div className="mb-1.5 inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate">
+                        <StageIcon stage={s.stage} size={12} /> {STAGE_LABELS[s.stage]}
+                        {s.publishable && <span className={`${badge} bg-teal-soft text-teal-dark`}>main</span>}
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {stageFiles.map((a) => <SubmittedFile key={a.id} a={a} />)}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+            {t.publisherId && (
+              <div className="mt-2 text-[11.5px] text-slate">Publisher <b className="text-ink">{members.find((m) => m.id === t.publisherId)?.name ?? "—"}</b></div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── Analytics ────────────────────────────────────────────────────────────────
 function Analytics({ tasks }: { tasks: TaskRow[] }) {
   const sum = summarizeTasks(
@@ -550,10 +624,7 @@ function TaskDrawer({ task, members, isAdmin, canEdit, meId, meCanSelfApprove, o
   const [assignStage, setAssignStage] = useState<string | null>(null);
   const upload = useUploadDialog();
   const t = task;
-  // The task's single consolidated deliverable (shown under Publishing, and
-  // kept out of "Other files" since it isn't a loose attachment).
-  const deliverable = t.assets.find((a) => a.id === t.deliverableAssetId) ?? null;
-  const otherFiles = t.assets.filter((a) => !a.stageId && a.id !== t.deliverableAssetId);
+  const otherFiles = t.assets.filter((a) => !a.stageId);
   // Publishing is the publisher's job (admins too); analytics the analyst's.
   const canPublish = isAdmin || (!!t.publisherId && t.publisherId === meId);
   const canRecordMetrics = isAdmin || (!!t.analystId && t.analystId === meId);
@@ -700,15 +771,6 @@ function TaskDrawer({ task, members, isAdmin, canEdit, meId, meCanSelfApprove, o
         {t.scheduledPublishDate && <div className="text-[12px] text-slate">Scheduled for <b className="text-ink">{fmt(t.scheduledPublishDate)}</b></div>}
         {t.publishStatus.startsWith("PUBLISHED") && t.publishedDate && <div className="text-[12px] text-slate">Published on <b className="text-ink">{fmt(t.publishedDate)}</b></div>}
         {t.publisherId && <div className="text-[12px] text-slate">Publisher <b className="text-ink">{members.find((m) => m.id === t.publisherId)?.name ?? "—"}</b></div>}
-        {/* The one consolidated file to publish — every stage's output bundled. */}
-        {deliverable ? (
-          <div className="mt-2">
-            <div className="mb-1 text-[11.5px] font-semibold text-slate">Final deliverable (all stages in one file)</div>
-            <SubmittedFile a={deliverable} />
-          </div>
-        ) : (
-          <div className="mt-1.5 text-[12px] text-slate">The single file to publish appears here once every stage is approved.</div>
-        )}
         {t.currentStage === "PUBLISHING" && canPublish && <button onClick={publish} className="btn-premium mt-2 rounded-[9px] px-3.5 py-1.5 text-[12px] font-semibold">Mark published →</button>}
 
         <div className="mb-2 mt-4 text-[11px] font-extrabold uppercase tracking-[0.06em] text-ink">Analytics</div>
