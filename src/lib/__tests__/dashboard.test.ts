@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   aggregateDashboard,
-  type DashAsset,
+  type DashTask,
   type DashChannel,
 } from "@/lib/data";
 
@@ -16,82 +16,87 @@ const CREATORS = [
   { name: "Cleo", avatarColor: "#2a6fb8", assetCount: 0 },
 ];
 
-// Reference "now" = 15 Mar 2026, so "this month" = March 2026.
+// Reference "now" = 15 Mar 2026.
 const NOW = new Date(2026, 2, 15, 12, 0, 0);
 const iso = (y: number, m: number, d: number) => new Date(y, m, d, 10).toISOString();
 
-const ASSETS: DashAsset[] = [
-  {
-    id: "a1",
-    title: "Reel",
-    type: "VIDEO",
-    status: "APPROVED",
-    channels: [{ channelId: "ig", scheduledFor: iso(2026, 2, 20) }], // this month
-  },
-  {
-    id: "a2",
-    title: "Cover",
-    type: "IMAGE",
-    status: "PENDING",
-    channels: [
-      { channelId: "ig", scheduledFor: iso(2026, 2, 5) }, // this month (past-in-month)
-      { channelId: "yt", scheduledFor: iso(2026, 3, 2) }, // next month
-    ],
-  },
-  {
-    id: "a3",
-    title: "Script",
-    type: "VIDEO_SCRIPT", // folds into the VIDEO library view
-    status: "REWORK",
-    channels: [{ channelId: "yt", scheduledFor: null }],
-  },
-  {
-    id: "a4",
-    title: "Old post",
-    type: "BLOGPOST",
-    status: "APPROVED",
-    channels: [{ channelId: "ig", scheduledFor: iso(2026, 1, 10) }], // last month
-  },
+const task = (t: Partial<DashTask> & Pick<DashTask, "id">): DashTask => ({
+  title: t.id,
+  contentTypeLabel: "Reels",
+  channelId: "ig",
+  currentStage: "CONTENT",
+  publishStatus: "NOT_PUBLISHED",
+  scheduledPublishDate: null,
+  stages: [],
+  ...t,
+});
+
+const TASKS: DashTask[] = [
+  // Being produced: nothing submitted yet.
+  task({ id: "t1", currentStage: "CONTENT", stages: [{ reviewStatus: "NOT_SUBMITTED" }] }),
+  // Awaiting review.
+  task({ id: "t2", currentStage: "GRAPHICS", contentTypeLabel: "Carousels", stages: [{ reviewStatus: "PENDING" }] }),
+  // Sent back.
+  task({ id: "t3", currentStage: "VIDEO", channelId: "yt", stages: [{ reviewStatus: "REWORK" }] }),
+  // All stages approved, scheduled ahead → ready to publish.
+  task({
+    id: "t4",
+    currentStage: "PUBLISHING",
+    stages: [{ reviewStatus: "APPROVED" }, { reviewStatus: "APPROVED" }],
+    scheduledPublishDate: iso(2026, 2, 20),
+  }),
+  // Approved but its publish date already passed — still ready, not upcoming.
+  task({
+    id: "t5",
+    currentStage: "PUBLISHING",
+    channelId: "yt",
+    stages: [{ reviewStatus: "APPROVED" }],
+    scheduledPublishDate: iso(2026, 1, 10),
+  }),
+  // Live already.
+  task({ id: "t6", currentStage: "DONE", channelId: "yt", publishStatus: "PUBLISHED_ON_TIME", stages: [{ reviewStatus: "APPROVED" }] }),
 ];
 
-describe("aggregateDashboard", () => {
-  const d = aggregateDashboard(ASSETS, CHANNELS, CREATORS, NOW);
+describe("aggregateDashboard (task-based)", () => {
+  const d = aggregateDashboard(TASKS, CHANNELS, CREATORS, NOW);
 
-  it("counts totals and status buckets", () => {
-    expect(d.totalAssets).toBe(4);
-    expect(d.statusCounts).toEqual({ PENDING: 1, REWORK: 1, APPROVED: 2, PUBLISHED: 0 });
+  it("counts the task pipeline", () => {
+    expect(d.totalTasks).toBe(6);
+    expect(d.taskCounts).toEqual({
+      inProgress: 1, // t1
+      toReview: 1, // t2
+      inRework: 1, // t3
+      ready: 2, // t4, t5
+      published: 1, // t6
+    });
   });
 
-  it("counts distinct assets scheduled this month (not per-date)", () => {
-    // a1 and a2 each have a March date; a2's second date is April but must not double-count.
-    expect(d.scheduledThisMonth).toBe(2);
+  it("groups tasks by board stage in pipeline order", () => {
+    expect(d.byStage.map((s) => s.key)).toEqual([
+      "CONTENT",
+      "VIDEO",
+      "GRAPHICS",
+      "PUBLISHING",
+      "DONE",
+      "ANALYTICS",
+    ]);
+    expect(d.byStage.find((s) => s.key === "PUBLISHING")?.count).toBe(2); // t4, t5
+    expect(d.byStage.find((s) => s.key === "ANALYTICS")?.count).toBe(0);
   });
 
-  it("counts only approved assets scheduled from today onward (ignores range end)", () => {
-    // a1 (APPROVED, 20 Mar future) counts. a2 has a future date (yt 2 Apr) but
-    // is PENDING → excluded. a4 (10 Feb) is past. a3 has no date.
-    expect(d.scheduledAhead).toBe(1);
+  it("groups tasks by content type, busiest first", () => {
+    expect(d.byContentType[0]).toEqual({ key: "Reels", label: "Reels", count: 5 });
+    expect(d.byContentType.find((t) => t.key === "Carousels")?.count).toBe(1);
   });
 
-  it("folds VIDEO_SCRIPT into the VIDEO library view for by-type", () => {
-    const video = d.byType.find((t) => t.key === "VIDEO");
-    expect(video?.count).toBe(2); // a1 (VIDEO) + a3 (VIDEO_SCRIPT)
-    const image = d.byType.find((t) => t.key === "IMAGE");
-    expect(image?.count).toBe(1);
+  it("counts tasks per platform", () => {
+    expect(d.perPlatform.find((p) => p.id === "ig")?.total).toBe(3); // t1, t2, t4
+    expect(d.perPlatform.find((p) => p.id === "yt")?.total).toBe(3); // t3, t5, t6
   });
 
-  it("breaks down per platform with its own month count", () => {
-    const ig = d.perPlatform.find((p) => p.id === "ig")!;
-    expect(ig.total).toBe(3); // a1, a2, a4
-    expect(ig.scheduledThisMonth).toBe(2); // a1, a2 (a4 is last month)
-    const yt = d.perPlatform.find((p) => p.id === "yt")!;
-    expect(yt.total).toBe(2); // a2, a3
-    expect(yt.scheduledThisMonth).toBe(0); // a2's yt date is April, a3 has none
-  });
-
-  it("lists only future post dates, soonest first", () => {
-    // From NOW (15 Mar): a1 ig 20 Mar, a2 yt 2 Apr. Past dates (5 Mar, 10 Feb) excluded.
-    expect(d.upcoming.map((u) => u.id)).toEqual(["a1", "a2"]);
+  it("lists unpublished tasks due from today onward, soonest first", () => {
+    // t4 (20 Mar) qualifies; t5's date is past, t6 is already live.
+    expect(d.upcoming.map((u) => u.id)).toEqual(["t4"]);
     expect(d.upcoming[0].platformName).toBe("Instagram");
   });
 

@@ -24,24 +24,29 @@ describe("createdAtRange", () => {
   });
 });
 
-describe("aggregateDashboard with a range", () => {
+describe("aggregateDashboard upcoming window", () => {
   const CH = [{ id: "ig", name: "Instagram", icon: "📷", color: "#e1306c" }];
   const iso = (y: number, m: number, d: number) => new Date(y, m - 1, d).toISOString();
-  const asset = (id: string, when: string) => ({
+  const task = (id: string, when: string | null) => ({
     id,
     title: id,
-    type: "IMAGE",
-    status: "APPROVED",
-    channels: [{ channelId: "ig", scheduledFor: when }],
+    contentTypeLabel: "Reels",
+    channelId: "ig",
+    currentStage: "PUBLISHING",
+    publishStatus: "NOT_PUBLISHED",
+    scheduledPublishDate: when,
+    stages: [{ reviewStatus: "APPROVED" }],
   });
 
-  it("counts scheduled posts inside the supplied window, not the calendar month", () => {
-    const assets = [asset("a", iso(2026, 3, 10)), asset("b", iso(2026, 5, 10))];
-    const d = aggregateDashboard(assets, CH, [], new Date(2026, 0, 1), {
-      start: new Date("2026-03-01T00:00:00"),
-      end: new Date("2026-03-31T23:59:59"),
-    });
-    // Only "a" falls in March; the month of `now` (January) is ignored.
-    expect(d.scheduledThisMonth).toBe(1);
+  it("lists only publish dates from today onward, regardless of the report range", () => {
+    // The date range scopes which tasks are fetched; upcoming is always forward-
+    // looking from `now`, so a past publish date never shows.
+    const d = aggregateDashboard(
+      [task("past", iso(2026, 3, 10)), task("future", iso(2026, 5, 10)), task("undated", null)],
+      CH,
+      [],
+      new Date(2026, 3, 1), // 1 Apr 2026
+    );
+    expect(d.upcoming.map((u) => u.id)).toEqual(["future"]);
   });
 });

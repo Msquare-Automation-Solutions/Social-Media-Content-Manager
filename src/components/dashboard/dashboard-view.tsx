@@ -3,17 +3,14 @@
 import { useRouter, usePathname } from "next/navigation";
 import { BackButton } from "@/components/ui/back-button";
 import type { DashboardData } from "@/lib/data";
-import { STATUS_LABELS } from "@/lib/enums";
 import { initials } from "@/lib/colors";
 import { PlatformIcon } from "@/components/ui/platform-icon";
 import {
   StatTile,
   BarChart,
   Donut,
-  STATUS_COLORS,
   type BarDatum,
 } from "@/components/dashboard/charts";
-import { PlatformCarousel } from "@/components/dashboard/platform-carousel";
 
 export function DashboardView({
   data,
@@ -26,8 +23,6 @@ export function DashboardView({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  // Carry the selected range onto KPI drill-down links.
-  const range = `from=${from}&to=${to}`;
   const setRange = (key: "from" | "to", value: string) => {
     const params = new URLSearchParams({ from, to });
     params.set(key, value);
@@ -41,10 +36,18 @@ export function DashboardView({
     icon: p.icon,
   }));
 
-  const typeBars: BarDatum[] = data.byType.map((t) => ({
+  const typeBars: BarDatum[] = data.byContentType.map((t) => ({
     label: t.label,
     value: t.count,
     color: "#0e9f8f", // magnitude → single sequential hue
+  }));
+
+  // Board stages, in pipeline order, as a categorical set.
+  const STAGE_COLORS = ["#0e9f8f", "#3f8fd0", "#7a4fc9", "#e0912b", "#2e9e6b", "#c96a9e"];
+  const stageSlices = data.byStage.map((s, i) => ({
+    label: s.label,
+    value: s.count,
+    color: STAGE_COLORS[i % STAGE_COLORS.length],
   }));
 
   const maxCreator = Math.max(1, ...data.topCreators.map((c) => c.assetCount));
@@ -81,80 +84,73 @@ export function DashboardView({
       {/* KPI tiles */}
       <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-5">
         <StatTile
-          label="Scheduled ahead"
-          value={data.scheduledAhead}
-          sublabel="Tasks due to publish"
-          accent="#7a4fc9"
-          href="/content-overview"
+          label="In progress"
+          value={data.taskCounts.inProgress}
+          sublabel="Being produced"
+          accent="#3f8fd0"
+          href="/tasks"
         />
         <StatTile
-          label={STATUS_LABELS.PENDING}
-          value={data.statusCounts.PENDING}
+          label="To review"
+          value={data.taskCounts.toReview}
           sublabel="Awaiting review"
-          accent={STATUS_COLORS.PENDING}
-          href={`/review`}
+          accent="#c98a12"
+          href="/tasks/review"
         />
         <StatTile
-          label={STATUS_LABELS.REWORK}
-          value={data.statusCounts.REWORK}
-          sublabel="Needs changes"
-          accent={STATUS_COLORS.REWORK}
-          href={`/rework?${range}`}
+          label="In rework"
+          value={data.taskCounts.inRework}
+          sublabel="Sent back"
+          accent="#c23b2a"
+          href="/tasks/rework"
         />
         <StatTile
-          label={STATUS_LABELS.APPROVED}
-          value={data.statusCounts.APPROVED}
-          sublabel="Queued to post"
-          accent={STATUS_COLORS.APPROVED}
-          href={`/approved?${range}`}
+          label="Ready to publish"
+          value={data.taskCounts.ready}
+          sublabel="All stages approved"
+          accent="#7a4fc9"
+          href="/tasks/ready"
         />
         <StatTile
-          label={STATUS_LABELS.PUBLISHED}
-          value={data.statusCounts.PUBLISHED}
-          sublabel={`of ${data.totalAssets} total`}
-          accent={STATUS_COLORS.PUBLISHED}
-          href={`/published?${range}`}
+          label="Published"
+          value={data.taskCounts.published}
+          sublabel={`of ${data.totalTasks} tasks`}
+          accent="#2e9e6b"
+          href="/analytics"
         />
       </div>
 
       {/* Per-platform overview + carousel */}
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <section className="surface rounded-card p-5">
-          <h3 className="mb-3 font-display text-[15px]">Media files per platform</h3>
+          <h3 className="mb-3 font-display text-[15px]">Tasks per platform</h3>
           <BarChart data={platformBars} empty="No platforms tagged yet" />
         </section>
         <section className="surface rounded-card p-5">
-          <h3 className="mb-3 font-display text-[15px]">Platform spotlight</h3>
-          <PlatformCarousel platforms={data.perPlatform} />
+          <h3 className="mb-3 font-display text-[15px]">Where tasks sit</h3>
+          <Donut segments={stageSlices} centerLabel={`${data.totalTasks} tasks`} />
         </section>
       </div>
 
       {/* Breakdowns */}
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <section className="surface rounded-card p-5">
-          <h3 className="mb-3 font-display text-[15px]">By type</h3>
+          <h3 className="mb-3 font-display text-[15px]">Tasks by content type</h3>
           <BarChart data={typeBars} empty="No assets yet" />
         </section>
         <section className="surface rounded-card p-5">
-          <h3 className="mb-3 font-display text-[15px]">By status</h3>
-          <Donut
-            centerLabel="assets"
-            segments={(["PUBLISHED", "APPROVED", "PENDING", "REWORK"] as const).map((s) => ({
-              label: STATUS_LABELS[s],
-              value: data.statusCounts[s],
-              color: STATUS_COLORS[s],
-            }))}
-          />
+          <h3 className="mb-3 font-display text-[15px]">Tasks by stage</h3>
+          <BarChart data={stageSlices.map((s) => ({ label: s.label, value: s.value, color: s.color }))} />
         </section>
       </div>
 
       {/* Upcoming + creators */}
       <div className="mt-4 grid gap-4 pb-16 lg:grid-cols-2">
         <section className="surface rounded-card p-5">
-          <h3 className="mb-3 font-display text-[15px]">Upcoming posts</h3>
+          <h3 className="mb-3 font-display text-[15px]">Upcoming publishes</h3>
           {data.upcoming.length === 0 ? (
             <div className="py-6 text-center text-[12.5px] text-slate">
-              Nothing scheduled ahead, add post dates in the save dialog.
+No tasks due to publish. Set a publishing date when planning content.
             </div>
           ) : (
             <ul className="flex flex-col divide-y divide-line/70">

@@ -3,6 +3,7 @@ import { LIBRARY_VIEWS, LIBRARY_SLUGS, typesForView, type LibraryViewKey } from 
 import { parseTags, parseJson } from "@/lib/json";
 import { describeActivity } from "@/lib/activity-format";
 import { contentTypeLabel } from "@/lib/tasks";
+import { TASK_BOARD_COLUMNS, STAGE_LABELS } from "@/lib/enums";
 
 export type LibraryFilters = {
   personId?: string;
@@ -851,16 +852,22 @@ export type PlatformSlice = {
   scheduledThisMonth: number;
 };
 
+export type TaskCountSlice = { key: string; label: string; count: number };
+
+// The dashboard is task-based: every figure describes work in the pipeline.
+// (Top creators stays asset-based — it credits who produced the media.)
 export type DashboardData = {
-  totalAssets: number;
-  statusCounts: StatusCounts;
-  scheduledThisMonth: number;
-  // Tasks with a publish date from today onward that aren't live yet —
-  // forward-looking, so it ignores the range's To bound (scheduling is
-  // inherently future, the range often trails). Powers the "Scheduled ahead" tile.
-  scheduledAhead: number;
-  byType: TypeSlice[];
-  perPlatform: PlatformSlice[];
+  totalTasks: number;
+  taskCounts: {
+    inProgress: number;
+    toReview: number;
+    inRework: number;
+    ready: number;
+    published: number;
+  };
+  byStage: TaskCountSlice[];
+  byContentType: TaskCountSlice[];
+  perPlatform: { id: string; name: string; icon: string; color: string; total: number }[];
   upcoming: {
     id: string;
     title: string;
@@ -872,150 +879,120 @@ export type DashboardData = {
   topCreators: { name: string; avatarColor: string; assetCount: number }[];
 };
 
-function typeBreakdown(assets: { type: string }[]): TypeSlice[] {
-  return LIBRARY_VIEWS.map((v) => ({
-    key: v.key,
-    label: v.label,
-    count: assets.filter((a) => (v.types as readonly string[]).includes(a.type)).length,
-  }));
-}
-
-function statusBreakdown(assets: { status: string }[]): StatusCounts {
-  return {
-    PENDING: assets.filter((a) => a.status === "PENDING").length,
-    REWORK: assets.filter((a) => a.status === "REWORK").length,
-    APPROVED: assets.filter((a) => a.status === "APPROVED").length,
-    PUBLISHED: assets.filter((a) => a.status === "PUBLISHED").length,
-  };
-}
-
 /**
  * Pure dashboard aggregation — deterministic given `now`, so it's unit-testable.
  * When a `range` is supplied (the dashboard's date filter), the "scheduled"
  * window is that range; otherwise it's the calendar month of `now`.
  */
-// A task's forward-looking publish schedule, for the "Scheduled ahead" tile.
-export type DashTask = { scheduledPublishDate: string | null; published: boolean };
+export type DashTask = {
+  id: string;
+  title: string;
+  contentTypeLabel: string;
+  channelId: string | null;
+  currentStage: string;
+  publishStatus: string;
+  scheduledPublishDate: string | null;
+  stages: { reviewStatus: string }[];
+};
 
+/**
+ * Roll tasks up into the dashboard. Pure + `now`-injectable so it's testable.
+ * Counts describe the task pipeline; `upcoming` is forward-looking (publish
+ * dates from today on) and deliberately ignores any trailing date range.
+ */
 export function aggregateDashboard(
-  assets: DashAsset[],
+  tasks: DashTask[],
   channels: DashChannel[],
   creators: Pick<CreatorRow, "name" | "avatarColor" | "assetCount">[],
   now: Date,
-  range?: { start: Date; end: Date },
-  tasks?: DashTask[],
 ): DashboardData {
-  const winStart = range ? range.start : new Date(now.getFullYear(), now.getMonth(), 1);
-  const winEnd = range ? range.end : new Date(now.getFullYear(), now.getMonth() + 1, 1);
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const isPublished = (t: DashTask) => t.publishStatus.startsWith("PUBLISHED");
+  const allApproved = (t: DashTask) =>
+    t.stages.length > 0 && t.stages.every((s) => s.reviewStatus === "APPROVED");
 
-  const inMonth = (iso: string | null) => {
-    if (!iso) return false;
-    const d = new Date(iso);
-    return d >= winStart && d <= winEnd;
+  const live = tasks.filter((t) => !isPublished(t));
+  const taskCounts = {
+    // Work still being produced: nothing submitted or sent back yet.
+    inProgress: live.filter(
+      (t) =>
+        !allApproved(t) &&
+        !t.stages.some((s) => s.reviewStatus === "PENDING" || s.reviewStatus === "REWORK"),
+    ).length,
+    toReview: live.filter((t) => t.stages.some((s) => s.reviewStatus === "PENDING")).length,
+    inRework: live.filter((t) => t.stages.some((s) => s.reviewStatus === "REWORK")).length,
+    ready: live.filter(allApproved).length,
+    published: tasks.filter(isPublished).length,
   };
-  // The actual current calendar month — independent of the From/To range (which
-  // scopes createdAt). Anything labeled "this month" must use this, or a
-  // trailing range would hide posts genuinely scheduled later this month.
-  const calMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const calMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-  const inCalendarMonth = (iso: string | null) => {
-    if (!iso) return false;
-    const d = new Date(iso);
-    return d >= calMonthStart && d < calMonthEnd;
-  };
-  // # of assets with at least one platform post date this month.
-  const scheduledThisMonth = (list: DashAsset[]) =>
-    list.filter((a) => a.channels.some((c) => inMonth(c.scheduledFor))).length;
-  // # of *approved* assets with at least one platform scheduled from today
-  // onward. Ignores the To bound (a trailing range shouldn't hide upcoming
-  // posts) and excludes anything still pending/rework — only signed-off content
-  // is genuinely "going out".
-  // Prefer the task pipeline: tasks with a publish date from today onward that
-  // aren't live yet — that's what the team actually schedules when planning.
-  // Falls back to the old asset-based count when no tasks are supplied.
-  const scheduledAhead = tasks
-    ? tasks.filter(
-        (t) => !t.published && t.scheduledPublishDate && new Date(t.scheduledPublishDate) >= todayStart,
-      ).length
-    : assets.filter(
-        (a) =>
-          a.status === "APPROVED" &&
-          a.channels.some((c) => c.scheduledFor && new Date(c.scheduledFor) >= todayStart),
-      ).length;
 
-  const perPlatform: PlatformSlice[] = channels.map((ch) => {
-    const tagged = assets.filter((a) =>
-      a.channels.some((c) => c.channelId === ch.id),
-    );
-    return {
-      id: ch.id,
-      name: ch.name,
-      icon: ch.icon,
-      color: ch.color,
-      total: tagged.length,
-      byType: typeBreakdown(tagged),
-      byStatus: statusBreakdown(tagged),
-      // Post dates for *this* platform in the current calendar month (the
-      // spotlight labels it "this month", so it must not follow the range).
-      scheduledThisMonth: tagged.filter((a) =>
-        a.channels.some((c) => c.channelId === ch.id && inCalendarMonth(c.scheduledFor)),
-      ).length,
-    };
-  });
+  // Where tasks sit on the board (Content → … → In queue → Done → Analytics).
+  const byStage: TaskCountSlice[] = TASK_BOARD_COLUMNS.map((col) => ({
+    key: col,
+    label: STAGE_LABELS[col] ?? col,
+    count: tasks.filter((t) => t.currentStage === col).length,
+  }));
 
-  const upcoming = assets
-    .flatMap((a) =>
-      a.channels
-        .filter((c) => c.scheduledFor && new Date(c.scheduledFor) >= todayStart)
-        .map((c) => {
-          const ch = channels.find((x) => x.id === c.channelId);
-          return {
-            id: a.id,
-            title: a.title,
-            date: c.scheduledFor as string,
-            platformName: ch?.name ?? "—",
-            platformIcon: ch?.icon ?? "",
-            platformColor: ch?.color ?? "#0e9f8f",
-          };
-        }),
-    )
-    .sort((a, b) => a.date.localeCompare(b.date))
-    .slice(0, 6);
+  // Task volume per content type (admin-editable, so derived from the data).
+  const typeCounts = new Map<string, number>();
+  for (const t of tasks) {
+    const k = t.contentTypeLabel || "Untyped";
+    typeCounts.set(k, (typeCounts.get(k) ?? 0) + 1);
+  }
+  const byContentType: TaskCountSlice[] = [...typeCounts.entries()]
+    .map(([label, count]) => ({ key: label, label, count }))
+    .sort((a, b) => b.count - a.count);
 
-  const topCreators = creators
-    .filter((c) => c.assetCount > 0)
+  const perPlatform = channels.map((ch) => ({
+    id: ch.id,
+    name: ch.name,
+    icon: ch.icon,
+    color: ch.color,
+    total: tasks.filter((t) => t.channelId === ch.id).length,
+  }));
+
+  const chById = new Map(channels.map((c) => [c.id, c]));
+  const upcoming = live
+    .filter((t) => t.scheduledPublishDate && new Date(t.scheduledPublishDate) >= todayStart)
+    .sort((a, b) => (a.scheduledPublishDate ?? "").localeCompare(b.scheduledPublishDate ?? ""))
+    .slice(0, 8)
+    .map((t) => {
+      const ch = t.channelId ? chById.get(t.channelId) : undefined;
+      return {
+        id: t.id,
+        title: t.title,
+        platformName: ch?.name ?? "No platform",
+        platformIcon: ch?.icon ?? "✨",
+        platformColor: ch?.color ?? "#889",
+        date: t.scheduledPublishDate!,
+      };
+    });
+
+  const topCreators = [...creators]
+    .filter((c) => c.assetCount > 0) // no point ranking creators with nothing
     .sort((a, b) => b.assetCount - a.assetCount)
-    .slice(0, 5)
+    .slice(0, 6)
     .map((c) => ({ name: c.name, avatarColor: c.avatarColor, assetCount: c.assetCount }));
 
-  return {
-    totalAssets: assets.length,
-    statusCounts: statusBreakdown(assets),
-    scheduledThisMonth: scheduledThisMonth(assets),
-    scheduledAhead,
-    byType: typeBreakdown(assets),
-    perPlatform,
-    upcoming,
-    topCreators,
-  };
+  return { totalTasks: tasks.length, taskCounts, byStage, byContentType, perPlatform, upcoming, topCreators };
 }
 
-/** Workspace-wide analytics for the dashboard page (visible to everyone). */
 export async function getDashboardData(
   workspaceId: string,
   opts: { from?: string; to?: string } = {},
 ): Promise<DashboardData> {
   const range = createdAtRange(opts.from, opts.to);
-  const [assets, channels, creators, tasks] = await Promise.all([
-    prisma.mediaAsset.findMany({
+  const [tasks, channels, creators] = await Promise.all([
+    prisma.task.findMany({
       where: { workspaceId, deletedAt: null, ...(range ? { createdAt: range } : {}) },
       select: {
         id: true,
         title: true,
-        type: true,
-        status: true,
-        channels: { select: { channelId: true, scheduledFor: true } },
+        contentType: true,
+        channelId: true,
+        currentStage: true,
+        publishStatus: true,
+        scheduledPublishDate: true,
+        stages: { select: { reviewStatus: true } },
       },
     }),
     prisma.socialChannel.findMany({
@@ -1024,35 +1001,20 @@ export async function getDashboardData(
       select: { id: true, name: true, icon: true, color: true },
     }),
     listCreators(workspaceId),
-    prisma.task.findMany({
-      where: { workspaceId, deletedAt: null },
-      select: { scheduledPublishDate: true, publishStatus: true },
-    }),
   ]);
 
-  const input: DashAsset[] = assets.map((a) => ({
-    id: a.id,
-    title: a.title,
-    type: a.type,
-    status: a.status,
-    channels: a.channels.map((c) => ({
-      channelId: c.channelId,
-      scheduledFor: c.scheduledFor ? c.scheduledFor.toISOString() : null,
-    })),
+  const input: DashTask[] = tasks.map((t) => ({
+    id: t.id,
+    title: t.title,
+    contentTypeLabel: contentTypeLabel(t.contentType),
+    channelId: t.channelId,
+    currentStage: t.currentStage,
+    publishStatus: t.publishStatus,
+    scheduledPublishDate: t.scheduledPublishDate ? t.scheduledPublishDate.toISOString() : null,
+    stages: t.stages.map((s) => ({ reviewStatus: s.reviewStatus })),
   }));
 
-  const dashRange =
-    opts.from || opts.to
-      ? {
-          start: opts.from ? new Date(`${opts.from}T00:00:00.000`) : new Date(0),
-          end: opts.to ? new Date(`${opts.to}T23:59:59.999`) : new Date(),
-        }
-      : undefined;
-  const taskInput: DashTask[] = tasks.map((t) => ({
-    scheduledPublishDate: t.scheduledPublishDate ? t.scheduledPublishDate.toISOString() : null,
-    published: t.publishStatus.startsWith("PUBLISHED"),
-  }));
-  return aggregateDashboard(input, channels, creators, new Date(), dashRange, taskInput);
+  return aggregateDashboard(input, channels, creators, new Date());
 }
 
 // ── Workspace overview (Platform → content-type cards) ──────────────────────
