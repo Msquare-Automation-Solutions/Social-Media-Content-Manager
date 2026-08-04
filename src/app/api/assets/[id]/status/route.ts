@@ -5,6 +5,7 @@ import { isAdminRole } from "@/lib/roles";
 import { logActivity } from "@/lib/activity";
 import { createNotifications, reviewNotificationRecipients } from "@/lib/notifications";
 import { recomputeCurrentStage } from "@/lib/task-server";
+import { syncTaskDeliverable } from "@/lib/deliverable";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -84,6 +85,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       });
       for (const taskId of [...new Set(links.map((l) => l.taskId))]) {
         await recomputeCurrentStage(taskId);
+        // Approving the last stage's file completes the task's deliverable.
+        await syncTaskDeliverable(taskId);
       }
     }
   }

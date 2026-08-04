@@ -527,6 +527,7 @@ export type TaskRow = {
   publishedDate: string | null;
   publisherId: string | null;
   analystId: string | null;
+  deliverableAssetId: string | null;
   contentLink: string | null;
   metricClicks: number | null;
   metricLeads: number | null;
@@ -613,6 +614,7 @@ export async function listTasks(
     publishedDate: t.publishedDate ? t.publishedDate.toISOString() : null,
     publisherId: t.publisherId,
     analystId: t.analystId,
+    deliverableAssetId: t.deliverableAssetId,
     contentLink: t.contentLink,
     metricClicks: t.metricClicks,
     metricLeads: t.metricLeads,

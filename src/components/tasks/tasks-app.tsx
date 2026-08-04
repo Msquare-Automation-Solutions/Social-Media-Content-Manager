@@ -550,6 +550,10 @@ function TaskDrawer({ task, members, isAdmin, canEdit, meId, meCanSelfApprove, o
   const [assignStage, setAssignStage] = useState<string | null>(null);
   const upload = useUploadDialog();
   const t = task;
+  // The task's single consolidated deliverable (shown under Publishing, and
+  // kept out of "Other files" since it isn't a loose attachment).
+  const deliverable = t.assets.find((a) => a.id === t.deliverableAssetId) ?? null;
+  const otherFiles = t.assets.filter((a) => !a.stageId && a.id !== t.deliverableAssetId);
   // Publishing is the publisher's job (admins too); analytics the analyst's.
   const canPublish = isAdmin || (!!t.publisherId && t.publisherId === meId);
   const canRecordMetrics = isAdmin || (!!t.analystId && t.analystId === meId);
@@ -696,6 +700,15 @@ function TaskDrawer({ task, members, isAdmin, canEdit, meId, meCanSelfApprove, o
         {t.scheduledPublishDate && <div className="text-[12px] text-slate">Scheduled for <b className="text-ink">{fmt(t.scheduledPublishDate)}</b></div>}
         {t.publishStatus.startsWith("PUBLISHED") && t.publishedDate && <div className="text-[12px] text-slate">Published on <b className="text-ink">{fmt(t.publishedDate)}</b></div>}
         {t.publisherId && <div className="text-[12px] text-slate">Publisher <b className="text-ink">{members.find((m) => m.id === t.publisherId)?.name ?? "—"}</b></div>}
+        {/* The one consolidated file to publish — every stage's output bundled. */}
+        {deliverable ? (
+          <div className="mt-2">
+            <div className="mb-1 text-[11.5px] font-semibold text-slate">Final deliverable (all stages in one file)</div>
+            <SubmittedFile a={deliverable} />
+          </div>
+        ) : (
+          <div className="mt-1.5 text-[12px] text-slate">The single file to publish appears here once every stage is approved.</div>
+        )}
         {t.currentStage === "PUBLISHING" && canPublish && <button onClick={publish} className="btn-premium mt-2 rounded-[9px] px-3.5 py-1.5 text-[12px] font-semibold">Mark published →</button>}
 
         <div className="mb-2 mt-4 text-[11px] font-extrabold uppercase tracking-[0.06em] text-ink">Analytics</div>
@@ -706,11 +719,11 @@ function TaskDrawer({ task, members, isAdmin, canEdit, meId, meCanSelfApprove, o
           <span className="text-[11px] font-extrabold uppercase tracking-[0.06em] text-ink">Other files</span>
           {canEdit && <button onClick={() => upload.open(async (asset) => { await api(`/api/tasks/${t.id}/assets`, "POST", { assetId: asset.id, stageId: null }); refresh(); }, t.channel ? { channelIds: [t.channel.id] } : undefined)} className="ml-auto rounded-[8px] border border-line px-2.5 py-1 text-[11.5px] font-semibold text-teal-dark hover:border-teal">＋ Upload file</button>}
         </div>
-        {t.assets.filter((a) => !a.stageId).length === 0 ? (
+        {otherFiles.length === 0 ? (
           <div className="text-[12px] text-slate">Files submitted per stage appear under each stage above.</div>
         ) : (
           <div className="flex flex-wrap gap-2">
-            {t.assets.filter((a) => !a.stageId).map((a) => (
+            {otherFiles.map((a) => (
               <SubmittedFile key={a.id} a={a} />
             ))}
           </div>

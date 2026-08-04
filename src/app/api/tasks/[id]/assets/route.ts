@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { guard } from "@/lib/api-guard";
 import { prisma } from "@/lib/db";
+import { syncTaskDeliverable } from "@/lib/deliverable";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -65,5 +66,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       await tx.mediaAsset.update({ where: { id: assetId }, data: { publishable: stage?.publishable ?? true } });
     }
   });
+  // A new file for a stage changes what the task's deliverable should contain.
+  if (stageId) await syncTaskDeliverable(id);
   return Response.json({ ok: true }, { status: 201 });
 }
