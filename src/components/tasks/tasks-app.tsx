@@ -653,8 +653,8 @@ function ReadyList({ tasks, members, onOpen, onPublish }: { tasks: TaskRow[]; me
         return (
           <div
             key={t.id}
-            className={`flex h-full flex-col rounded-card border p-4 shadow-soft ${att ? "border-l-[4px]" : "border-line bg-card"}`}
-            style={att ? attnStyle(att.tone) : undefined}
+            className={`flex h-full flex-col rounded-card border bg-card p-4 shadow-soft ${att ? "" : "border-line"}`}
+            style={att ? { borderColor: att.tone === "red" ? "#f5442e" : "#f5920b" } : undefined}
           >
             <div className="flex flex-wrap items-center gap-2">
               <button onClick={() => onOpen(t.id)} className="min-w-0 flex-1 text-left">
