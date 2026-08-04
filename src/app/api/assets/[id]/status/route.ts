@@ -112,6 +112,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         });
       }
       for (const tk of toPublish) {
+        // Publishing moves the task past "In queue" — keep its board column in
+        // sync, otherwise it lingers there even though it's live.
+        await recomputeCurrentStage(tk.id);
         if (tk.analystId)
           await createNotifications(g.user, [tk.analystId], {
             action: "task.analytics",

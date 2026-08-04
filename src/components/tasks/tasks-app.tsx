@@ -520,20 +520,86 @@ function ReworkList({ tasks, onOpen }: { tasks: TaskRow[]; onOpen: (id: string) 
 // Tasks whose every stage is approved and that aren't live yet. The row IS the
 // task, with all of its stages' files listed underneath — publish once, here.
 function ReadyList({ tasks, members, onOpen, onPublish }: { tasks: TaskRow[]; members: Member[]; onOpen: (id: string) => void; onPublish: (id: string) => void }) {
-  const ready = tasks.filter(
+  const [q, setQ] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
+  const [platform, setPlatform] = useState("");
+  const [account, setAccount] = useState("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+
+  const all = tasks.filter(
     (t) =>
       t.stages.length > 0 &&
       t.stages.every((s) => s.reviewStatus === "APPROVED") &&
       !t.publishStatus.startsWith("PUBLISHED"),
   );
-  if (!ready.length) return <Empty text="Nothing ready yet. A task lands here once every one of its stages is approved." />;
+  const types = [...new Set(all.map((t) => t.contentTypeLabel))].sort();
+  const platforms = [...new Map(all.filter((t) => t.channel).map((t) => [t.channel!.id, t.channel!.name])).entries()];
+  const accounts = [...new Map(all.filter((t) => t.account).map((t) => [t.account!.id, t.account!.name])).entries()];
+  const query = q.trim().toLowerCase();
+  const ready = all.filter((t) => {
+    if (query && !`${t.title} ${t.brief} ${t.contentTypeLabel}`.toLowerCase().includes(query)) return false;
+    if (typeFilter && t.contentTypeLabel !== typeFilter) return false;
+    if (platform && t.channel?.id !== platform) return false;
+    if (account && t.account?.id !== account) return false;
+    if (from || to) {
+      const d = t.scheduledPublishDate ? t.scheduledPublishDate.slice(0, 10) : "";
+      if (!d) return false;
+      if (from && d < from) return false;
+      if (to && d > to) return false;
+    }
+    return true;
+  });
+
+  const fsel = "rounded-[9px] border border-line bg-card px-2.5 py-2 text-[12.5px] text-ink outline-none focus:border-teal";
+  const filterBar = (
+    <div className="mb-4 flex flex-wrap items-end gap-2.5">
+      <label className="text-[11.5px] font-semibold text-slate">Search
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Theme, brief, type…" className={fsel + " mt-1 block w-56 font-normal"} />
+      </label>
+      <label className="text-[11.5px] font-semibold text-slate">Post type
+        <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className={fsel + " mt-1 block font-normal"}>
+          <option value="">All types</option>
+          {types.map((t) => <option key={t} value={t}>{t}</option>)}
+        </select>
+      </label>
+      <label className="text-[11.5px] font-semibold text-slate">Platform
+        <select value={platform} onChange={(e) => setPlatform(e.target.value)} className={fsel + " mt-1 block font-normal"}>
+          <option value="">All platforms</option>
+          {platforms.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+        </select>
+      </label>
+      <label className="text-[11.5px] font-semibold text-slate">Account
+        <select value={account} onChange={(e) => setAccount(e.target.value)} className={fsel + " mt-1 block font-normal"}>
+          <option value="">All accounts</option>
+          {accounts.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+        </select>
+      </label>
+      <label className="text-[11.5px] font-semibold text-slate">Publish from
+        <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={fsel + " mt-1 block font-normal"} />
+      </label>
+      <label className="text-[11.5px] font-semibold text-slate">Publish to
+        <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={fsel + " mt-1 block font-normal"} />
+      </label>
+      {(q || typeFilter || platform || account || from || to) && (
+        <button onClick={() => { setQ(""); setTypeFilter(""); setPlatform(""); setAccount(""); setFrom(""); setTo(""); }} className="rounded-[9px] border border-line px-3 py-2 text-[12px] font-semibold text-slate hover:border-teal">Clear</button>
+      )}
+    </div>
+  );
+
   return (
     <div>
+      {filterBar}
+      {ready.length === 0 && (
+        <Empty text={all.length ? "No tasks match these filters." : "Nothing ready yet. A task lands here once every one of its stages is approved."} />
+      )}
+      {/* Two tasks per row on wide screens — less scrolling. */}
+      <div className="grid grid-cols-1 items-start gap-3 xl:grid-cols-2">
       {ready.map((t) => {
         const att = publishAttention(t);
         const files = t.assets.filter((a) => a.stageId);
         return (
-          <div key={t.id} className={`mb-3 rounded-card border bg-card p-4 shadow-soft ${att ? (att.tone === "red" ? "border-[#c23b2a]/60" : "border-[#e0912b]/60") : "border-line"}`}>
+          <div key={t.id} className={`rounded-card border bg-card p-4 shadow-soft ${att ? (att.tone === "red" ? "border-[#c23b2a]/60" : "border-[#e0912b]/60") : "border-line"}`}>
             <div className="flex flex-wrap items-center gap-2">
               <button onClick={() => onOpen(t.id)} className="min-w-0 flex-1 text-left">
                 <b className="text-[14px]">{t.title}</b>
@@ -577,6 +643,7 @@ function ReadyList({ tasks, members, onOpen, onPublish }: { tasks: TaskRow[]; me
           </div>
         );
       })}
+      </div>
     </div>
   );
 }
