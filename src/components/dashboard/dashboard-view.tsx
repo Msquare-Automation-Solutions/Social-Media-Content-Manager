@@ -83,9 +83,9 @@ export function DashboardView({
         <StatTile
           label="Scheduled ahead"
           value={data.scheduledAhead}
-          sublabel="Posts going out"
+          sublabel="Tasks due to publish"
           accent="#7a4fc9"
-          href="/scheduled"
+          href="/content-overview"
         />
         <StatTile
           label={STATUS_LABELS.PENDING}

@@ -855,9 +855,9 @@ export type DashboardData = {
   totalAssets: number;
   statusCounts: StatusCounts;
   scheduledThisMonth: number;
-  // Posts scheduled from today onward — forward-looking, ignores the range's
-  // To bound (scheduling is inherently future, the range often trails). Powers
-  // the "Scheduled ahead" KPI tile.
+  // Tasks with a publish date from today onward that aren't live yet —
+  // forward-looking, so it ignores the range's To bound (scheduling is
+  // inherently future, the range often trails). Powers the "Scheduled ahead" tile.
   scheduledAhead: number;
   byType: TypeSlice[];
   perPlatform: PlatformSlice[];
@@ -894,12 +894,16 @@ function statusBreakdown(assets: { status: string }[]): StatusCounts {
  * When a `range` is supplied (the dashboard's date filter), the "scheduled"
  * window is that range; otherwise it's the calendar month of `now`.
  */
+// A task's forward-looking publish schedule, for the "Scheduled ahead" tile.
+export type DashTask = { scheduledPublishDate: string | null; published: boolean };
+
 export function aggregateDashboard(
   assets: DashAsset[],
   channels: DashChannel[],
   creators: Pick<CreatorRow, "name" | "avatarColor" | "assetCount">[],
   now: Date,
   range?: { start: Date; end: Date },
+  tasks?: DashTask[],
 ): DashboardData {
   const winStart = range ? range.start : new Date(now.getFullYear(), now.getMonth(), 1);
   const winEnd = range ? range.end : new Date(now.getFullYear(), now.getMonth() + 1, 1);
@@ -927,11 +931,18 @@ export function aggregateDashboard(
   // onward. Ignores the To bound (a trailing range shouldn't hide upcoming
   // posts) and excludes anything still pending/rework — only signed-off content
   // is genuinely "going out".
-  const scheduledAhead = assets.filter(
-    (a) =>
-      a.status === "APPROVED" &&
-      a.channels.some((c) => c.scheduledFor && new Date(c.scheduledFor) >= todayStart),
-  ).length;
+  // Prefer the task pipeline: tasks with a publish date from today onward that
+  // aren't live yet — that's what the team actually schedules when planning.
+  // Falls back to the old asset-based count when no tasks are supplied.
+  const scheduledAhead = tasks
+    ? tasks.filter(
+        (t) => !t.published && t.scheduledPublishDate && new Date(t.scheduledPublishDate) >= todayStart,
+      ).length
+    : assets.filter(
+        (a) =>
+          a.status === "APPROVED" &&
+          a.channels.some((c) => c.scheduledFor && new Date(c.scheduledFor) >= todayStart),
+      ).length;
 
   const perPlatform: PlatformSlice[] = channels.map((ch) => {
     const tagged = assets.filter((a) =>
@@ -996,7 +1007,7 @@ export async function getDashboardData(
   opts: { from?: string; to?: string } = {},
 ): Promise<DashboardData> {
   const range = createdAtRange(opts.from, opts.to);
-  const [assets, channels, creators] = await Promise.all([
+  const [assets, channels, creators, tasks] = await Promise.all([
     prisma.mediaAsset.findMany({
       where: { workspaceId, deletedAt: null, ...(range ? { createdAt: range } : {}) },
       select: {
@@ -1013,6 +1024,10 @@ export async function getDashboardData(
       select: { id: true, name: true, icon: true, color: true },
     }),
     listCreators(workspaceId),
+    prisma.task.findMany({
+      where: { workspaceId, deletedAt: null },
+      select: { scheduledPublishDate: true, publishStatus: true },
+    }),
   ]);
 
   const input: DashAsset[] = assets.map((a) => ({
@@ -1033,7 +1048,11 @@ export async function getDashboardData(
           end: opts.to ? new Date(`${opts.to}T23:59:59.999`) : new Date(),
         }
       : undefined;
-  return aggregateDashboard(input, channels, creators, new Date(), dashRange);
+  const taskInput: DashTask[] = tasks.map((t) => ({
+    scheduledPublishDate: t.scheduledPublishDate ? t.scheduledPublishDate.toISOString() : null,
+    published: t.publishStatus.startsWith("PUBLISHED"),
+  }));
+  return aggregateDashboard(input, channels, creators, new Date(), dashRange, taskInput);
 }
 
 // ── Workspace overview (Platform → content-type cards) ──────────────────────
