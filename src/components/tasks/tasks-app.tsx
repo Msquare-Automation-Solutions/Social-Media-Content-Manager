@@ -977,9 +977,9 @@ function TaskForm({ task, channels, accounts, taskTypes, members, isAdmin, onClo
                         <div className="min-w-[150px] flex-1" title="Who should review this stage">
                           <SearchableSelect value={sel.reviewerId} options={reviewerOpts} onChange={(v) => setStage(s, { reviewerId: v })} placeholder="Reviewer" />
                         </div>
-                        <label className="flex items-center gap-1.5 rounded-[8px] border border-line px-2 py-1.5 text-[11.5px] font-normal text-slate" title="This stage produces the file that gets published (shows in the Approved panel)">
+                        <label className="flex items-center gap-1.5 rounded-[8px] border border-line px-2 py-1.5 text-[11.5px] font-normal text-slate" title="This stage's file represents the piece publicly — it becomes the cover of the task's final deliverable. Every stage's file is still included as a part.">
                           <input type="checkbox" checked={sel.publishable} onChange={(e) => setStage(s, { publishable: e.target.checked })} className="h-3.5 w-3.5 accent-[#0e9f8f]" />
-                          Gets published
+                          Main file
                         </label>
                       </div>
                     )}
