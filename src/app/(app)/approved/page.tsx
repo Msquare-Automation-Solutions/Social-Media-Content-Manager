@@ -36,6 +36,9 @@ export default async function ApprovedPage({
 
   return (
     <ApprovedView
+      title="Ready to publish"
+      subtitle="One file per task, bundling every stage's work — these appear once all of a task's stages are approved. Open a card to review the parts and publish it."
+      emptyText="Nothing ready yet. A task's file appears here once every one of its stages is approved."
       assets={assets}
       people={people}
       channels={channels}

@@ -101,6 +101,8 @@ export function Sidebar({
             it("/my-work", "My Work", "mywork", isActive("/my-work"), myTaskCount || undefined, myTaskCount > 0),
             ...(isAdmin ? [it("/tasks/review", "To review", "review", isActive("/tasks/review"), taskReviewCount || undefined, taskReviewCount > 0)] : []),
             ...(isAdmin ? [it("/tasks/rework", "In rework", "rework", isActive("/tasks/rework"), taskReworkCount || undefined)] : []),
+            // Fully-approved tasks whose single deliverable is ready to go live.
+            it("/approved", "Ready to publish", "approved", isActive("/approved"), approvedCount || undefined),
             it("/analytics", "Analytics", "analytics", isActive("/analytics")),
           ],
         },
@@ -132,7 +134,6 @@ export function Sidebar({
           items: [
             it("/review", isPrimaryOwner ? "Review queue" : "Pending", "review", isActive("/review"), queueCount || undefined, queueCount > 0),
             it("/rework", "Needs rework", "rework", isActive("/rework"), reworkCount || undefined, reworkCount > 0),
-            it("/approved", "Approved", "approved", isActive("/approved"), approvedCount || undefined),
             it("/published", "Published", "published", isActive("/published"), publishedCount || undefined),
           ],
         },
