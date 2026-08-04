@@ -231,10 +231,9 @@ function subtitle(mode: TasksMode, isAdmin: boolean) {
 function attnStyle(tone: "red" | "amber"): React.CSSProperties {
   const c = tone === "red" ? "245,68,46" : "245,146,11";
   return {
-    borderColor: `rgb(${c})`,
+    borderColor: `rgba(${c},0.55)`,
     borderLeftColor: `rgb(${c})`,
-    backgroundColor: `rgba(${c},0.10)`,
-    boxShadow: `0 0 0 1px rgba(${c},0.35), 0 6px 18px rgba(${c},0.15)`,
+    backgroundColor: `rgba(${c},0.04)`,
   };
 }
 
@@ -336,8 +335,8 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
                   {arr.map((t) => {
                     const att = publishAttention(t);
                     return (
-                      <tr key={t.id} onClick={() => onOpen(t.id)} className={`cursor-pointer border-b border-line hover:bg-wash/[0.03] ${att ? (att.tone === "red" ? "bg-[#f5442e]/[0.10]" : "bg-[#f5920b]/[0.10]") : ""}`}>
-                        <td className={`px-3 py-2.5 font-semibold ${att ? (att.tone === "red" ? "border-l-[5px] border-[#f5442e]" : "border-l-[5px] border-[#f5920b]") : ""}`}>{t.title}</td>
+                      <tr key={t.id} onClick={() => onOpen(t.id)} className={`cursor-pointer border-b border-line hover:bg-wash/[0.03] ${att ? (att.tone === "red" ? "bg-[#f5442e]/[0.05]" : "bg-[#f5920b]/[0.05]") : ""}`}>
+                        <td className={`px-3 py-2.5 font-semibold ${att ? (att.tone === "red" ? "border-l-[3px] border-[#f5442e]" : "border-l-[3px] border-[#f5920b]") : ""}`}>{t.title}</td>
                         <td className="px-3 py-2.5">{t.contentTypeLabel}</td>
                         <td className="px-3 py-2.5">{t.channel?.name ?? "—"} · {t.account?.name ?? "—"}</td>
                         <td className="max-w-[160px] truncate px-3 py-2.5 text-slate">{t.brief || "—"}</td>
@@ -368,10 +367,14 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
 
 // ── Board (kanban) ───────────────────────────────────────────────────────────
 function Board({ tasks, onOpen }: { tasks: TaskRow[]; onOpen: (id: string) => void }) {
+  const [q, setQ] = useState("");
+  const shown = tasks.filter((t) => taskMatches(t, q));
   return (
-    <div className="flex h-[calc(100vh-165px)] gap-3 overflow-x-auto overflow-y-hidden pb-2">
+    <>
+    <TaskSearch value={q} onChange={setQ} />
+    <div className="flex h-[calc(100vh-215px)] gap-3 overflow-x-auto overflow-y-hidden pb-2">
       {TASK_BOARD_COLUMNS.map((col) => {
-        const items = tasks.filter((t) => t.currentStage === col);
+        const items = shown.filter((t) => t.currentStage === col);
         return (
           <div key={col} className="flex h-full w-[240px] flex-shrink-0 flex-col rounded-card border border-line bg-wash/[0.03] p-2.5">
             <div className="mb-2.5 flex items-center gap-2 px-1 text-[12.5px] font-bold">
@@ -386,7 +389,7 @@ function Board({ tasks, onOpen }: { tasks: TaskRow[]; onOpen: (id: string) => vo
                 <button
                   key={t.id}
                   onClick={() => onOpen(t.id)}
-                  className={`mb-2 block w-full rounded-[11px] p-2.5 text-left transition hover:-translate-y-0.5 hover:shadow-lift ${att ? "border-2 border-l-[6px]" : "border border-line bg-card shadow-soft"}`}
+                  className={`mb-2 block w-full rounded-[11px] border p-2.5 text-left shadow-soft transition hover:-translate-y-0.5 hover:shadow-lift ${att ? "border-l-[4px]" : "border-line bg-card"}`}
                   style={att ? attnStyle(att.tone) : undefined}
                 >
                   <div className="mb-1.5 text-[13px] font-semibold">{t.title}</div>
@@ -416,13 +419,16 @@ function Board({ tasks, onOpen }: { tasks: TaskRow[]; onOpen: (id: string) => vo
         );
       })}
     </div>
+    </>
   );
 }
 
 // ── My Work ──────────────────────────────────────────────────────────────────
 function MyWork({ tasks, meId, onOpen }: { tasks: TaskRow[]; meId: string; onOpen: (id: string) => void }) {
+  const [q, setQ] = useState("");
+  const shownTasks = tasks.filter((t) => taskMatches(t, q));
   const mine: { t: TaskRow; s: TaskRow["stages"][number] }[] = [];
-  for (const t of tasks) for (const s of t.stages) if (s.assigneeId === meId) mine.push({ t, s });
+  for (const t of shownTasks) for (const s of t.stages) if (s.assigneeId === meId) mine.push({ t, s });
   const groups: Record<string, typeof mine> = { "To do": [], "In review": [], "Needs rework": [], Done: [] };
   for (const x of mine) {
     const r = x.s.reviewStatus;
@@ -432,13 +438,14 @@ function MyWork({ tasks, meId, onOpen }: { tasks: TaskRow[]; meId: string; onOpe
   // yet are surfaced first as action items.
   const hasMetrics = (t: TaskRow) =>
     [t.metricImpressions, t.metricReach, t.metricClicks, t.metricLeads, t.metricEng, t.metricSaves, t.metricShares].some((v) => v != null);
-  const analytics = tasks.filter((t) => t.analystId === meId && t.publishStatus.startsWith("PUBLISHED"));
+  const analytics = shownTasks.filter((t) => t.analystId === meId && t.publishStatus.startsWith("PUBLISHED"));
   const analyticsPending = analytics.filter((t) => !hasMetrics(t));
   const analyticsDone = analytics.filter(hasMetrics);
   return (
     <div>
+      <TaskSearch value={q} onChange={setQ} />
       {mine.length === 0 && analytics.length === 0 && (
-        <p className="mb-1 text-[13px] text-slate">Nothing assigned to you yet.</p>
+        <p className="mb-1 text-[13px] text-slate">{q.trim() ? "No tasks match your search." : "Nothing assigned to you yet."}</p>
       )}
       {Object.entries(groups).map(([g, arr]) => (
         <div key={g}>
@@ -483,11 +490,13 @@ function MyWork({ tasks, meId, onOpen }: { tasks: TaskRow[]; meId: string; onOpe
 
 // ── Review inbox ─────────────────────────────────────────────────────────────
 function ReviewInbox({ tasks, meId, meCanSelfApprove, onOpen, onReview }: { tasks: TaskRow[]; meId: string; meCanSelfApprove?: boolean; onOpen: (id: string) => void; onReview: (t: string, s: string, o: "APPROVED" | "REWORK") => void }) {
+  const [q, setQ] = useState("");
   const rows: { t: TaskRow; s: TaskRow["stages"][number] }[] = [];
-  for (const t of tasks) for (const s of t.stages) if (s.reviewStatus === "PENDING") rows.push({ t, s });
-  if (!rows.length) return <Empty text="Nothing waiting for review." />;
+  for (const t of tasks) if (taskMatches(t, q)) for (const s of t.stages) if (s.reviewStatus === "PENDING") rows.push({ t, s });
   return (
     <div>
+      <TaskSearch value={q} onChange={setQ} />
+      {rows.length === 0 && <Empty text={q.trim() ? "No submissions match your search." : "Nothing waiting for review."} />}
       {rows.map(({ t, s }) => {
         const mine = s.assigneeId === meId && !meCanSelfApprove; // can't review your own work (unless super admin)
         return (
@@ -514,11 +523,13 @@ function ReviewInbox({ tasks, meId, meCanSelfApprove, onOpen, onReview }: { task
 // ── Rework list ──────────────────────────────────────────────────────────────
 // Stages an admin sent back; they sit here until the owner re-submits.
 function ReworkList({ tasks, onOpen }: { tasks: TaskRow[]; onOpen: (id: string) => void }) {
+  const [q, setQ] = useState("");
   const rows: { t: TaskRow; s: TaskRow["stages"][number] }[] = [];
-  for (const t of tasks) for (const s of t.stages) if (s.reviewStatus === "REWORK") rows.push({ t, s });
-  if (!rows.length) return <Empty text="Nothing in rework right now." />;
+  for (const t of tasks) if (taskMatches(t, q)) for (const s of t.stages) if (s.reviewStatus === "REWORK") rows.push({ t, s });
   return (
     <div>
+      <TaskSearch value={q} onChange={setQ} />
+      {rows.length === 0 && <Empty text={q.trim() ? "No stages match your search." : "Nothing in rework right now."} />}
       {rows.map(({ t, s }) => (
         <button key={s.id} onClick={() => onOpen(t.id)} className="mb-2 flex w-full items-center gap-3 rounded-[12px] border border-line bg-card px-4 py-3 text-left shadow-soft hover:border-teal">
           <span className={`${badge} inline-flex items-center gap-1 bg-[#f6dcd6] text-[#c23b2a]`}><StageIcon stage={s.stage} size={12} /> {STAGE_LABELS[s.stage]}</span>
@@ -530,6 +541,29 @@ function ReworkList({ tasks, onOpen }: { tasks: TaskRow[]; onOpen: (id: string) 
           {s.targetDate && <span className="shrink-0 text-[11px] text-slate">due {fmt(s.targetDate)}</span>}
         </button>
       ))}
+    </div>
+  );
+}
+
+// Free-text match across a task's title / brief / type / platform / account —
+// powers the search box on every task list.
+function taskMatches(t: TaskRow, q: string): boolean {
+  const n = q.trim().toLowerCase();
+  if (!n) return true;
+  return `${t.title} ${t.brief} ${t.contentTypeLabel} ${t.channel?.name ?? ""} ${t.account?.name ?? ""}`
+    .toLowerCase()
+    .includes(n);
+}
+
+function TaskSearch({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="mb-4">
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Search tasks, theme, brief, type, platform…"
+        className="w-full max-w-[340px] rounded-[9px] border border-line bg-card px-3 py-2 text-[12.5px] text-ink outline-none focus:border-teal"
+      />
     </div>
   );
 }
@@ -619,7 +653,7 @@ function ReadyList({ tasks, members, onOpen, onPublish }: { tasks: TaskRow[]; me
         return (
           <div
             key={t.id}
-            className={`rounded-card p-4 ${att ? "border-2 border-l-[7px]" : "border border-line bg-card shadow-soft"}`}
+            className={`rounded-card border p-4 shadow-soft ${att ? "border-l-[4px]" : "border-line bg-card"}`}
             style={att ? attnStyle(att.tone) : undefined}
           >
             <div className="flex flex-wrap items-center gap-2">
