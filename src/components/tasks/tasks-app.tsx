@@ -646,14 +646,14 @@ function ReadyList({ tasks, members, onOpen, onPublish }: { tasks: TaskRow[]; me
         <Empty text={all.length ? "No tasks match these filters." : "Nothing ready yet. A task lands here once every one of its stages is approved."} />
       )}
       {/* Two tasks per row on wide screens — less scrolling. */}
-      <div className="grid grid-cols-1 items-start gap-3 xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
       {ready.map((t) => {
         const att = publishAttention(t);
         const files = t.assets.filter((a) => a.stageId);
         return (
           <div
             key={t.id}
-            className={`rounded-card border p-4 shadow-soft ${att ? "border-l-[4px]" : "border-line bg-card"}`}
+            className={`flex h-full flex-col rounded-card border p-4 shadow-soft ${att ? "border-l-[4px]" : "border-line bg-card"}`}
             style={att ? attnStyle(att.tone) : undefined}
           >
             <div className="flex flex-wrap items-center gap-2">
@@ -693,9 +693,12 @@ function ReadyList({ tasks, members, onOpen, onPublish }: { tasks: TaskRow[]; me
                 })
               )}
             </div>
-            {t.publisherId && (
-              <div className="mt-2 text-[11.5px] text-slate">Publisher <b className="text-ink">{members.find((m) => m.id === t.publisherId)?.name ?? "—"}</b></div>
-            )}
+            <div className="mt-auto pt-3 text-[11.5px] text-slate">
+              Publisher{" "}
+              <b className="text-ink">
+                {t.publisherId ? members.find((m) => m.id === t.publisherId)?.name ?? "—" : "Unassigned"}
+              </b>
+            </div>
           </div>
         );
       })}
