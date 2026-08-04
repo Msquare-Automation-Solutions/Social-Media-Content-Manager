@@ -96,7 +96,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     d.metricReach !== undefined ||
     d.metricSaves !== undefined ||
     d.metricShares !== undefined ||
-    d.metricsNote !== undefined;
+    d.metricsNote !== undefined ||
+    d.contentLink !== undefined; // the post link is recorded with the metrics
 
   // Only the assigned analyst (or an admin) may record/edit metrics; only the
   // assigned publisher (or an admin) may mark it published.

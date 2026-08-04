@@ -735,8 +735,8 @@ function Analytics({ tasks }: { tasks: TaskRow[] }) {
       </div>
       <div className="mb-2 text-[11px] font-extrabold uppercase tracking-[0.06em] text-ink">Published pieces</div>
       <div className="overflow-x-auto rounded-card border border-line bg-card shadow-soft">
-        <table className="w-full border-collapse text-[12.5px]"><thead><tr className="border-b border-line text-left text-[11px] uppercase tracking-[0.04em] text-slate"><th className="px-3 py-2.5">Content</th><th className="px-3 py-2.5">Platform</th><th className="px-3 py-2.5">Impr.</th><th className="px-3 py-2.5">Reach</th><th className="px-3 py-2.5">Clicks</th><th className="px-3 py-2.5">Leads</th><th className="px-3 py-2.5">Eng.</th><th className="px-3 py-2.5">Saves</th><th className="px-3 py-2.5">Shares</th></tr></thead>
-        <tbody>{pub.length ? pub.map((t) => <tr key={t.id} className="border-b border-line"><td className="px-3 py-2.5 font-semibold">{t.title}</td><td className="px-3 py-2.5">{t.channel?.name ?? "·"}</td><td className="px-3 py-2.5">{cell(t.metricImpressions)}</td><td className="px-3 py-2.5">{cell(t.metricReach)}</td><td className="px-3 py-2.5">{cell(t.metricClicks)}</td><td className="px-3 py-2.5">{cell(t.metricLeads)}</td><td className="px-3 py-2.5">{cell(t.metricEng)}</td><td className="px-3 py-2.5">{cell(t.metricSaves)}</td><td className="px-3 py-2.5">{cell(t.metricShares)}</td></tr>) : <tr><td colSpan={9} className="px-3 py-6 text-center text-slate">Nothing published yet.</td></tr>}</tbody></table>
+        <table className="w-full border-collapse text-[12.5px]"><thead><tr className="border-b border-line text-left text-[11px] uppercase tracking-[0.04em] text-slate"><th className="px-3 py-2.5">Content</th><th className="px-3 py-2.5">Platform</th><th className="px-3 py-2.5">Post link</th><th className="px-3 py-2.5">Impr.</th><th className="px-3 py-2.5">Reach</th><th className="px-3 py-2.5">Clicks</th><th className="px-3 py-2.5">Leads</th><th className="px-3 py-2.5">Eng.</th><th className="px-3 py-2.5">Saves</th><th className="px-3 py-2.5">Shares</th></tr></thead>
+        <tbody>{pub.length ? pub.map((t) => <tr key={t.id} className="border-b border-line"><td className="px-3 py-2.5 font-semibold">{t.title}</td><td className="px-3 py-2.5">{t.channel?.name ?? "·"}</td><td className="px-3 py-2.5">{t.contentLink ? <a href={t.contentLink} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="text-teal-dark underline">open ↗</a> : "·"}</td><td className="px-3 py-2.5">{cell(t.metricImpressions)}</td><td className="px-3 py-2.5">{cell(t.metricReach)}</td><td className="px-3 py-2.5">{cell(t.metricClicks)}</td><td className="px-3 py-2.5">{cell(t.metricLeads)}</td><td className="px-3 py-2.5">{cell(t.metricEng)}</td><td className="px-3 py-2.5">{cell(t.metricSaves)}</td><td className="px-3 py-2.5">{cell(t.metricShares)}</td></tr>) : <tr><td colSpan={10} className="px-3 py-6 text-center text-slate">Nothing published yet.</td></tr>}</tbody></table>
       </div>
     </div>
   );
@@ -933,8 +933,10 @@ const METRIC_FIELDS = [
 ] as const;
 
 function MetricsEditor({ task, canEdit, api, refresh, toast }: { task: TaskRow; canEdit: boolean; api: (u: string, m: string, b?: unknown) => Promise<boolean>; refresh: () => void; toast: (m: string) => void }) {
-  const recorded = METRIC_FIELDS.some((f) => task[f.key] != null) || !!task.metricsNote;
+  const recorded = METRIC_FIELDS.some((f) => task[f.key] != null) || !!task.metricsNote || !!task.contentLink;
   const [editing, setEditing] = useState(false);
+  // The live post URL — recorded first, then the numbers.
+  const [link, setLink] = useState(task.contentLink ?? "");
   const [vals, setVals] = useState<Record<string, string>>(() =>
     Object.fromEntries(METRIC_FIELDS.map((f) => [f.key, task[f.key] != null ? String(task[f.key]) : ""])),
   );
@@ -943,7 +945,10 @@ function MetricsEditor({ task, canEdit, api, refresh, toast }: { task: TaskRow; 
 
   async function save() {
     setSaving(true);
-    const body: Record<string, number | string | null> = { metricsNote: note.trim() || null };
+    const body: Record<string, number | string | null> = {
+      metricsNote: note.trim() || null,
+      contentLink: link.trim() || null,
+    };
     for (const f of METRIC_FIELDS) {
       const raw = vals[f.key].trim();
       body[f.key] = raw === "" ? null : Math.max(0, Math.round(Number(raw) || 0));
@@ -957,20 +962,40 @@ function MetricsEditor({ task, canEdit, api, refresh, toast }: { task: TaskRow; 
     return (
       <div>
         {recorded ? (
-          <div className="flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-slate">
-            {METRIC_FIELDS.map((f) => (
-              <span key={f.key}>{f.label} <b className="text-ink">{task[f.key] != null ? Number(task[f.key]).toLocaleString() : "·"}</b></span>
-            ))}
-          </div>
-        ) : <div className="text-[12px] text-slate">No metrics recorded yet.</div>}
+          <>
+            <div className="mb-1 text-[12px] text-slate">
+              Post link{" "}
+              {task.contentLink ? (
+                <a href={task.contentLink} target="_blank" rel="noreferrer" className="text-teal-dark underline">{task.contentLink}</a>
+              ) : (
+                <b className="text-ink">·</b>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-slate">
+              {METRIC_FIELDS.map((f) => (
+                <span key={f.key}>{f.label} <b className="text-ink">{task[f.key] != null ? Number(task[f.key]).toLocaleString() : "·"}</b></span>
+              ))}
+            </div>
+          </>
+        ) : <div className="text-[12px] text-slate">No post link or metrics recorded yet.</div>}
         {recorded && task.metricsNote && <div className="mt-1.5 text-[12px] text-slate">📝 {task.metricsNote}</div>}
-        {canEdit && <button onClick={() => setEditing(true)} className="btn-premium mt-2 rounded-[9px] px-3.5 py-1.5 text-[12px] font-semibold">{recorded ? "Edit metrics" : "Record metrics →"}</button>}
+        {canEdit && <button onClick={() => setEditing(true)} className="btn-premium mt-2 rounded-[9px] px-3.5 py-1.5 text-[12px] font-semibold">{recorded ? "Edit link & metrics" : "Add post link & metrics →"}</button>}
       </div>
     );
   }
 
   return (
     <div className="rounded-[12px] border border-line bg-wash/[0.02] p-3">
+      <label className="mb-2 block text-[11px] font-semibold text-slate">
+        Post link <span className="font-normal">(where it went live)</span>
+        <input
+          type="url"
+          value={link}
+          onChange={(e) => setLink(e.target.value)}
+          placeholder="https://…"
+          className="mt-0.5 w-full rounded-[8px] border border-line bg-card px-2 py-1.5 text-[12px] text-ink outline-none focus:border-teal"
+        />
+      </label>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {METRIC_FIELDS.map((f) => (
           <label key={f.key} className="text-[11px] font-semibold text-slate">
@@ -981,7 +1006,7 @@ function MetricsEditor({ task, canEdit, api, refresh, toast }: { task: TaskRow; 
       </div>
       <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note (optional)" className="mt-2 w-full rounded-[8px] border border-line bg-card px-2 py-1.5 text-[12px] text-ink outline-none focus:border-teal" />
       <div className="mt-2 flex gap-2">
-        <button disabled={saving} onClick={save} className="btn-premium rounded-[8px] px-3 py-1.5 text-[11.5px] font-semibold disabled:opacity-60">{saving ? "Saving…" : "Save metrics"}</button>
+        <button disabled={saving} onClick={save} className="btn-premium rounded-[8px] px-3 py-1.5 text-[11.5px] font-semibold disabled:opacity-60">{saving ? "Saving…" : "Save link & metrics"}</button>
         <button onClick={() => setEditing(false)} className="px-2 py-1.5 text-[11.5px] font-semibold text-slate">Cancel</button>
       </div>
     </div>
