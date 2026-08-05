@@ -6,6 +6,7 @@ type Detail = {
   id: string;
   title: string;
   type: string;
+  source: string; // UPLOAD | GENERATED | LINK
   url: string | null;
   html: string | null;
   filename: string | null;
@@ -50,6 +51,9 @@ export function FilePreview({ assetId, onClose }: { assetId: string; onClose: ()
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  // An external reference (Drive/YouTube/any URL) — there's no file to render,
+  // so the useful action is opening it.
+  const isLink = a?.source === "LINK" && !!a.url;
   const isImage = a?.mimeType?.startsWith("image/");
   const isVideo = a?.mimeType?.startsWith("video/");
   const isPdf = a?.mimeType === "application/pdf";
@@ -65,20 +69,29 @@ export function FilePreview({ assetId, onClose }: { assetId: string; onClose: ()
             <h2 className="truncate font-display text-[17px]">{a?.title ?? "Loading…"}</h2>
             {a && (
               <p className="mt-0.5 truncate text-[12px] text-slate">
-                {a.filename ?? "—"}
-                {a.mimeType ? ` · ${a.mimeType}` : ""}
-                {a.sizeBytes != null ? ` · ${fmtBytes(a.sizeBytes)}` : ""}
+                {isLink
+                  ? a.url
+                  : `${a.filename ?? "—"}${a.mimeType ? ` · ${a.mimeType}` : ""}${a.sizeBytes != null ? ` · ${fmtBytes(a.sizeBytes)}` : ""}`}
               </p>
             )}
           </div>
-          {a && (
+          {a && isLink ? (
+            <a
+              href={a.url!}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-premium shrink-0 rounded-[9px] px-3 py-1.5 text-[12px] font-semibold"
+            >
+              Open link ↗
+            </a>
+          ) : a ? (
             <a
               href={`/api/assets/${a.id}/download`}
               className="shrink-0 rounded-[9px] border border-line px-3 py-1.5 text-[12px] font-semibold text-teal-dark hover:border-teal"
             >
               ↓ Download
             </a>
-          )}
+          ) : null}
           <button
             onClick={onClose}
             className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-slate hover:bg-wash/[0.06]"
@@ -94,6 +107,26 @@ export function FilePreview({ assetId, onClose }: { assetId: string; onClose: ()
           </div>
         ) : !a ? (
           <div className="grid place-items-center py-16 text-[13px] text-slate">Loading…</div>
+        ) : isLink ? (
+          <div className="grid place-items-center gap-3 rounded-[12px] border border-line bg-wash/[0.03] py-14 text-center">
+            <div className="text-[13px] font-semibold text-ink">External link</div>
+            <a
+              href={a.url!}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="max-w-[80%] truncate text-[12.5px] text-teal-dark underline"
+            >
+              {a.url}
+            </a>
+            <a
+              href={a.url!}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-premium rounded-[10px] px-4 py-2 text-[12.5px] font-semibold"
+            >
+              Open in a new window ↗
+            </a>
+          </div>
         ) : isVideo && a.url ? (
           <video src={a.url} controls className="max-h-[68vh] w-full rounded-[12px] bg-black" />
         ) : isImage && a.url ? (
