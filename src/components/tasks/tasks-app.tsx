@@ -7,6 +7,7 @@ import { useToast } from "@/components/ui/toast";
 import { Icon, type IconName } from "@/components/ui/icons";
 import { PlatformIcon } from "@/components/ui/platform-icon";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { FilePreview } from "@/components/tasks/file-preview";
 import { useUploadDialog, type SaveDefaults } from "@/components/save/dialog-context";
 import type { TaskRow } from "@/lib/data";
 import {
@@ -19,14 +20,8 @@ import {
   type TaskWorkStatus,
 } from "@/lib/enums";
 import { contentTypeLabel, suggestStages, weekLabelForDate, summarizeTasks } from "@/lib/tasks";
-import { LIBRARY_VIEWS, LIBRARY_SLUGS } from "@/lib/library";
 
 // Library slug for an asset type, so a submission links to where it lives.
-function assetSlug(type: string): string {
-  const view = LIBRARY_VIEWS.find((v) => (v.types as readonly string[]).includes(type))?.key ?? "IMAGE";
-  return LIBRARY_SLUGS[view];
-}
-
 // A submitted file, shown so its identity is clear WITHOUT downloading: the
 // name, its extension/type, a thumbnail when available, and a Download link.
 // Clicking the row opens the item in the library.
@@ -38,9 +33,12 @@ function fileExt(name: string | null): string {
 function SubmittedFile({ a }: { a: SubmittedAsset }) {
   const ext = fileExt(a.filename);
   const kind = ext || contentTypeLabel(a.type);
+  // View it right here rather than navigating off to the library and back.
+  const [preview, setPreview] = useState(false);
   return (
     <div className="flex w-[230px] items-center gap-2 rounded-[9px] border border-line bg-wash/[0.03] p-1.5">
-      <a href={`/${assetSlug(a.type)}?asset=${a.id}`} title="Open" className="flex min-w-0 flex-1 items-center gap-2">
+      {preview && <FilePreview assetId={a.id} onClose={() => setPreview(false)} />}
+      <button type="button" onClick={() => setPreview(true)} title="View" className="flex min-w-0 flex-1 items-center gap-2 text-left">
         <span className="grid h-[38px] w-[52px] shrink-0 place-items-center overflow-hidden rounded-[7px] border border-line bg-wash/[0.05]">
           {a.thumbnailUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -53,7 +51,7 @@ function SubmittedFile({ a }: { a: SubmittedAsset }) {
           <span className="block truncate text-[12px] font-medium text-ink">{a.title}</span>
           <span className="block truncate text-[10.5px] text-slate">{a.filename ?? kind} · {kind}</span>
         </span>
-      </a>
+      </button>
       {a.filename && (
         <a href={`/api/assets/${a.id}/download`} title="Download" className="grid h-7 w-7 shrink-0 place-items-center rounded-[7px] text-[13px] text-slate hover:bg-wash/[0.08] hover:text-ink">
           ↓
@@ -491,31 +489,68 @@ function MyWork({ tasks, meId, onOpen }: { tasks: TaskRow[]; meId: string; onOpe
 // ── Review inbox ─────────────────────────────────────────────────────────────
 function ReviewInbox({ tasks, meId, meCanSelfApprove, onOpen, onReview }: { tasks: TaskRow[]; meId: string; meCanSelfApprove?: boolean; onOpen: (id: string) => void; onReview: (t: string, s: string, o: "APPROVED" | "REWORK") => void }) {
   const [q, setQ] = useState("");
-  const rows: { t: TaskRow; s: TaskRow["stages"][number] }[] = [];
-  for (const t of tasks) if (taskMatches(t, q)) for (const s of t.stages) if (s.reviewStatus === "PENDING") rows.push({ t, s });
+  // One card per TASK (matching the sidebar count), with its pending stages
+  // nested — a task can have several stages awaiting a decision.
+  const rows = tasks
+    .filter((t) => taskMatches(t, q))
+    .map((t) => ({ t, pending: t.stages.filter((s) => s.reviewStatus === "PENDING") }))
+    .filter((r) => r.pending.length > 0);
   return (
     <div>
       <TaskSearch value={q} onChange={setQ} />
       {rows.length === 0 && <Empty text={q.trim() ? "No submissions match your search." : "Nothing waiting for review."} />}
-      {rows.map(({ t, s }) => {
-        const mine = s.assigneeId === meId && !meCanSelfApprove; // can't review your own work (unless super admin)
-        return (
-        <div key={s.id} className="mb-2 flex items-center gap-3 rounded-[12px] border border-line bg-card px-4 py-3 shadow-soft">
-          <button onClick={() => onOpen(t.id)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
-            <span className={`${badge} inline-flex items-center gap-1 bg-violet-soft text-violet`}><StageIcon stage={s.stage} size={12} /> {STAGE_LABELS[s.stage]}</span>
-            <span className="min-w-0"><b className="text-[13.5px]">{t.title}</b><span className="block text-[11.5px] text-slate">by {s.assigneeName ?? "—"} · {t.contentTypeLabel}</span></span>
-          </button>
-          {mine ? (
-            <span className="text-[11.5px] font-medium text-slate">Your own work, another admin must review</span>
-          ) : (
-            <>
-              <button onClick={() => onReview(t.id, s.id, "APPROVED")} className="btn-premium rounded-[9px] px-3.5 py-1.5 text-[12px] font-semibold">Approve</button>
-              <button onClick={() => onReview(t.id, s.id, "REWORK")} className="rounded-[9px] border border-line px-3.5 py-1.5 text-[12px] font-semibold text-ink hover:border-teal">Rework</button>
-            </>
-          )}
-        </div>
-        );
-      })}
+      <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+        {rows.map(({ t, pending }) => (
+          <div key={t.id} className="flex h-full flex-col rounded-card border border-line bg-card p-4 shadow-soft">
+            <div className="flex flex-wrap items-center gap-2">
+              <button onClick={() => onOpen(t.id)} className="min-w-0 flex-1 text-left">
+                <b className="text-[14px]">{t.title}</b>
+                <span className="block text-[11.5px] text-slate">
+                  {t.contentTypeLabel}
+                  {t.channel ? ` · ${t.channel.name}` : ""}
+                  {t.account ? ` · ${t.account.name}` : ""}
+                </span>
+              </button>
+              <span className={`${badge} bg-[#fbeecb] text-[#c98a12]`}>
+                {pending.length} stage{pending.length === 1 ? "" : "s"} to review
+              </span>
+            </div>
+
+            {pending.map((s) => {
+              const mine = s.assigneeId === meId && !meCanSelfApprove; // can't review your own work
+              const files = t.assets.filter((a) => a.stageId === s.id);
+              return (
+                <div key={s.id} className="mt-3 rounded-[10px] border border-line bg-wash/[0.02] p-2.5">
+                  <div className="mb-2 flex flex-wrap items-center gap-2">
+                    <span className={`${badge} inline-flex items-center gap-1 bg-violet-soft text-violet`}>
+                      <StageIcon stage={s.stage} size={12} /> {STAGE_LABELS[s.stage]}
+                    </span>
+                    <span className="text-[11.5px] text-slate">
+                      by <b className="text-ink">{s.assigneeName ?? "—"}</b>
+                      {s.submittedAt ? ` · submitted ${fmt(s.submittedAt)}` : ""}
+                    </span>
+                    {mine ? (
+                      <span className="ml-auto text-[11.5px] font-medium text-slate">Someone else must review your work</span>
+                    ) : (
+                      <span className="ml-auto flex gap-1.5">
+                        <button onClick={() => onReview(t.id, s.id, "APPROVED")} className="btn-premium rounded-[9px] px-3 py-1.5 text-[12px] font-semibold">Approve</button>
+                        <button onClick={() => onReview(t.id, s.id, "REWORK")} className="rounded-[9px] border border-line px-3 py-1.5 text-[12px] font-semibold text-ink hover:border-teal">Rework</button>
+                      </span>
+                    )}
+                  </div>
+                  {files.length === 0 ? (
+                    <span className="text-[11.5px] text-slate">No file attached.</span>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {files.map((a) => <SubmittedFile key={a.id} a={a} />)}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -524,23 +559,54 @@ function ReviewInbox({ tasks, meId, meCanSelfApprove, onOpen, onReview }: { task
 // Stages an admin sent back; they sit here until the owner re-submits.
 function ReworkList({ tasks, onOpen }: { tasks: TaskRow[]; onOpen: (id: string) => void }) {
   const [q, setQ] = useState("");
-  const rows: { t: TaskRow; s: TaskRow["stages"][number] }[] = [];
-  for (const t of tasks) if (taskMatches(t, q)) for (const s of t.stages) if (s.reviewStatus === "REWORK") rows.push({ t, s });
+  const rows = tasks
+    .filter((t) => taskMatches(t, q))
+    .map((t) => ({ t, back: t.stages.filter((s) => s.reviewStatus === "REWORK") }))
+    .filter((r) => r.back.length > 0);
   return (
     <div>
       <TaskSearch value={q} onChange={setQ} />
-      {rows.length === 0 && <Empty text={q.trim() ? "No stages match your search." : "Nothing in rework right now."} />}
-      {rows.map(({ t, s }) => (
-        <button key={s.id} onClick={() => onOpen(t.id)} className="mb-2 flex w-full items-center gap-3 rounded-[12px] border border-line bg-card px-4 py-3 text-left shadow-soft hover:border-teal">
-          <span className={`${badge} inline-flex items-center gap-1 bg-[#f6dcd6] text-[#c23b2a]`}><StageIcon stage={s.stage} size={12} /> {STAGE_LABELS[s.stage]}</span>
-          <span className="min-w-0 flex-1">
-            <b className="text-[13.5px]">{t.title}</b>
-            <span className="block text-[11.5px] text-slate">by {s.assigneeName ?? "—"} · {t.contentTypeLabel}</span>
-            {s.reviewNote && <span className="mt-0.5 block truncate text-[11.5px] text-[#c23b2a]">↩ {s.reviewNote}</span>}
-          </span>
-          {s.targetDate && <span className="shrink-0 text-[11px] text-slate">due {fmt(s.targetDate)}</span>}
-        </button>
-      ))}
+      {rows.length === 0 && <Empty text={q.trim() ? "No tasks match your search." : "Nothing in rework right now."} />}
+      <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+        {rows.map(({ t, back }) => (
+          <div key={t.id} className="flex h-full flex-col rounded-card border border-line bg-card p-4 shadow-soft">
+            <div className="flex flex-wrap items-center gap-2">
+              <button onClick={() => onOpen(t.id)} className="min-w-0 flex-1 text-left">
+                <b className="text-[14px]">{t.title}</b>
+                <span className="block text-[11.5px] text-slate">
+                  {t.contentTypeLabel}
+                  {t.channel ? ` · ${t.channel.name}` : ""}
+                </span>
+              </button>
+              <span className={`${badge} bg-[#f6dcd6] text-[#c23b2a]`}>
+                {back.length} stage{back.length === 1 ? "" : "s"} in rework
+              </span>
+            </div>
+            {back.map((s) => {
+              const files = t.assets.filter((a) => a.stageId === s.id);
+              return (
+                <div key={s.id} className="mt-3 rounded-[10px] border border-line bg-wash/[0.02] p-2.5">
+                  <div className="mb-1.5 flex flex-wrap items-center gap-2">
+                    <span className={`${badge} inline-flex items-center gap-1 bg-[#f6dcd6] text-[#c23b2a]`}>
+                      <StageIcon stage={s.stage} size={12} /> {STAGE_LABELS[s.stage]}
+                    </span>
+                    <span className="text-[11.5px] text-slate">
+                      by <b className="text-ink">{s.assigneeName ?? "—"}</b>
+                      {s.targetDate ? ` · due ${fmt(s.targetDate)}` : ""}
+                    </span>
+                  </div>
+                  {s.reviewNote && <div className="mb-1.5 text-[11.5px] text-[#c23b2a]">↩ {s.reviewNote}</div>}
+                  {files.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {files.map((a) => <SubmittedFile key={a.id} a={a} />)}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
