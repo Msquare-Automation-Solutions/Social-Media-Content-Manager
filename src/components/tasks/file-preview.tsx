@@ -128,10 +128,10 @@ export function FilePreview({ assetId, onClose }: { assetId: string; onClose: ()
             </a>
           </div>
         ) : isVideo && a.url ? (
-          <video src={a.url} controls className="max-h-[68vh] w-full rounded-[12px] bg-black" />
+          <video src={a.url} controls className="mx-auto max-h-[62vh] w-auto max-w-full rounded-[12px] bg-black" />
         ) : isImage && a.url ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={a.url} alt={a.title} className="max-h-[68vh] w-full rounded-[12px] object-contain" />
+          <img src={a.url} alt={a.title} className="mx-auto max-h-[62vh] w-auto max-w-full rounded-[12px] object-contain" />
         ) : a.html ? (
           <article
             className="prose max-h-[68vh] max-w-none overflow-y-auto rounded-[12px] border border-line p-5 [&_h2]:mb-2 [&_h2]:font-display [&_h2]:text-lg [&_h3]:mb-1 [&_h3]:mt-3 [&_h3]:font-semibold [&_li]:ml-4 [&_li]:list-disc [&_ol_li]:list-decimal [&_p]:mb-2 [&_p]:leading-relaxed"
@@ -152,7 +152,19 @@ export function FilePreview({ assetId, onClose }: { assetId: string; onClose: ()
           </div>
         )}
 
-        {a?.note && <div className="mt-3 text-[12.5px] text-slate">📝 {a.note}</div>}
+        {/* The description can be long (a whole slide script), so give it its own
+            panel: readable line length, comfortable leading, and a scroll cap so
+            it never dominates the preview. */}
+        {a?.note && (
+          <div className="mt-4 rounded-[12px] border border-line bg-bg p-4">
+            <div className="mb-2 text-[11px] font-extrabold uppercase tracking-[0.06em] text-slate">
+              Description
+            </div>
+            <p className="max-h-[26vh] max-w-[72ch] overflow-y-auto whitespace-pre-wrap text-[13px] leading-[1.7] text-ink">
+              {a.note}
+            </p>
+          </div>
+        )}
 
         {/* Extra parts bundled into this one item. */}
         {a && a.files.length > 0 && (
