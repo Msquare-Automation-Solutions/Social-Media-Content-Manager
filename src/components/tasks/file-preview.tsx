@@ -35,9 +35,9 @@ function fmtBytes(n: number): string {
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex gap-3 py-1.5">
-      <dt className="w-[104px] shrink-0 text-[11px] font-bold uppercase tracking-[0.04em] text-slate">{label}</dt>
-      <dd className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5 text-[13px] text-ink">{children}</dd>
+    <div className="py-1.5">
+      <dt className="mb-0.5 text-[10px] font-bold uppercase tracking-[0.05em] text-slate">{label}</dt>
+      <dd className="flex min-w-0 flex-wrap items-center gap-1.5 text-[12.5px] text-ink">{children}</dd>
     </div>
   );
 }
@@ -52,6 +52,8 @@ const pill = "inline-flex items-center gap-1.5 rounded-full bg-wash/[0.06] px-2 
 export function FilePreview({ assetId, onClose }: { assetId: string; onClose: () => void }) {
   const [a, setA] = useState<Detail | null>(null);
   const [missing, setMissing] = useState(false);
+  // Metadata is on demand — the file itself is what a reviewer came to see.
+  const [showMeta, setShowMeta] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -99,6 +101,15 @@ export function FilePreview({ assetId, onClose }: { assetId: string; onClose: ()
               </p>
             )}
           </div>
+          {a && (
+            <button
+              onClick={() => setShowMeta((v) => !v)}
+              aria-expanded={showMeta}
+              className={`shrink-0 rounded-[9px] border px-3 py-1.5 text-[12px] font-semibold ${showMeta ? "border-teal bg-teal-soft text-teal-dark" : "border-line text-slate hover:border-teal hover:text-teal-dark"}`}
+            >
+              Details {showMeta ? "▴" : "▾"}
+            </button>
+          )}
           {a && isLink ? (
             <a
               href={a.url!}
@@ -133,6 +144,7 @@ export function FilePreview({ assetId, onClose }: { assetId: string; onClose: ()
           <div className="grid place-items-center py-16 text-[13px] text-slate">Loading…</div>
         ) : (
           <>
+            <div className="relative">
             {/* Preview */}
             {isLink ? (
               <div className="grid place-items-center gap-3 rounded-[12px] border border-line bg-wash/[0.03] py-14 text-center">
@@ -179,8 +191,10 @@ export function FilePreview({ assetId, onClose }: { assetId: string; onClose: ()
               </div>
             )}
 
-            {/* Everything about the item, not just the file. */}
-            <dl className="mt-4 divide-y divide-line/60">
+            {/* Everything about the item, on demand — a compact card over the
+                top-right of the preview so it never pushes the layout around. */}
+            {showMeta && (
+            <dl className="absolute right-2 top-2 max-h-[calc(100%-1rem)] w-[320px] max-w-[calc(100%-1rem)] overflow-y-auto rounded-[12px] border border-line bg-card/95 p-3 shadow-lift backdrop-blur-sm">
               <Row label="Person">
                 <span
                   className="grid h-5 w-5 place-items-center rounded-full text-[9px] font-bold text-white"
@@ -237,6 +251,8 @@ export function FilePreview({ assetId, onClose }: { assetId: string; onClose: ()
               {!isLink && a.sizeBytes != null && <Row label="Size">{fmtBytes(a.sizeBytes)}</Row>}
               <Row label="Created">{new Date(a.createdAt).toLocaleString()}</Row>
             </dl>
+            )}
+            </div>
 
             {/* The description can be long (a whole slide script), so it gets its
                 own panel: readable measure, comfortable leading, scroll cap. */}
