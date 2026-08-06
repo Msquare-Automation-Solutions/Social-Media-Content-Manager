@@ -36,12 +36,6 @@ export function DashboardView({
     icon: p.icon,
   }));
 
-  const typeBars: BarDatum[] = data.byContentType.map((t) => ({
-    label: t.label,
-    value: t.count,
-    color: "#0e9f8f", // magnitude → single sequential hue
-  }));
-
   // Board stages, in pipeline order, as a categorical set.
   const STAGE_COLORS = ["#0e9f8f", "#3f8fd0", "#7a4fc9", "#e0912b", "#2e9e6b", "#c96a9e"];
   const stageSlices = data.byStage.map((s, i) => ({
@@ -132,17 +126,6 @@ export function DashboardView({
         </section>
       </div>
 
-      {/* Breakdowns */}
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
-        <section className="surface rounded-card p-5">
-          <h3 className="mb-3 font-display text-[15px]">Tasks by content type</h3>
-          <BarChart data={typeBars} empty="No assets yet" />
-        </section>
-        <section className="surface rounded-card p-5">
-          <h3 className="mb-3 font-display text-[15px]">Tasks by stage</h3>
-          <BarChart data={stageSlices.map((s) => ({ label: s.label, value: s.value, color: s.color }))} />
-        </section>
-      </div>
 
       {/* Upcoming + creators */}
       <div className="mt-4 grid gap-4 pb-16 lg:grid-cols-2">
