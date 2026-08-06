@@ -34,16 +34,15 @@ function hrefFor(action: string, targetId: string | null): string | null {
   if (action.startsWith("bin.")) {
     return targetId ? `/content-bin?item=${encodeURIComponent(targetId)}` : "/content-bin";
   }
-  const base =
-    action === "asset.approved"
-      ? "/approved"
-      : action === "asset.published"
-        ? "/published"
-        : action === "asset.reworked"
-          ? "/rework"
-          : null;
-  if (!base) return null;
-  return targetId ? `${base}?asset=${encodeURIComponent(targetId)}` : base;
+  // Review and publishing are task-based now, so approve/rework/publish alerts
+  // land on the task pages, not the old per-file content views.
+  return action === "asset.approved"
+    ? "/tasks/ready"
+    : action === "asset.published"
+      ? "/tasks/published"
+      : action === "asset.reworked"
+        ? "/tasks/rework"
+        : null;
 }
 
 export function NotificationBell({ initialUnread }: { initialUnread: number }) {

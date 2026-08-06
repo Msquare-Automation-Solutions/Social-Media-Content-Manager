@@ -18,7 +18,7 @@ export default async function AppLayout({
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const [counts, binCount, myTaskCount, taskReviewCount, taskReworkCount, membersCount, queueCount, reworkCount, readyCount, publishedCount, unreadCount, storage] =
+  const [counts, binCount, myTaskCount, taskReviewCount, taskReworkCount, membersCount, readyCount, unreadCount, storage] =
     await Promise.all([
       getAssetCounts(user.workspaceId),
       getBinCount(user.workspaceId),
@@ -26,31 +26,13 @@ export default async function AppLayout({
       getPendingReviewCount(user.workspaceId),
       getTaskReworkCount(user.workspaceId),
       prisma.membership.count({ where: { workspaceId: user.workspaceId } }),
-      prisma.mediaAsset.count({
-        where: { workspaceId: user.workspaceId, deletedAt: null, status: "PENDING" },
-      }),
-      prisma.mediaAsset.count({
-        where: { workspaceId: user.workspaceId, deletedAt: null, status: "REWORK" },
-      }),
       getReadyToPublishCount(user.workspaceId),
-      prisma.mediaAsset.count({
-        where: { workspaceId: user.workspaceId, deletedAt: null, status: "PUBLISHED", publishable: true },
-      }),
       unreadNotificationCount(user.id),
       getStorageUsage(user.workspaceId),
     ]);
 
   // R2 free tier is 10 GB; override with STORAGE_LIMIT_GB if you scale the plan.
   const storageLimitBytes = Number(process.env.STORAGE_LIMIT_GB ?? 10) * 1e9;
-
-  // The primary account = the workspace's original owner (oldest OWNER member).
-  // Only they see the "Review queue"; everyone else sees it as "Pending".
-  const primaryOwner = await prisma.membership.findFirst({
-    where: { workspaceId: user.workspaceId, role: "OWNER" },
-    orderBy: { createdAt: "asc" },
-    select: { userId: true },
-  });
-  const isPrimaryOwner = primaryOwner?.userId === user.id;
 
   return (
     <DialogProvider>
@@ -64,17 +46,13 @@ export default async function AppLayout({
             avatarUrl: user.avatarUrl ?? null,
           }}
           workspaceName={user.workspaceName}
-          isPrimaryOwner={isPrimaryOwner}
           counts={counts}
           binCount={binCount}
           myTaskCount={myTaskCount}
           taskReviewCount={taskReviewCount}
           taskReworkCount={taskReworkCount}
           membersCount={membersCount}
-          queueCount={queueCount}
-          reworkCount={reworkCount}
           readyCount={readyCount}
-          publishedCount={publishedCount}
           unreadCount={unreadCount}
           storage={storage}
           storageLimitBytes={storageLimitBytes}

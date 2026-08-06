@@ -79,7 +79,7 @@ export function DashboardView({
           href="/tasks/rework"
         />
         <StatTile
-          label="Ready to publish"
+          label="Approved"
           value={data.taskCounts.ready}
           sublabel="All stages approved"
           accent="#7a4fc9"

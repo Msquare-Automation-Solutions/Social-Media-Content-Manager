@@ -23,17 +23,13 @@ const VIEW_ICONS: Record<LibraryViewKey, IconName> = {
 type Props = {
   user: { name: string; email: string; role: string; avatarColor: string; avatarUrl?: string | null };
   workspaceName: string;
-  isPrimaryOwner: boolean;
   counts: Record<LibraryViewKey, number>;
   binCount: number;
   myTaskCount: number;
   taskReviewCount: number;
   taskReworkCount: number;
   membersCount: number;
-  queueCount: number;
-  reworkCount: number;
   readyCount: number;
-  publishedCount: number;
   unreadCount: number;
   storage: { total: number; active: number; trashed: number };
   storageLimitBytes: number;
@@ -42,17 +38,13 @@ type Props = {
 export function Sidebar({
   user,
   workspaceName,
-  isPrimaryOwner,
   counts,
   binCount,
   myTaskCount,
   taskReviewCount,
   taskReworkCount,
   membersCount,
-  queueCount,
-  reworkCount,
   readyCount,
-  publishedCount,
   unreadCount,
   storage,
   storageLimitBytes,
@@ -102,7 +94,7 @@ export function Sidebar({
             ...(isAdmin ? [it("/tasks/review", "To review", "review", isActive("/tasks/review"), taskReviewCount || undefined, taskReviewCount > 0)] : []),
             ...(isAdmin ? [it("/tasks/rework", "In rework", "rework", isActive("/tasks/rework"), taskReworkCount || undefined)] : []),
             // Tasks with every stage approved, ready to go live (published once).
-            it("/tasks/ready", "Ready to publish", "approved", isActive("/tasks/ready"), readyCount || undefined),
+            it("/tasks/ready", "Approved", "approved", isActive("/tasks/ready"), readyCount || undefined),
             it("/tasks/published", "Published", "published", isActive("/tasks/published")),
             it("/analytics", "Analytics", "analytics", isActive("/analytics")),
           ],
@@ -113,7 +105,7 @@ export function Sidebar({
       key: "content",
       label: "Content",
       icon: "images",
-      hot: queueCount > 0 || reworkCount > 0,
+      hot: false,
       groups: [
         {
           key: "create",
@@ -128,15 +120,6 @@ export function Sidebar({
           items: LIBRARY_VIEWS.map((v) =>
             it(`/${LIBRARY_SLUGS[v.key]}`, v.label, VIEW_ICONS[v.key], isActive(`/${LIBRARY_SLUGS[v.key]}`), counts[v.key]),
           ),
-        },
-        {
-          key: "review",
-          label: "Review & publish",
-          items: [
-            it("/review", isPrimaryOwner ? "Review queue" : "Pending", "review", isActive("/review"), queueCount || undefined, queueCount > 0),
-            it("/rework", "Needs rework", "rework", isActive("/rework"), reworkCount || undefined, reworkCount > 0),
-            it("/published", "Published", "published", isActive("/published"), publishedCount || undefined),
-          ],
         },
         // Content Creator lives at the bottom (an entry point, not daily nav).
         {
@@ -179,7 +162,7 @@ export function Sidebar({
   // alarm for work you've already looked at.
   const areaSignals: Record<string, number> = {
     tasks: myTaskCount + taskReviewCount + taskReworkCount + readyCount,
-    content: queueCount + reworkCount + binCount,
+    content: binCount,
   };
   const [seen, setSeen] = useState<Record<string, number>>({});
   useEffect(() => {

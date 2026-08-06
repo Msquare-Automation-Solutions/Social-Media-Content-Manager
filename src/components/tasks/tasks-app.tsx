@@ -139,7 +139,7 @@ export function TasksApp(props: Props) {
     : mode === "mywork" ? "My Work"
     : mode === "review" ? "To review"
     : mode === "rework" ? "In rework"
-    : mode === "ready" ? "Ready to publish"
+    : mode === "ready" ? "Approved"
     : mode === "published" ? "Published"
     : "Analytics";
 
@@ -683,7 +683,7 @@ const FSEL = "rounded-[9px] border border-line bg-card px-2.5 py-2 text-[12.5px]
  * range (on the task's scheduled publish date). Returns a `match` predicate and
  * the rendered bar, so a view only has to filter with it and drop `bar` in.
  */
-function useTaskFilters(all: TaskRow[], dateLabel = "Publish") {
+function useTaskFilters(all: TaskRow[], dateLabel = "Publish", dateField: "scheduled" | "published" = "scheduled") {
   const [q, setQ] = useState("");
   const [type, setType] = useState("");
   const [platform, setPlatform] = useState("");
@@ -699,7 +699,8 @@ function useTaskFilters(all: TaskRow[], dateLabel = "Publish") {
     if (type && t.contentTypeLabel !== type) return false;
     if (platform && t.channel?.id !== platform) return false;
     if (from || to) {
-      const d = t.scheduledPublishDate ? t.scheduledPublishDate.slice(0, 10) : "";
+      const src = dateField === "published" ? t.publishedDate : t.scheduledPublishDate;
+      const d = src ? src.slice(0, 10) : "";
       if (!d) return false;
       if (from && d < from) return false;
       if (to && d > to) return false;
@@ -994,7 +995,10 @@ function PublishedList({ tasks, onOpen }: { tasks: TaskRow[]; onOpen: (id: strin
 }
 
 // ── Analytics ────────────────────────────────────────────────────────────────
-function Analytics({ tasks }: { tasks: TaskRow[] }) {
+function Analytics({ tasks: allTasks }: { tasks: TaskRow[] }) {
+  // Same filter set as every other page; dates here mean "went live between".
+  const f = useTaskFilters(allTasks, "Published", "published");
+  const tasks = allTasks.filter(f.match);
   const sum = summarizeTasks(
     tasks.map((t) => ({
       platform: t.channel?.name ?? null,
@@ -1013,6 +1017,7 @@ function Analytics({ tasks }: { tasks: TaskRow[] }) {
   const cell = (n: number | null) => (n == null ? "·" : n.toLocaleString());
   return (
     <div>
+      {f.bar}
       <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-4">
         <Kpi v={sum.planned} l="Planned" /><Kpi v={sum.published} l="Published" /><Kpi v={nf(sum.impressions)} l="Impressions" /><Kpi v={nf(sum.reach)} l="Reach" />
         <Kpi v={nf(sum.clicks)} l="Clicks" /><Kpi v={nf(sum.eng)} l="Engagements" /><Kpi v={nf(sum.saves)} l="Saves" /><Kpi v={nf(sum.shares)} l="Shares" />
@@ -1025,7 +1030,7 @@ function Analytics({ tasks }: { tasks: TaskRow[] }) {
       <div className="mb-2 text-[11px] font-extrabold uppercase tracking-[0.06em] text-ink">Published pieces</div>
       <div className="overflow-x-auto rounded-card border border-line bg-card shadow-soft">
         <table className="w-full border-collapse text-[12.5px]"><thead><tr className="border-b border-line text-left text-[11px] uppercase tracking-[0.04em] text-slate"><th className="px-3 py-2.5">Content</th><th className="px-3 py-2.5">Platform</th><th className="px-3 py-2.5">Post link</th><th className="px-3 py-2.5">Impr.</th><th className="px-3 py-2.5">Reach</th><th className="px-3 py-2.5">Clicks</th><th className="px-3 py-2.5">Leads</th><th className="px-3 py-2.5">Eng.</th><th className="px-3 py-2.5">Saves</th><th className="px-3 py-2.5">Shares</th></tr></thead>
-        <tbody>{pub.length ? pub.map((t) => <tr key={t.id} className="border-b border-line"><td className="px-3 py-2.5 font-semibold">{t.title}</td><td className="px-3 py-2.5">{t.channel?.name ?? "·"}</td><td className="px-3 py-2.5">{t.contentLink ? <a href={t.contentLink} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="text-teal-dark underline">open ↗</a> : "·"}</td><td className="px-3 py-2.5">{cell(t.metricImpressions)}</td><td className="px-3 py-2.5">{cell(t.metricReach)}</td><td className="px-3 py-2.5">{cell(t.metricClicks)}</td><td className="px-3 py-2.5">{cell(t.metricLeads)}</td><td className="px-3 py-2.5">{cell(t.metricEng)}</td><td className="px-3 py-2.5">{cell(t.metricSaves)}</td><td className="px-3 py-2.5">{cell(t.metricShares)}</td></tr>) : <tr><td colSpan={10} className="px-3 py-6 text-center text-slate">Nothing published yet.</td></tr>}</tbody></table>
+        <tbody>{pub.length ? pub.map((t) => <tr key={t.id} className="border-b border-line"><td className="px-3 py-2.5 font-semibold">{t.title}</td><td className="px-3 py-2.5">{t.channel?.name ?? "·"}</td><td className="px-3 py-2.5">{t.contentLink ? <a href={t.contentLink} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="text-teal-dark underline">open ↗</a> : "·"}</td><td className="px-3 py-2.5">{cell(t.metricImpressions)}</td><td className="px-3 py-2.5">{cell(t.metricReach)}</td><td className="px-3 py-2.5">{cell(t.metricClicks)}</td><td className="px-3 py-2.5">{cell(t.metricLeads)}</td><td className="px-3 py-2.5">{cell(t.metricEng)}</td><td className="px-3 py-2.5">{cell(t.metricSaves)}</td><td className="px-3 py-2.5">{cell(t.metricShares)}</td></tr>) : <tr><td colSpan={10} className="px-3 py-6 text-center text-slate">{f.active ? "No published posts match these filters." : "Nothing published yet."}</td></tr>}</tbody></table>
       </div>
     </div>
   );
