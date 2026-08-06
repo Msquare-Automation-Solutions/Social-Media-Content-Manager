@@ -269,9 +269,12 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
   const [person, setPerson] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
-  // Start on this week — that's what the team is working on right now.
+  // Every week stays on the page; only this week is open to begin with, the
+  // rest are collapsed behind their header so the list starts short.
   const thisWeek = weekLabelForDate(new Date().toISOString());
-  const [week, setWeek] = useState(thisWeek);
+  const [week, setWeek] = useState("");
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const toggleWeek = (w: string) => setCollapsed((c) => ({ ...c, [w]: !(c[w] ?? w !== thisWeek) }));
 
   // Anyone involved in a task: a stage owner, its publisher or its analyst.
   const involves = (t: TaskRow, userId: string) =>
@@ -297,6 +300,8 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
     }
     return true;
   });
+
+  const filtering = Boolean(q || typeFilter || platform || account || person || from || to || week);
 
   const fsel = "rounded-[9px] border border-line bg-card px-2.5 py-2 text-[12.5px] text-ink outline-none focus:border-teal";
 
@@ -348,7 +353,7 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
         <label className="text-[11.5px] font-semibold text-slate">Publish to
           <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={fsel + " mt-1 block font-normal"} />
         </label>
-        {(q || typeFilter || platform || account || person || from || to || week) && (
+        {filtering && (
           <button onClick={() => { setQ(""); setTypeFilter(""); setPlatform(""); setAccount(""); setPerson(""); setFrom(""); setTo(""); setWeek(""); }} className="rounded-[9px] border border-line px-3 py-2 text-[12px] font-semibold text-slate hover:border-teal">Clear</button>
         )}
       </div>
@@ -373,10 +378,13 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
               </tr>
             </thead>
             <tbody>
-              {[...weeks.entries()].map(([w, arr]) => (
+              {[...weeks.entries()].map(([w, arr]) => {
+                const open = filtering || !(collapsed[w] ?? w !== thisWeek);
+                return (
                 <Fragment key={w}>
-                  <tr className="bg-teal-soft/50">
+                  <tr onClick={() => toggleWeek(w)} className="cursor-pointer bg-teal-soft/50 hover:bg-teal-soft/70">
                     <td colSpan={7} className="border-l-[3px] border-teal px-3 py-2">
+                      <span className="mr-1.5 inline-block w-3 text-[10px] text-slate">{open ? "▾" : "▸"}</span>
                       <span className="font-display text-[13px] font-bold tracking-[0.01em] text-ink">{w}</span>
                       <span className="ml-2 text-[11.5px] font-semibold text-slate">
                         {arr.length} {arr.length === 1 ? "task" : "tasks"}
@@ -386,7 +394,7 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
                       )}
                     </td>
                   </tr>
-                  {arr.map((t) => {
+                  {open && arr.map((t) => {
                     const att = publishAttention(t);
                     return (
                       <tr key={t.id} onClick={() => onOpen(t.id)} className={`cursor-pointer border-b border-line hover:bg-wash/[0.03] ${att ? (att.tone === "red" ? "bg-[#f5442e]/[0.05]" : "bg-[#f5920b]/[0.05]") : ""}`}>
@@ -409,7 +417,8 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
                     );
                   })}
                 </Fragment>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
