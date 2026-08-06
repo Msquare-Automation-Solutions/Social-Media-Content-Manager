@@ -283,16 +283,16 @@ function stageStatus(s: { workStatus: string; reviewStatus: string }): { label: 
   return { label: TASK_WORK_LABELS[w]?.toLowerCase() ?? w, dot: "#0e9f8f", text: "text-teal-dark" };
 }
 
-// Which week a task belongs to: the week of the date it's due to be published
-// (the planning date is only a fallback for pieces with no publish date yet).
+// Which week a task belongs to: the week it was planned in. A piece can be
+// scheduled to go out much later — the week is when the team took it on.
 function taskWeek(t: TaskRow): string {
-  return t.scheduledPublishDate ? weekLabelForDate(t.scheduledPublishDate) : t.weekLabel || "Unscheduled";
+  return t.plannedDate ? weekLabelForDate(t.plannedDate) : t.weekLabel || "Unscheduled";
 }
 
 /** Sortable key for a week group — year, month, week — so months don't interleave. */
 function weekSortKey(t: TaskRow): string {
-  if (!t.scheduledPublishDate) return "0000";
-  const d = new Date(t.scheduledPublishDate);
+  if (!t.plannedDate) return "0000";
+  const d = new Date(t.plannedDate);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${Math.ceil(d.getDate() / 7)}`;
 }
 
@@ -1522,7 +1522,7 @@ function TaskForm({ task, channels, accounts, taskTypes, members, isAdmin, onClo
     if (ok) { toast(task ? "Changes saved" : "Task created ✓"); onSaved(); }
   }
 
-  const week = publishDate ? weekLabelForDate(new Date(`${publishDate}T12:00:00`).toISOString()) : "";
+  const week = date ? weekLabelForDate(new Date(`${date}T12:00:00`).toISOString()) : "";
 
   return (
     // Backdrop intentionally does NOT close the form — an accidental outside
@@ -1599,11 +1599,11 @@ function TaskForm({ task, channels, accounts, taskTypes, members, isAdmin, onClo
           </div>
           <div className="grid grid-cols-2 gap-3">
             <label className={lab}>
-              Planning date
+              Planning date {week && <span className="font-normal text-teal-dark">· {week}</span>}
               <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={cls + " mt-1 font-normal"} />
             </label>
             <label className={lab}>
-              Publishing date {week ? <span className="font-normal text-teal-dark">· {week}</span> : <span className="font-normal">(scheduled go-live)</span>}
+              Publishing date <span className="font-normal">(scheduled go-live)</span>
               <input type="date" value={publishDate} onChange={(e) => setPublishDate(e.target.value)} className={cls + " mt-1 font-normal"} />
             </label>
           </div>

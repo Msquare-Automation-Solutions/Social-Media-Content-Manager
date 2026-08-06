@@ -73,14 +73,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (!parsed.success) return new Response("Bad request", { status: 400 });
   const d = parsed.data;
 
-  // Keep the week in step with the publish date (planning date as fallback).
-  const weekSource =
-    d.scheduledPublishDate !== undefined
-      ? d.scheduledPublishDate
-      : d.plannedDate !== undefined
-        ? d.plannedDate
-        : undefined;
-  const week = weekSource ? weekLabelForDate(weekSource) : undefined;
+  const week =
+    d.plannedDate !== undefined && d.plannedDate ? weekLabelForDate(d.plannedDate) : undefined;
   const publishing = d.publishStatus !== undefined && d.publishStatus.startsWith("PUBLISHED");
   // When publishing, the actual publish moment is now; it's "delayed" if that
   // day is past the scheduled publish date. (Compared at day granularity.)

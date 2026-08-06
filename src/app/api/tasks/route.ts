@@ -61,13 +61,8 @@ export async function POST(req: Request) {
   const stages = TASK_STAGES.map((s) => d.stages.find((x) => x.stage === s)).filter(
     (s): s is (typeof d.stages)[number] => Boolean(s),
   );
-  // A task belongs to the week it's due to be published; the planning date is
-  // only a fallback for pieces with no publish date yet.
-  const week = d.scheduledPublishDate
-    ? weekLabelForDate(d.scheduledPublishDate)
-    : d.plannedDate
-      ? weekLabelForDate(d.plannedDate)
-      : d.weekLabel ?? "";
+  // A task belongs to the week it was planned in, whatever its publish date.
+  const week = d.plannedDate ? weekLabelForDate(d.plannedDate) : d.weekLabel ?? "";
 
   const task = await prisma.task.create({
     data: {

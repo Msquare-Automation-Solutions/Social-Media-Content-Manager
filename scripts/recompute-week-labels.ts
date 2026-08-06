@@ -1,9 +1,6 @@
 /**
- * One-off: re-derive every task's weekLabel from its publishing date.
- *
- * The label used to come from the planning date, so a piece planned in the first
- * week of August but scheduled for September sat under "August W1". A task
- * belongs to the week it goes out; the planning date is only a fallback.
+ * One-off: re-derive every task's weekLabel from its planning date — the week
+ * the team took the piece on, whatever date it's scheduled to publish.
  *
  *   npx tsx scripts/recompute-week-labels.ts
  */
@@ -18,7 +15,7 @@ async function main() {
 
   let changed = 0;
   for (const t of tasks) {
-    const src = t.scheduledPublishDate ?? t.plannedDate;
+    const src = t.plannedDate ?? t.scheduledPublishDate;
     const week = src ? weekLabelForDate(src.toISOString()) : "";
     if (week === t.weekLabel) continue;
     await prisma.task.update({ where: { id: t.id }, data: { weekLabel: week } });
