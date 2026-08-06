@@ -265,9 +265,14 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
   const [q, setQ] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [platform, setPlatform] = useState("");
+  const [person, setPerson] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
 
+  // Anyone involved in a task: a stage owner, its publisher or its analyst.
+  const involves = (t: TaskRow, userId: string) =>
+    t.stages.some((s) => s.assigneeId === userId) || t.publisherId === userId || t.analystId === userId;
+  const people = members.filter((m) => tasks.some((t) => involves(t, m.id)));
   const types = [...new Set(tasks.map((t) => t.contentTypeLabel))].sort();
   const platforms = [...new Map(tasks.filter((t) => t.channel).map((t) => [t.channel!.id, t.channel!.name])).entries()];
   const query = q.trim().toLowerCase();
@@ -275,6 +280,7 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
     if (query && !`${t.title} ${t.brief} ${t.contentTypeLabel}`.toLowerCase().includes(query)) return false;
     if (typeFilter && t.contentTypeLabel !== typeFilter) return false;
     if (platform && t.channel?.id !== platform) return false;
+    if (person && !involves(t, person)) return false;
     if (from || to) {
       const d = t.scheduledPublishDate ? t.scheduledPublishDate.slice(0, 10) : "";
       if (!d) return false;
@@ -307,14 +313,20 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
             {platforms.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
           </select>
         </label>
+        <label className="text-[11.5px] font-semibold text-slate">Person
+          <select value={person} onChange={(e) => setPerson(e.target.value)} className={fsel + " mt-1 block font-normal"}>
+            <option value="">All people</option>
+            {people.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+          </select>
+        </label>
         <label className="text-[11.5px] font-semibold text-slate">Publish from
           <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={fsel + " mt-1 block font-normal"} />
         </label>
         <label className="text-[11.5px] font-semibold text-slate">Publish to
           <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={fsel + " mt-1 block font-normal"} />
         </label>
-        {(q || typeFilter || platform || from || to) && (
-          <button onClick={() => { setQ(""); setTypeFilter(""); setPlatform(""); setFrom(""); setTo(""); }} className="rounded-[9px] border border-line px-3 py-2 text-[12px] font-semibold text-slate hover:border-teal">Clear</button>
+        {(q || typeFilter || platform || person || from || to) && (
+          <button onClick={() => { setQ(""); setTypeFilter(""); setPlatform(""); setPerson(""); setFrom(""); setTo(""); }} className="rounded-[9px] border border-line px-3 py-2 text-[12px] font-semibold text-slate hover:border-teal">Clear</button>
         )}
       </div>
 
@@ -368,11 +380,11 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
 
 // ── Board (kanban) ───────────────────────────────────────────────────────────
 function Board({ tasks, onOpen }: { tasks: TaskRow[]; onOpen: (id: string) => void }) {
-  const [q, setQ] = useState("");
-  const shown = tasks.filter((t) => taskMatches(t, q));
+  const { match, bar } = useTaskFilters(tasks);
+  const shown = tasks.filter(match);
   return (
     <>
-    <TaskSearch value={q} onChange={setQ} />
+    {bar}
     <div className="flex h-[calc(100vh-215px)] gap-3 overflow-x-auto overflow-y-hidden pb-2">
       {TASK_BOARD_COLUMNS.map((col) => {
         const items = shown.filter((t) => t.currentStage === col);
@@ -426,8 +438,8 @@ function Board({ tasks, onOpen }: { tasks: TaskRow[]; onOpen: (id: string) => vo
 
 // ── My Work ──────────────────────────────────────────────────────────────────
 function MyWork({ tasks, meId, onOpen }: { tasks: TaskRow[]; meId: string; onOpen: (id: string) => void }) {
-  const [q, setQ] = useState("");
-  const shownTasks = tasks.filter((t) => taskMatches(t, q));
+  const { match, bar, active } = useTaskFilters(tasks);
+  const shownTasks = tasks.filter(match);
   const mine: { t: TaskRow; s: TaskRow["stages"][number] }[] = [];
   for (const t of shownTasks) for (const s of t.stages) if (s.assigneeId === meId) mine.push({ t, s });
   const groups: Record<string, typeof mine> = { "To do": [], "In review": [], "Needs rework": [], Done: [] };
@@ -444,9 +456,9 @@ function MyWork({ tasks, meId, onOpen }: { tasks: TaskRow[]; meId: string; onOpe
   const analyticsDone = analytics.filter(hasMetrics);
   return (
     <div>
-      <TaskSearch value={q} onChange={setQ} />
+      {bar}
       {mine.length === 0 && analytics.length === 0 && (
-        <p className="mb-1 text-[13px] text-slate">{q.trim() ? "No tasks match your search." : "Nothing assigned to you yet."}</p>
+        <p className="mb-1 text-[13px] text-slate">{active ? "No tasks match these filters." : "Nothing assigned to you yet."}</p>
       )}
       {Object.entries(groups).map(([g, arr]) => (
         <div key={g}>
@@ -491,17 +503,17 @@ function MyWork({ tasks, meId, onOpen }: { tasks: TaskRow[]; meId: string; onOpe
 
 // ── Review inbox ─────────────────────────────────────────────────────────────
 function ReviewInbox({ tasks, meId, meCanSelfApprove, onOpen, onReview }: { tasks: TaskRow[]; meId: string; meCanSelfApprove?: boolean; onOpen: (id: string) => void; onReview: (t: string, s: string, o: "APPROVED" | "REWORK") => void }) {
-  const [q, setQ] = useState("");
+  const { match, bar, active } = useTaskFilters(tasks);
   // One card per TASK (matching the sidebar count), with its pending stages
   // nested — a task can have several stages awaiting a decision.
   const rows = tasks
-    .filter((t) => taskMatches(t, q))
+    .filter(match)
     .map((t) => ({ t, pending: t.stages.filter((s) => s.reviewStatus === "PENDING") }))
     .filter((r) => r.pending.length > 0);
   return (
     <div>
-      <TaskSearch value={q} onChange={setQ} />
-      {rows.length === 0 && <Empty text={q.trim() ? "No submissions match your search." : "Nothing waiting for review."} />}
+      {bar}
+      {rows.length === 0 && <Empty text={active ? "No submissions match these filters." : "Nothing waiting for review."} />}
       <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
         {rows.map(({ t, pending }) => (
           <div key={t.id} className="flex h-full flex-col rounded-card border border-line bg-card p-4 shadow-soft">
@@ -561,15 +573,15 @@ function ReviewInbox({ tasks, meId, meCanSelfApprove, onOpen, onReview }: { task
 // ── Rework list ──────────────────────────────────────────────────────────────
 // Stages an admin sent back; they sit here until the owner re-submits.
 function ReworkList({ tasks, onOpen }: { tasks: TaskRow[]; onOpen: (id: string) => void }) {
-  const [q, setQ] = useState("");
+  const { match, bar, active } = useTaskFilters(tasks);
   const rows = tasks
-    .filter((t) => taskMatches(t, q))
+    .filter(match)
     .map((t) => ({ t, back: t.stages.filter((s) => s.reviewStatus === "REWORK") }))
     .filter((r) => r.back.length > 0);
   return (
     <div>
-      <TaskSearch value={q} onChange={setQ} />
-      {rows.length === 0 && <Empty text={q.trim() ? "No tasks match your search." : "Nothing in rework right now."} />}
+      {bar}
+      {rows.length === 0 && <Empty text={active ? "No tasks match these filters." : "Nothing in rework right now."} />}
       <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
         {rows.map(({ t, back }) => (
           <div key={t.id} className="flex h-full flex-col rounded-card border border-line bg-card p-4 shadow-soft">
@@ -624,17 +636,67 @@ function taskMatches(t: TaskRow, q: string): boolean {
     .includes(n);
 }
 
-function TaskSearch({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  return (
-    <div className="mb-4">
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="Search tasks, theme, brief, type, platform…"
-        className="w-full max-w-[340px] rounded-[9px] border border-line bg-card px-3 py-2 text-[12.5px] text-ink outline-none focus:border-teal"
-      />
+const FSEL = "rounded-[9px] border border-line bg-card px-2.5 py-2 text-[12.5px] text-ink outline-none focus:border-teal";
+
+/**
+ * The filter bar every task list shares: search + post type + platform + a date
+ * range (on the task's scheduled publish date). Returns a `match` predicate and
+ * the rendered bar, so a view only has to filter with it and drop `bar` in.
+ */
+function useTaskFilters(all: TaskRow[], dateLabel = "Publish") {
+  const [q, setQ] = useState("");
+  const [type, setType] = useState("");
+  const [platform, setPlatform] = useState("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+
+  const types = [...new Set(all.map((t) => t.contentTypeLabel))].sort();
+  const platforms = [...new Map(all.filter((t) => t.channel).map((t) => [t.channel!.id, t.channel!.name])).entries()];
+  const active = Boolean(q || type || platform || from || to);
+
+  const match = (t: TaskRow) => {
+    if (!taskMatches(t, q)) return false;
+    if (type && t.contentTypeLabel !== type) return false;
+    if (platform && t.channel?.id !== platform) return false;
+    if (from || to) {
+      const d = t.scheduledPublishDate ? t.scheduledPublishDate.slice(0, 10) : "";
+      if (!d) return false;
+      if (from && d < from) return false;
+      if (to && d > to) return false;
+    }
+    return true;
+  };
+
+  const bar = (
+    <div className="mb-4 flex flex-wrap items-end gap-2.5">
+      <label className="text-[11.5px] font-semibold text-slate">Search
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Theme, brief, type…" className={FSEL + " mt-1 block w-56 font-normal"} />
+      </label>
+      <label className="text-[11.5px] font-semibold text-slate">Post type
+        <select value={type} onChange={(e) => setType(e.target.value)} className={FSEL + " mt-1 block font-normal"}>
+          <option value="">All types</option>
+          {types.map((t) => <option key={t} value={t}>{t}</option>)}
+        </select>
+      </label>
+      <label className="text-[11.5px] font-semibold text-slate">Platform
+        <select value={platform} onChange={(e) => setPlatform(e.target.value)} className={FSEL + " mt-1 block font-normal"}>
+          <option value="">All platforms</option>
+          {platforms.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+        </select>
+      </label>
+      <label className="text-[11.5px] font-semibold text-slate">{dateLabel} from
+        <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={FSEL + " mt-1 block font-normal"} />
+      </label>
+      <label className="text-[11.5px] font-semibold text-slate">{dateLabel} to
+        <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={FSEL + " mt-1 block font-normal"} />
+      </label>
+      {active && (
+        <button onClick={() => { setQ(""); setType(""); setPlatform(""); setFrom(""); setTo(""); }} className="rounded-[9px] border border-line px-3 py-2 text-[12px] font-semibold text-slate hover:border-teal">Clear</button>
+      )}
     </div>
   );
+
+  return { match, bar, active };
 }
 
 // ── Ready to publish ─────────────────────────────────────────────────────────
