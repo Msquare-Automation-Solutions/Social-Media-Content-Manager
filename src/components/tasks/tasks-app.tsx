@@ -283,6 +283,19 @@ function stageStatus(s: { workStatus: string; reviewStatus: string }): { label: 
   return { label: TASK_WORK_LABELS[w]?.toLowerCase() ?? w, dot: "#0e9f8f", text: "text-teal-dark" };
 }
 
+// Which week a task belongs to: the week of the date it's due to be published
+// (the planning date is only a fallback for pieces with no publish date yet).
+function taskWeek(t: TaskRow): string {
+  return t.scheduledPublishDate ? weekLabelForDate(t.scheduledPublishDate) : t.weekLabel || "Unscheduled";
+}
+
+/** Sortable key for a week group — year, month, week — so months don't interleave. */
+function weekSortKey(t: TaskRow): string {
+  if (!t.scheduledPublishDate) return "0000";
+  const d = new Date(t.scheduledPublishDate);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${Math.ceil(d.getDate() / 7)}`;
+}
+
 // ── Overview (planning table) ────────────────────────────────────────────────
 function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }: Props & { onOpen: (id: string) => void; onEdit: (id: string) => void; onDelete: (id: string) => void }) {
   // Every stage of the task on its own line: stage · owner · status. The stage
@@ -343,7 +356,7 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
     if (typeFilter && t.contentTypeLabel !== typeFilter) return false;
     if (platform && t.channel?.id !== platform) return false;
     if (account && t.account?.id !== account) return false;
-    if (week && (t.weekLabel || "Unscheduled") !== week) return false;
+    if (week && taskWeek(t) !== week) return false;
     if (person && !involves(t, person)) return false;
     if (from || to) {
       const d = t.scheduledPublishDate ? t.scheduledPublishDate.slice(0, 10) : "";
@@ -358,8 +371,17 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
 
   const fsel = "rounded-[9px] border border-line bg-card px-2.5 py-2 text-[12.5px] text-ink outline-none focus:border-teal";
 
-  const weeks = new Map<string, TaskRow[]>();
-  for (const t of filtered) { const k = t.weekLabel || "Unscheduled"; (weeks.get(k) || weeks.set(k, []).get(k)!).push(t); }
+  const groups = new Map<string, { label: string; sort: string; rows: TaskRow[] }>();
+  for (const t of filtered) {
+    const label = taskWeek(t);
+    const g = groups.get(label) ?? { label, sort: weekSortKey(t), rows: [] };
+    g.rows.push(t);
+    groups.set(label, g);
+  }
+  // Newest week first, unscheduled last; inside a week, latest publish date first.
+  const weeks = [...groups.values()].sort((a, b) => b.sort.localeCompare(a.sort));
+  for (const g of weeks)
+    g.rows.sort((a, b) => (b.scheduledPublishDate ?? "").localeCompare(a.scheduledPublishDate ?? ""));
 
   return (
     <div>
@@ -426,7 +448,7 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
               </tr>
             </thead>
             <tbody>
-              {[...weeks.entries()].map(([w, arr]) => (
+              {weeks.map(({ label: w, rows: arr }) => (
                 <Fragment key={w}>
                   <tr className="bg-teal-soft/50">
                     <td colSpan={7} className="border-l-[3px] border-teal px-3 py-2">
@@ -1194,7 +1216,7 @@ function TaskDrawer({ task, members, isAdmin, canEdit, meId, meCanSelfApprove, o
           <span className={`${chip} bg-violet-soft text-violet`}>{t.contentTypeLabel}</span>
           {t.channel && <span className={`${chip} bg-wash/[0.06]`}>{t.channel.name}</span>}
           {t.account && <span className={`${chip} bg-teal-soft text-teal-dark`}>✨ {t.account.name}</span>}
-          {t.weekLabel && <span className={`${chip} bg-wash/[0.06]`}>{t.weekLabel}</span>}
+          <span className={`${chip} bg-wash/[0.06]`}>{taskWeek(t)}</span>
         </div>
 
         <div className="mb-2 mt-4 flex items-center gap-2">
@@ -1500,7 +1522,7 @@ function TaskForm({ task, channels, accounts, taskTypes, members, isAdmin, onClo
     if (ok) { toast(task ? "Changes saved" : "Task created ✓"); onSaved(); }
   }
 
-  const week = date ? weekLabelForDate(new Date(date).toISOString()) : task?.weekLabel ?? "";
+  const week = publishDate ? weekLabelForDate(new Date(`${publishDate}T12:00:00`).toISOString()) : "";
 
   return (
     // Backdrop intentionally does NOT close the form — an accidental outside
@@ -1577,11 +1599,11 @@ function TaskForm({ task, channels, accounts, taskTypes, members, isAdmin, onClo
           </div>
           <div className="grid grid-cols-2 gap-3">
             <label className={lab}>
-              Planning date {week && <span className="font-normal text-teal-dark">· {week}</span>}
+              Planning date
               <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={cls + " mt-1 font-normal"} />
             </label>
             <label className={lab}>
-              Publishing date <span className="font-normal">(scheduled go-live)</span>
+              Publishing date {week ? <span className="font-normal text-teal-dark">· {week}</span> : <span className="font-normal">(scheduled go-live)</span>}
               <input type="date" value={publishDate} onChange={(e) => setPublishDate(e.target.value)} className={cls + " mt-1 font-normal"} />
             </label>
           </div>
