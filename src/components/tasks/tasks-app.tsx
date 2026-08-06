@@ -265,6 +265,7 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
   const [q, setQ] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [platform, setPlatform] = useState("");
+  const [account, setAccount] = useState("");
   const [person, setPerson] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
@@ -275,11 +276,13 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
   const people = members.filter((m) => tasks.some((t) => involves(t, m.id)));
   const types = [...new Set(tasks.map((t) => t.contentTypeLabel))].sort();
   const platforms = [...new Map(tasks.filter((t) => t.channel).map((t) => [t.channel!.id, t.channel!.name])).entries()];
+  const accounts = [...new Map(tasks.filter((t) => t.account).map((t) => [t.account!.id, t.account!.name])).entries()];
   const query = q.trim().toLowerCase();
   const filtered = tasks.filter((t) => {
     if (query && !`${t.title} ${t.brief} ${t.contentTypeLabel}`.toLowerCase().includes(query)) return false;
     if (typeFilter && t.contentTypeLabel !== typeFilter) return false;
     if (platform && t.channel?.id !== platform) return false;
+    if (account && t.account?.id !== account) return false;
     if (person && !involves(t, person)) return false;
     if (from || to) {
       const d = t.scheduledPublishDate ? t.scheduledPublishDate.slice(0, 10) : "";
@@ -313,6 +316,12 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
             {platforms.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
           </select>
         </label>
+        <label className="text-[11.5px] font-semibold text-slate">Account
+          <select value={account} onChange={(e) => setAccount(e.target.value)} className={fsel + " mt-1 block font-normal"}>
+            <option value="">All accounts</option>
+            {accounts.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+          </select>
+        </label>
         <label className="text-[11.5px] font-semibold text-slate">Person
           <select value={person} onChange={(e) => setPerson(e.target.value)} className={fsel + " mt-1 block font-normal"}>
             <option value="">All people</option>
@@ -325,8 +334,8 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
         <label className="text-[11.5px] font-semibold text-slate">Publish to
           <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={fsel + " mt-1 block font-normal"} />
         </label>
-        {(q || typeFilter || platform || person || from || to) && (
-          <button onClick={() => { setQ(""); setTypeFilter(""); setPlatform(""); setPerson(""); setFrom(""); setTo(""); }} className="rounded-[9px] border border-line px-3 py-2 text-[12px] font-semibold text-slate hover:border-teal">Clear</button>
+        {(q || typeFilter || platform || account || person || from || to) && (
+          <button onClick={() => { setQ(""); setTypeFilter(""); setPlatform(""); setAccount(""); setPerson(""); setFrom(""); setTo(""); }} className="rounded-[9px] border border-line px-3 py-2 text-[12px] font-semibold text-slate hover:border-teal">Clear</button>
         )}
       </div>
 
