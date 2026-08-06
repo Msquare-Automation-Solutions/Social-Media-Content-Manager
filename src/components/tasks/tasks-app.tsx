@@ -278,6 +278,24 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
     if (t.currentStage === "ANALYTICS") return members.find((m) => m.id === t.analystId)?.name ?? null;
     return t.stages.find((s) => s.stage === t.currentStage)?.assigneeName ?? null;
   };
+  const stageStatus = (t: TaskRow): { label: string; cls: string } | null => {
+    const s = t.stages.find((x) => x.stage === t.currentStage);
+    if (!s) return null;
+    if (s.reviewStatus === "PENDING") return { label: "In review", cls: "bg-[#fff4d6] text-[#a5720b]" };
+    if (s.reviewStatus === "REWORK") return { label: "Needs rework", cls: "bg-[#ffe0dc] text-[#c23b2a]" };
+    if (s.reviewStatus === "APPROVED") return { label: "Approved", cls: "bg-teal-soft text-teal-dark" };
+    const w = s.workStatus as TaskWorkStatus;
+    return {
+      label: TASK_WORK_LABELS[w] ?? w,
+      cls: w.startsWith("COMPLETED")
+        ? "bg-teal-soft text-teal-dark"
+        : w === "WIP_DELAY"
+          ? "bg-[#ffe0dc] text-[#c23b2a]"
+          : w === "WIP_ON_TRACK"
+            ? "bg-[#e2edff] text-[#2a5fb8]"
+            : "bg-wash/[0.08] text-slate",
+    };
+  };
   const [q, setQ] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [platform, setPlatform] = useState("");
@@ -383,7 +401,7 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
             <thead>
               <tr className="border-b border-line text-left text-[11px] uppercase tracking-[0.04em] text-slate">
                 <th className="px-3 py-2.5">Theme</th><th className="px-3 py-2.5">Type</th><th className="px-3 py-2.5">Platform / Account</th>
-                <th className="px-3 py-2.5">Publish date</th><th className="px-3 py-2.5">Publish</th><th className="px-3 py-2.5">Stage · Owner</th><th></th>
+                <th className="px-3 py-2.5">Publish date</th><th className="px-3 py-2.5">Publish</th><th className="px-3 py-2.5">Stage · Owner · Status</th><th></th>
               </tr>
             </thead>
             <tbody>
@@ -412,7 +430,13 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
                           {att && <span className={`${badge} ml-1.5 ${att.tone === "red" ? "bg-[#ffe0dc] text-[#f5442e]" : "bg-[#ffedcc] text-[#f5920b]"}`}>{att.label}</span>}
                         </td>
                         <td className="px-3 py-2.5"><span className={`${badge} ${pubCls(t.publishStatus)}`}>{TASK_PUBLISH_LABELS[t.publishStatus as keyof typeof TASK_PUBLISH_LABELS] ?? t.publishStatus}</span></td>
-                        <td className="px-3 py-2.5"><span className="inline-flex items-center gap-1.5"><StageIcon stage={t.currentStage} /> {STAGE_LABELS[t.currentStage]} {t.currentStage !== "DONE" && (ownerName(t) ? `· ${ownerName(t)}` : <span className="text-[#e0912b]">· unassigned</span>)}</span></td>
+                        <td className="px-3 py-2.5">
+                          <span className="inline-flex flex-wrap items-center gap-1.5">
+                            <StageIcon stage={t.currentStage} /> {STAGE_LABELS[t.currentStage]}
+                            {t.currentStage !== "DONE" && (ownerName(t) ? `· ${ownerName(t)}` : <span className="text-[#e0912b]">· unassigned</span>)}
+                            {(() => { const st = stageStatus(t); return st ? <span className={`${badge} ${st.cls}`}>{st.label}</span> : null; })()}
+                          </span>
+                        </td>
                         <td className="whitespace-nowrap px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center gap-1">
                             {canEdit && <button onClick={() => onEdit(t.id)} title="Edit" aria-label="Edit" className="grid h-7 w-7 place-items-center rounded-[8px] text-slate hover:bg-wash/[0.08] hover:text-teal-dark">✎</button>}
