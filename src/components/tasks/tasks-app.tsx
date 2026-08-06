@@ -1299,8 +1299,6 @@ function TaskForm({ task, channels, accounts, taskTypes, members, isAdmin, onClo
   const [type, setType] = useState(task ? contentTypeLabel(task.contentType) : taskTypes[0]?.name ?? "");
   const [title, setTitle] = useState(task?.title ?? "");
   const [brief, setBrief] = useState(task?.brief ?? "");
-  const [content, setContent] = useState(task?.content ?? "");
-  const [remarks, setRemarks] = useState(task?.remarks ?? "");
   const [date, setDate] = useState(task?.plannedDate ? task.plannedDate.slice(0, 10) : todayStr());
   const [publishDate, setPublishDate] = useState(task?.scheduledPublishDate ? task.scheduledPublishDate.slice(0, 10) : todayStr());
   const [channelId, setChannelId] = useState(task?.channel?.id ?? "");
@@ -1363,7 +1361,7 @@ function TaskForm({ task, channels, accounts, taskTypes, members, isAdmin, onClo
       publishable: stageSel[s].publishable,
     }));
     const body = {
-      title: title.trim(), brief: brief.trim(), content: content.trim(), remarks: remarks.trim(),
+      title: title.trim(), brief: brief.trim(),
       contentType: type, stages, channelId: channelId || null, accountId: accountId || null,
       plannedDate: date ? new Date(date).toISOString() : null,
       scheduledPublishDate: publishDate ? new Date(publishDate).toISOString() : null,
@@ -1488,8 +1486,6 @@ function TaskForm({ task, channels, accounts, taskTypes, members, isAdmin, onClo
 
           <label className={lab}>Content theme<input autoFocus value={title} onChange={(e) => setTitle(e.target.value)} className={cls + " mt-1 font-normal"} /></label>
           <label className={lab}>Content brief<input value={brief} onChange={(e) => setBrief(e.target.value)} className={cls + " mt-1 font-normal"} /></label>
-          <label className={lab}>Content (draft) <span className="font-normal">(optional)</span><textarea value={content} onChange={(e) => setContent(e.target.value)} className={cls + " mt-1 min-h-[80px] resize-y font-normal"} /></label>
-          <label className={lab}>Remarks<input value={remarks} onChange={(e) => setRemarks(e.target.value)} className={cls + " mt-1 font-normal"} /></label>
           <div className="flex justify-end gap-2"><button onClick={onClose} className="px-3 py-2 text-[12.5px] font-semibold text-slate">Cancel</button><button onClick={save} disabled={!title.trim() || !type || chosen.length === 0 || saving} className="btn-premium rounded-[10px] px-4 py-2 text-[12.5px] font-semibold disabled:opacity-50">{saving ? "Saving…" : task ? "Save changes" : "Create task"}</button></div>
         </div>
       </div>
