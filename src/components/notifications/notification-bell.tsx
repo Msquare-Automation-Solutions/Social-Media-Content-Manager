@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Icon } from "@/components/ui/icons";
 import { initials } from "@/lib/colors";
+import { useLiveSignal } from "@/components/live-signal";
 
 type NotificationRow = {
   id: string;
@@ -65,18 +66,16 @@ export function NotificationBell({ initialUnread }: { initialUnread: number }) {
       if (!r.ok) throw new Error("Failed to load notifications");
       return r.json();
     },
-    // Fallback poll only, real-time delivery comes from the SSE stream below.
-    refetchInterval: 60_000,
+    // No interval of its own — the shared poller below drives refetches, and the
+    // panel refetches when opened.
+    refetchInterval: false,
     initialData: { rows: [], nextCursor: null, unread: initialUnread },
   });
 
-  // Real-time: subscribe to the notification stream; any change signal makes
-  // react-query refetch the feed immediately. EventSource reconnects on drop.
-  useEffect(() => {
-    const es = new EventSource("/api/notifications/stream");
-    es.onmessage = () => qc.invalidateQueries({ queryKey: ["notifications"] });
-    return () => es.close();
-  }, [qc]);
+  // The shared poller tells us when the inbox changed; refetch the feed then.
+  useLiveSignal(
+    useCallback(() => qc.invalidateQueries({ queryKey: ["notifications"] }), [qc]),
+  );
 
   const unread = data?.unread ?? 0;
   const rows = useMemo(() => data?.rows ?? [], [data]);
