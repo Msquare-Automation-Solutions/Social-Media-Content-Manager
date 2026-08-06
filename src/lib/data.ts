@@ -3,7 +3,6 @@ import { LIBRARY_VIEWS, LIBRARY_SLUGS, typesForView, type LibraryViewKey } from 
 import { parseTags, parseJson } from "@/lib/json";
 import { describeActivity } from "@/lib/activity-format";
 import { contentTypeLabel } from "@/lib/tasks";
-import { TASK_BOARD_COLUMNS, STAGE_LABELS } from "@/lib/enums";
 
 export type LibraryFilters = {
   personId?: string;
@@ -852,8 +851,6 @@ export type PlatformSlice = {
   scheduledThisMonth: number;
 };
 
-export type TaskCountSlice = { key: string; label: string; count: number };
-
 // The dashboard is task-based: every figure describes work in the pipeline.
 // (Top creators stays asset-based — it credits who produced the media.)
 export type DashboardData = {
@@ -865,12 +862,11 @@ export type DashboardData = {
     ready: number;
     published: number;
   };
-  byStage: TaskCountSlice[];
-  byContentType: TaskCountSlice[];
-  perPlatform: { id: string; name: string; icon: string; color: string; total: number }[];
-  upcoming: {
+  // Most recently published work — what actually went out.
+  latest: {
     id: string;
     title: string;
+    accountName: string | null;
     platformName: string;
     platformIcon: string;
     platformColor: string;
@@ -889,24 +885,22 @@ export type DashTask = {
   title: string;
   contentTypeLabel: string;
   channelId: string | null;
+  accountName: string | null;
   currentStage: string;
   publishStatus: string;
+  publishedDate: string | null;
   scheduledPublishDate: string | null;
   stages: { reviewStatus: string }[];
 };
 
 /**
  * Roll tasks up into the dashboard. Pure + `now`-injectable so it's testable.
- * Counts describe the task pipeline; `upcoming` is forward-looking (publish
- * dates from today on) and deliberately ignores any trailing date range.
  */
 export function aggregateDashboard(
   tasks: DashTask[],
   channels: DashChannel[],
   creators: Pick<CreatorRow, "name" | "avatarColor" | "assetCount">[],
-  now: Date,
 ): DashboardData {
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const isPublished = (t: DashTask) => t.publishStatus.startsWith("PUBLISHED");
   const allApproved = (t: DashTask) =>
     t.stages.length > 0 && t.stages.every((s) => s.reviewStatus === "APPROVED");
@@ -925,45 +919,21 @@ export function aggregateDashboard(
     published: tasks.filter(isPublished).length,
   };
 
-  // Where tasks sit on the board (Content → … → In queue → Done → Analytics).
-  const byStage: TaskCountSlice[] = TASK_BOARD_COLUMNS.map((col) => ({
-    key: col,
-    label: STAGE_LABELS[col] ?? col,
-    count: tasks.filter((t) => t.currentStage === col).length,
-  }));
-
-  // Task volume per content type (admin-editable, so derived from the data).
-  const typeCounts = new Map<string, number>();
-  for (const t of tasks) {
-    const k = t.contentTypeLabel || "Untyped";
-    typeCounts.set(k, (typeCounts.get(k) ?? 0) + 1);
-  }
-  const byContentType: TaskCountSlice[] = [...typeCounts.entries()]
-    .map(([label, count]) => ({ key: label, label, count }))
-    .sort((a, b) => b.count - a.count);
-
-  const perPlatform = channels.map((ch) => ({
-    id: ch.id,
-    name: ch.name,
-    icon: ch.icon,
-    color: ch.color,
-    total: tasks.filter((t) => t.channelId === ch.id).length,
-  }));
-
   const chById = new Map(channels.map((c) => [c.id, c]));
-  const upcoming = live
-    .filter((t) => t.scheduledPublishDate && new Date(t.scheduledPublishDate) >= todayStart)
-    .sort((a, b) => (a.scheduledPublishDate ?? "").localeCompare(b.scheduledPublishDate ?? ""))
+  const latest = tasks
+    .filter(isPublished)
+    .sort((a, b) => (b.publishedDate ?? "").localeCompare(a.publishedDate ?? ""))
     .slice(0, 8)
     .map((t) => {
       const ch = t.channelId ? chById.get(t.channelId) : undefined;
       return {
         id: t.id,
         title: t.title,
+        accountName: t.accountName,
         platformName: ch?.name ?? "No platform",
         platformIcon: ch?.icon ?? "✨",
         platformColor: ch?.color ?? "#889",
-        date: t.scheduledPublishDate!,
+        date: t.publishedDate ?? "",
       };
     });
 
@@ -973,7 +943,7 @@ export function aggregateDashboard(
     .slice(0, 6)
     .map((c) => ({ name: c.name, avatarColor: c.avatarColor, assetCount: c.assetCount }));
 
-  return { totalTasks: tasks.length, taskCounts, byStage, byContentType, perPlatform, upcoming, topCreators };
+  return { totalTasks: tasks.length, taskCounts, latest, topCreators };
 }
 
 export async function getDashboardData(
@@ -981,7 +951,7 @@ export async function getDashboardData(
   opts: { from?: string; to?: string } = {},
 ): Promise<DashboardData> {
   const range = createdAtRange(opts.from, opts.to);
-  const [tasks, channels, creators] = await Promise.all([
+  const [tasks, channels, creators, accounts] = await Promise.all([
     prisma.task.findMany({
       where: { workspaceId, deletedAt: null, ...(range ? { createdAt: range } : {}) },
       select: {
@@ -991,7 +961,9 @@ export async function getDashboardData(
         channelId: true,
         currentStage: true,
         publishStatus: true,
+        publishedDate: true,
         scheduledPublishDate: true,
+        accountId: true,
         stages: { select: { reviewStatus: true } },
       },
     }),
@@ -1001,20 +973,24 @@ export async function getDashboardData(
       select: { id: true, name: true, icon: true, color: true },
     }),
     listCreators(workspaceId),
+    prisma.account.findMany({ where: { workspaceId }, select: { id: true, name: true } }),
   ]);
+  const accountName = new Map(accounts.map((a) => [a.id, a.name]));
 
   const input: DashTask[] = tasks.map((t) => ({
     id: t.id,
     title: t.title,
     contentTypeLabel: contentTypeLabel(t.contentType),
     channelId: t.channelId,
+    accountName: t.accountId ? accountName.get(t.accountId) ?? null : null,
     currentStage: t.currentStage,
     publishStatus: t.publishStatus,
+    publishedDate: t.publishedDate ? t.publishedDate.toISOString() : null,
     scheduledPublishDate: t.scheduledPublishDate ? t.scheduledPublishDate.toISOString() : null,
     stages: t.stages.map((s) => ({ reviewStatus: s.reviewStatus })),
   }));
 
-  return aggregateDashboard(input, channels, creators, new Date());
+  return aggregateDashboard(input, channels, creators);
 }
 
 // ── Workspace overview (Platform → content-type cards) ──────────────────────

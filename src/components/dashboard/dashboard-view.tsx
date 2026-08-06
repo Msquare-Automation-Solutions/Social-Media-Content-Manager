@@ -5,12 +5,7 @@ import { BackButton } from "@/components/ui/back-button";
 import type { DashboardData } from "@/lib/data";
 import { initials } from "@/lib/colors";
 import { PlatformIcon } from "@/components/ui/platform-icon";
-import {
-  StatTile,
-  BarChart,
-  Donut,
-  type BarDatum,
-} from "@/components/dashboard/charts";
+import { StatTile } from "@/components/dashboard/charts";
 
 export function DashboardView({
   data,
@@ -28,21 +23,6 @@ export function DashboardView({
     params.set(key, value);
     router.push(`${pathname}?${params.toString()}`);
   };
-
-  const platformBars: BarDatum[] = data.perPlatform.map((p) => ({
-    label: p.name,
-    value: p.total,
-    color: p.color,
-    icon: p.icon,
-  }));
-
-  // Board stages, in pipeline order, as a categorical set.
-  const STAGE_COLORS = ["#0e9f8f", "#3f8fd0", "#7a4fc9", "#e0912b", "#2e9e6b", "#c96a9e"];
-  const stageSlices = data.byStage.map((s, i) => ({
-    label: s.label,
-    value: s.count,
-    color: STAGE_COLORS[i % STAGE_COLORS.length],
-  }));
 
   const maxCreator = Math.max(1, ...data.topCreators.map((c) => c.assetCount));
 
@@ -114,30 +94,17 @@ export function DashboardView({
         />
       </div>
 
-      {/* Per-platform overview + carousel */}
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
-        <section className="surface rounded-card p-5">
-          <h3 className="mb-3 font-display text-[15px]">Tasks per platform</h3>
-          <BarChart data={platformBars} empty="No platforms tagged yet" />
-        </section>
-        <section className="surface rounded-card p-5">
-          <h3 className="mb-3 font-display text-[15px]">Where tasks sit</h3>
-          <Donut segments={stageSlices} centerLabel={`${data.totalTasks} tasks`} />
-        </section>
-      </div>
-
-
-      {/* Upcoming + creators */}
+      {/* Latest posts + creators */}
       <div className="mt-4 grid gap-4 pb-16 lg:grid-cols-2">
         <section className="surface rounded-card p-5">
-          <h3 className="mb-3 font-display text-[15px]">Upcoming publishes</h3>
-          {data.upcoming.length === 0 ? (
+          <h3 className="mb-3 font-display text-[15px]">Latest posts</h3>
+          {data.latest.length === 0 ? (
             <div className="py-6 text-center text-[12.5px] text-slate">
-No tasks due to publish. Set a publishing date when planning content.
+              Nothing published yet.
             </div>
           ) : (
             <ul className="flex flex-col divide-y divide-line/70">
-              {data.upcoming.map((u, i) => (
+              {data.latest.map((u, i) => (
                 <li key={`${u.id}-${i}`} className="flex items-center gap-3 py-2.5">
                   <span
                     className="grid h-7 w-7 shrink-0 place-items-center rounded-[9px] text-white"
@@ -147,13 +114,14 @@ No tasks due to publish. Set a publishing date when planning content.
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-[12.5px] font-semibold text-ink">{u.title}</div>
-                    <div className="text-[11px] text-slate">{u.platformName}</div>
+                    <div className="truncate text-[11px] text-slate">
+                      {u.accountName ? `${u.accountName} · ` : ""}{u.platformName}
+                    </div>
                   </div>
-                  <time className="shrink-0 rounded-full bg-teal-soft px-2 py-0.5 text-[11px] font-semibold text-teal-dark">
-                    {new Date(u.date).toLocaleDateString(undefined, {
-                      month: "short",
-                      day: "numeric",
-                    })}
+                  <time className="shrink-0 rounded-full bg-[#d7f2e5] px-2 py-0.5 text-[11px] font-semibold text-[#2e9e6b]">
+                    {u.date
+                      ? new Date(u.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })
+                      : "—"}
                   </time>
                 </li>
               ))}
