@@ -86,6 +86,23 @@ command in a `.sh` file if you need them.
 **This job fails silently.** If it's missing or the token is wrong, deadline
 reminders simply stop and nobody is told. Check hPanel's *View Output* occasionally.
 
+## Keeping the database awake (the "2 second lag")
+
+Measured: the first query after Neon's compute has been idle takes **~3.6 s**;
+subsequent ones ~0.6 s. With a handful of users the database sleeps most of the day,
+so whoever opened the app first wore that delay. Second cron job, hPanel →
+Advanced → Cron Jobs, type **Custom**:
+
+```
+*/5 9-20 * * *   curl -fsS https://marketing.msquare.pro/api/warm
+```
+
+Every 5 minutes from 09:00 to 20:00 server time (`TZ=Asia/Kolkata`), so the compute
+stays warm through the working day and still sleeps overnight and at weekends —
+important, because Neon's free plan has a monthly compute-hour allowance and keeping
+it awake 24/7 would eat most of it. `/api/warm` runs a single `SELECT 1` and returns
+`{ ok, ms }`; nothing to abuse, so it needs no token.
+
 ## R2 CORS
 
 No action needed. The bucket allows `*` origins for `PUT`/`GET`/`HEAD`

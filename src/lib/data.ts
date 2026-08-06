@@ -808,6 +808,104 @@ export async function getTaskOptions(workspaceId: string) {
   };
 }
 
+/**
+ * Every number the app shell needs, in a single database round trip.
+ *
+ * The layout renders on every request (it's force-dynamic) and used to call ten
+ * separate queries to fill in the sidebar badges and the storage gauge. Over a
+ * long-haul link to the database that's ten chances to pay the latency; folded
+ * into one statement it's one. Same shape as the individual helpers below, which
+ * stay for the pages that need them on their own.
+ */
+export type SidebarCounts = {
+  assets: Record<LibraryViewKey, number>;
+  bin: number;
+  myTasks: number;
+  taskReview: number;
+  taskRework: number;
+  members: number;
+  ready: number;
+  unread: number;
+  storage: StorageUsage;
+};
+
+type CountsRow = {
+  bin: bigint;
+  my_tasks: bigint;
+  task_review: bigint;
+  task_rework: bigint;
+  ready: bigint;
+  members: bigint;
+  unread: bigint;
+  storage_active: bigint | null;
+  storage_trashed: bigint | null;
+  asset_types: Record<string, number> | null;
+};
+
+export async function getSidebarCounts(
+  workspaceId: string,
+  userId: string,
+): Promise<SidebarCounts> {
+  const [row] = await prisma.$queryRaw<CountsRow[]>`
+    SELECT
+      (SELECT COUNT(*) FROM "ContentBinItem"
+         WHERE "workspaceId" = ${workspaceId} AND "deletedAt" IS NULL
+           AND "status" <> 'DISCARDED') AS bin,
+      (SELECT COUNT(*) FROM "Task" t
+         WHERE t."workspaceId" = ${workspaceId} AND t."deletedAt" IS NULL
+           AND EXISTS (SELECT 1 FROM "TaskStage" s
+                        WHERE s."taskId" = t."id" AND s."assigneeId" = ${userId}
+                          AND s."reviewStatus" <> 'APPROVED')) AS my_tasks,
+      (SELECT COUNT(*) FROM "Task" t
+         WHERE t."workspaceId" = ${workspaceId} AND t."deletedAt" IS NULL
+           AND EXISTS (SELECT 1 FROM "TaskStage" s
+                        WHERE s."taskId" = t."id" AND s."reviewStatus" = 'PENDING')) AS task_review,
+      (SELECT COUNT(*) FROM "Task" t
+         WHERE t."workspaceId" = ${workspaceId} AND t."deletedAt" IS NULL
+           AND EXISTS (SELECT 1 FROM "TaskStage" s
+                        WHERE s."taskId" = t."id" AND s."reviewStatus" = 'REWORK')) AS task_rework,
+      -- Every stage approved and at least one stage, not yet published.
+      (SELECT COUNT(*) FROM "Task" t
+         WHERE t."workspaceId" = ${workspaceId} AND t."deletedAt" IS NULL
+           AND t."publishStatus" NOT IN ('PUBLISHED_ON_TIME', 'PUBLISHED_DELAY')
+           AND EXISTS (SELECT 1 FROM "TaskStage" s WHERE s."taskId" = t."id")
+           AND NOT EXISTS (SELECT 1 FROM "TaskStage" s
+                            WHERE s."taskId" = t."id"
+                              AND s."reviewStatus" <> 'APPROVED')) AS ready,
+      (SELECT COUNT(*) FROM "Membership" WHERE "workspaceId" = ${workspaceId}) AS members,
+      (SELECT COUNT(*) FROM "Notification"
+         WHERE "recipientId" = ${userId} AND "readAt" IS NULL) AS unread,
+      (SELECT COALESCE(SUM("sizeBytes"), 0) FROM "MediaAsset"
+         WHERE "workspaceId" = ${workspaceId} AND "deletedAt" IS NULL) AS storage_active,
+      (SELECT COALESCE(SUM("sizeBytes"), 0) FROM "MediaAsset"
+         WHERE "workspaceId" = ${workspaceId} AND "deletedAt" IS NOT NULL) AS storage_trashed,
+      (SELECT COALESCE(json_object_agg("type", c), '{}'::json)
+         FROM (SELECT "type", COUNT(*) AS c FROM "MediaAsset"
+                WHERE "workspaceId" = ${workspaceId} AND "deletedAt" IS NULL
+                GROUP BY "type") x) AS asset_types
+  `;
+
+  const byType = new Map(Object.entries(row?.asset_types ?? {}));
+  const assets = {} as Record<LibraryViewKey, number>;
+  for (const view of LIBRARY_VIEWS) {
+    assets[view.key] = view.types.reduce((n, t) => n + Number(byType.get(t) ?? 0), 0);
+  }
+  const active = Number(row?.storage_active ?? 0);
+  const trashed = Number(row?.storage_trashed ?? 0);
+
+  return {
+    assets,
+    bin: Number(row?.bin ?? 0),
+    myTasks: Number(row?.my_tasks ?? 0),
+    taskReview: Number(row?.task_review ?? 0),
+    taskRework: Number(row?.task_rework ?? 0),
+    members: Number(row?.members ?? 0),
+    ready: Number(row?.ready ?? 0),
+    unread: Number(row?.unread ?? 0),
+    storage: { total: active + trashed, active, trashed },
+  };
+}
+
 export async function getAssetCounts(
   workspaceId: string,
 ): Promise<Record<LibraryViewKey, number>> {
