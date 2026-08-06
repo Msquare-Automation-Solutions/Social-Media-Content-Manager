@@ -269,33 +269,54 @@ function publishAttention(t: TaskRow): { label: string; tone: "red" | "amber" } 
   return null;
 }
 
+// Where one stage stands: its review state once handed in, otherwise how the
+// work itself is going. Rendered as a dot + word, so a column of them reads
+// down the page without a wall of pills.
+function stageStatus(s: { workStatus: string; reviewStatus: string }): { label: string; dot: string; text: string } | null {
+  if (s.reviewStatus === "PENDING") return { label: "in review", dot: "#e0912b", text: "text-[#a5720b]" };
+  if (s.reviewStatus === "REWORK") return { label: "needs rework", dot: "#f5442e", text: "text-[#c23b2a]" };
+  if (s.reviewStatus === "APPROVED") return { label: "approved", dot: "#0e9f8f", text: "text-teal-dark" };
+  const w = s.workStatus as TaskWorkStatus;
+  if (w === "YTI") return { label: "yet to initiate", dot: "#9aa5b1", text: "text-slate" };
+  if (w === "WIP_ON_TRACK") return { label: "in progress", dot: "#2a6fb8", text: "text-[#2a6fb8]" };
+  if (w === "WIP_DELAY") return { label: "in progress, delayed", dot: "#f5442e", text: "text-[#c23b2a]" };
+  return { label: TASK_WORK_LABELS[w]?.toLowerCase() ?? w, dot: "#0e9f8f", text: "text-teal-dark" };
+}
+
 // ── Overview (planning table) ────────────────────────────────────────────────
 function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }: Props & { onOpen: (id: string) => void; onEdit: (id: string) => void; onDelete: (id: string) => void }) {
-  // The owner shown for the current stage: production stages use the stage
-  // assignee; In queue → the publisher; Analytics → the analyst.
-  const ownerName = (t: TaskRow): string | null => {
-    if (t.currentStage === "PUBLISHING") return members.find((m) => m.id === t.publisherId)?.name ?? null;
-    if (t.currentStage === "ANALYTICS") return members.find((m) => m.id === t.analystId)?.name ?? null;
-    return t.stages.find((s) => s.stage === t.currentStage)?.assigneeName ?? null;
+  // Every stage of the task on its own line: stage · owner · status. The stage
+  // the task is currently sitting in is the bold one.
+  const stageLines = (t: TaskRow) => {
+    const lines = t.stages.map((s) => ({
+      key: s.id,
+      stage: s.stage,
+      label: STAGE_LABELS[s.stage] ?? s.stage,
+      owner: s.assigneeName,
+      status: stageStatus(s),
+      current: s.stage === t.currentStage,
+    }));
+    // PUBLISHING / DONE / ANALYTICS aren't production stages — they're the tail
+    // of the task, owned by the publisher and the analyst.
+    if (t.currentStage === "PUBLISHING" || t.currentStage === "ANALYTICS" || t.currentStage === "DONE") {
+      const owner =
+        t.currentStage === "ANALYTICS"
+          ? members.find((m) => m.id === t.analystId)?.name ?? null
+          : t.currentStage === "PUBLISHING"
+            ? members.find((m) => m.id === t.publisherId)?.name ?? null
+            : null;
+      lines.push({
+        key: t.currentStage,
+        stage: t.currentStage,
+        label: STAGE_LABELS[t.currentStage],
+        owner,
+        status: null,
+        current: true,
+      });
+    }
+    return lines;
   };
-  const stageStatus = (t: TaskRow): { label: string; cls: string } | null => {
-    const s = t.stages.find((x) => x.stage === t.currentStage);
-    if (!s) return null;
-    if (s.reviewStatus === "PENDING") return { label: "In review", cls: "bg-[#fff4d6] text-[#a5720b]" };
-    if (s.reviewStatus === "REWORK") return { label: "Needs rework", cls: "bg-[#ffe0dc] text-[#c23b2a]" };
-    if (s.reviewStatus === "APPROVED") return { label: "Approved", cls: "bg-teal-soft text-teal-dark" };
-    const w = s.workStatus as TaskWorkStatus;
-    return {
-      label: TASK_WORK_LABELS[w] ?? w,
-      cls: w.startsWith("COMPLETED")
-        ? "bg-teal-soft text-teal-dark"
-        : w === "WIP_DELAY"
-          ? "bg-[#ffe0dc] text-[#c23b2a]"
-          : w === "WIP_ON_TRACK"
-            ? "bg-[#e2edff] text-[#2a5fb8]"
-            : "bg-wash/[0.08] text-slate",
-    };
-  };
+
   const [q, setQ] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [platform, setPlatform] = useState("");
@@ -430,12 +451,24 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
                           {att && <span className={`${badge} ml-1.5 ${att.tone === "red" ? "bg-[#ffe0dc] text-[#f5442e]" : "bg-[#ffedcc] text-[#f5920b]"}`}>{att.label}</span>}
                         </td>
                         <td className="px-3 py-2.5"><span className={`${badge} ${pubCls(t.publishStatus)}`}>{TASK_PUBLISH_LABELS[t.publishStatus as keyof typeof TASK_PUBLISH_LABELS] ?? t.publishStatus}</span></td>
-                        <td className="px-3 py-2.5">
-                          <span className="inline-flex flex-wrap items-center gap-1.5">
-                            <StageIcon stage={t.currentStage} /> {STAGE_LABELS[t.currentStage]}
-                            {t.currentStage !== "DONE" && (ownerName(t) ? `· ${ownerName(t)}` : <span className="text-[#e0912b]">· unassigned</span>)}
-                            {(() => { const st = stageStatus(t); return st ? <span className={`${badge} ${st.cls}`}>{st.label}</span> : null; })()}
-                          </span>
+                        <td className="px-3 py-2 align-top">
+                          <div className="flex flex-col gap-0.5">
+                            {stageLines(t).map((l) => (
+                              <div key={l.key} className="flex items-center gap-1.5 whitespace-nowrap text-[12px] leading-[1.5]">
+                                <StageIcon stage={l.stage} />
+                                <span className={l.current ? "font-semibold text-ink" : "text-slate"}>{l.label}</span>
+                                {l.stage !== "DONE" && (
+                                  <span className={l.owner ? "text-slate" : "text-[#e0912b]"}>· {l.owner ?? "unassigned"}</span>
+                                )}
+                                {l.status && (
+                                  <span className={`ml-0.5 inline-flex items-center gap-1 text-[11px] ${l.status.text}`}>
+                                    <span className="h-[5px] w-[5px] shrink-0 rounded-full" style={{ background: l.status.dot }} />
+                                    {l.status.label}
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
                         </td>
                         <td className="whitespace-nowrap px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center gap-1">
