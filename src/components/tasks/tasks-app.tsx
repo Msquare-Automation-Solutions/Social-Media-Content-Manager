@@ -269,6 +269,9 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
   const [person, setPerson] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+  // Start on this week — that's what the team is working on right now.
+  const thisWeek = weekLabelForDate(new Date().toISOString());
+  const [week, setWeek] = useState(thisWeek);
 
   // Anyone involved in a task: a stage owner, its publisher or its analyst.
   const involves = (t: TaskRow, userId: string) =>
@@ -277,12 +280,14 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
   const types = [...new Set(tasks.map((t) => t.contentTypeLabel))].sort();
   const platforms = [...new Map(tasks.filter((t) => t.channel).map((t) => [t.channel!.id, t.channel!.name])).entries()];
   const accounts = [...new Map(tasks.filter((t) => t.account).map((t) => [t.account!.id, t.account!.name])).entries()];
+  const allWeeks = [...new Set(tasks.map((t) => t.weekLabel || "Unscheduled"))];
   const query = q.trim().toLowerCase();
   const filtered = tasks.filter((t) => {
     if (query && !`${t.title} ${t.brief} ${t.contentTypeLabel}`.toLowerCase().includes(query)) return false;
     if (typeFilter && t.contentTypeLabel !== typeFilter) return false;
     if (platform && t.channel?.id !== platform) return false;
     if (account && t.account?.id !== account) return false;
+    if (week && (t.weekLabel || "Unscheduled") !== week) return false;
     if (person && !involves(t, person)) return false;
     if (from || to) {
       const d = t.scheduledPublishDate ? t.scheduledPublishDate.slice(0, 10) : "";
@@ -303,6 +308,15 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
       <div className="mb-4 flex flex-wrap items-end gap-2.5">
         <label className="text-[11.5px] font-semibold text-slate">Search
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Theme, brief, type…" className={fsel + " mt-1 block w-56 font-normal"} />
+        </label>
+        <label className="text-[11.5px] font-semibold text-slate">Week
+          <select value={week} onChange={(e) => setWeek(e.target.value)} className={fsel + " mt-1 block font-normal"}>
+            <option value="">All weeks</option>
+            {!allWeeks.includes(thisWeek) && <option value={thisWeek}>{thisWeek} (this week)</option>}
+            {allWeeks.map((w) => (
+              <option key={w} value={w}>{w}{w === thisWeek ? " (this week)" : ""}</option>
+            ))}
+          </select>
         </label>
         <label className="text-[11.5px] font-semibold text-slate">Post type
           <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className={fsel + " mt-1 block font-normal"}>
@@ -334,13 +348,21 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
         <label className="text-[11.5px] font-semibold text-slate">Publish to
           <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={fsel + " mt-1 block font-normal"} />
         </label>
-        {(q || typeFilter || platform || account || person || from || to) && (
-          <button onClick={() => { setQ(""); setTypeFilter(""); setPlatform(""); setAccount(""); setPerson(""); setFrom(""); setTo(""); }} className="rounded-[9px] border border-line px-3 py-2 text-[12px] font-semibold text-slate hover:border-teal">Clear</button>
+        {(q || typeFilter || platform || account || person || from || to || week) && (
+          <button onClick={() => { setQ(""); setTypeFilter(""); setPlatform(""); setAccount(""); setPerson(""); setFrom(""); setTo(""); setWeek(""); }} className="rounded-[9px] border border-line px-3 py-2 text-[12px] font-semibold text-slate hover:border-teal">Clear</button>
         )}
       </div>
 
       {filtered.length === 0 ? (
-        <Empty text={tasks.length ? "No tasks match these filters." : "No tasks yet, plan your first piece."} />
+        <Empty
+          text={
+            !tasks.length
+              ? "No tasks yet, plan your first piece."
+              : week
+                ? `Nothing planned for ${week}. Pick another week, or “All weeks”.`
+                : "No tasks match these filters."
+          }
+        />
       ) : (
         <div className="overflow-x-auto rounded-card border border-line bg-card shadow-soft">
           <table className="w-full border-collapse text-[12.5px]">
@@ -353,7 +375,17 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
             <tbody>
               {[...weeks.entries()].map(([w, arr]) => (
                 <Fragment key={w}>
-                  <tr className="bg-wash/[0.04]"><td colSpan={7} className="px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.04em] text-slate">{w}</td></tr>
+                  <tr className="bg-teal-soft/50">
+                    <td colSpan={7} className="border-l-[3px] border-teal px-3 py-2">
+                      <span className="font-display text-[13px] font-bold tracking-[0.01em] text-ink">{w}</span>
+                      <span className="ml-2 text-[11.5px] font-semibold text-slate">
+                        {arr.length} {arr.length === 1 ? "task" : "tasks"}
+                      </span>
+                      {w === thisWeek && (
+                        <span className={`${badge} ml-2 bg-teal text-white`}>this week</span>
+                      )}
+                    </td>
+                  </tr>
                   {arr.map((t) => {
                     const att = publishAttention(t);
                     return (
