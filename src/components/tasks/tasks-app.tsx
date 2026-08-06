@@ -368,8 +368,7 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
     return true;
   });
 
-  // The week defaults to today's, so only a *different* week counts as filtering.
-  const filtering = Boolean(q || typeFilter || platform || account || person || from || to) || weekDate !== todayStr();
+  const filtering = Boolean(q || typeFilter || platform || account || person || from || to || weekDate);
 
   const fsel = "rounded-[9px] border border-line bg-card px-2.5 py-2 text-[12.5px] text-ink outline-none focus:border-teal";
 
@@ -393,16 +392,6 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
         </label>
         <label className="text-[11.5px] font-semibold text-slate">Week of
           <input type="date" value={weekDate} onChange={(e) => setWeekDate(e.target.value)} className={fsel + " mt-1 block font-normal"} />
-          <span className="mt-0.5 block text-[10.5px] font-normal">
-            <span className="text-teal-dark">{week || "all weeks"}</span>
-            <button
-              type="button"
-              onClick={() => setWeekDate(weekDate ? "" : todayStr())}
-              className="ml-1.5 text-slate underline decoration-dotted hover:text-teal-dark"
-            >
-              {weekDate ? "show all" : "this week"}
-            </button>
-          </span>
         </label>
         <label className="text-[11.5px] font-semibold text-slate">Post type
           <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className={fsel + " mt-1 block font-normal"}>
@@ -435,7 +424,7 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
           <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={fsel + " mt-1 block font-normal"} />
         </label>
         {filtering && (
-          <button onClick={() => { setQ(""); setTypeFilter(""); setPlatform(""); setAccount(""); setPerson(""); setFrom(""); setTo(""); setWeekDate(todayStr()); }} className="rounded-[9px] border border-line px-3 py-2 text-[12px] font-semibold text-slate hover:border-teal">Clear</button>
+          <button onClick={() => { setQ(""); setTypeFilter(""); setPlatform(""); setAccount(""); setPerson(""); setFrom(""); setTo(""); setWeekDate(""); }} className="rounded-[9px] border border-line px-3 py-2 text-[12px] font-semibold text-slate hover:border-teal">Clear</button>
         )}
       </div>
 
@@ -445,7 +434,7 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
             !tasks.length
               ? "No tasks yet, plan your first piece."
               : week
-                ? `Nothing planned for ${week}. Pick another date, or “show all”.`
+                ? `Nothing planned for ${week}. Pick another date, or clear the filters to see every week.`
                 : "No tasks match these filters."
           }
         />
