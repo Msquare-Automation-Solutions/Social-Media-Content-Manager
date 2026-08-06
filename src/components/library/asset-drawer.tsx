@@ -1,5 +1,6 @@
 "use client";
 
+import { ReviewNote } from "@/components/tasks/rework-dialog";
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { TYPE_LABELS } from "@/lib/library";
@@ -245,7 +246,7 @@ export function AssetDrawer({
                 </div>
                 {asset.status === "REWORK" && asset.reviewNote && (
                   <div className="mt-2 rounded-[9px] bg-[#fdecea] px-3 py-2 text-[12px] text-[#c23b2a]">
-                    <b>Rework requested:</b> {asset.reviewNote}
+                    <b>Rework requested:</b> <ReviewNote note={asset.reviewNote} />
                   </div>
                 )}
                 {canReview && asset.status !== "PUBLISHED" ? (

@@ -26,7 +26,7 @@ const schema = z.discriminatedUnion("action", [
   z.object({
     action: z.literal("review"),
     outcome: z.enum(["APPROVED", "REWORK"]),
-    note: z.string().trim().max(2000).optional(),
+    note: z.string().trim().max(8000).optional(),
   }),
 ]);
 

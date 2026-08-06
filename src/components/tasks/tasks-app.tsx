@@ -8,6 +8,7 @@ import { Icon, type IconName } from "@/components/ui/icons";
 import { PlatformIcon } from "@/components/ui/platform-icon";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { FilePreview } from "@/components/tasks/file-preview";
+import { ReworkDialog, ReviewNote } from "@/components/tasks/rework-dialog";
 import { useUploadDialog, type SaveDefaults } from "@/components/save/dialog-context";
 import type { TaskRow } from "@/lib/data";
 import {
@@ -116,6 +117,7 @@ export function TasksApp(props: Props) {
   const [openId, setOpenId] = useState<string | null>(props.initialTaskId ?? null);
   const [formOpen, setFormOpen] = useState(Boolean(props.openNew && props.isAdmin));
   const [editId, setEditId] = useState<string | null>(null);
+  const [reworkFor, setReworkFor] = useState<{ taskId: string; stageId: string } | null>(null);
 
   const openTask = tasks.find((t) => t.id === openId) || null;
 
@@ -168,6 +170,13 @@ export function TasksApp(props: Props) {
       {mode === "published" && <PublishedList tasks={tasks} onOpen={setOpenId} />}
       {mode === "analytics" && <Analytics tasks={tasks} />}
 
+      {reworkFor && (
+        <ReworkDialog
+          onCancel={() => setReworkFor(null)}
+          onSend={(note) => sendRework(reworkFor.taskId, reworkFor.stageId, note)}
+        />
+      )}
+
       {openTask && (
         <TaskDrawer
           task={openTask}
@@ -201,9 +210,16 @@ export function TasksApp(props: Props) {
     if (await api(`/api/tasks/${id}`, "DELETE")) { toast("Task deleted → Trash"); setOpenId(null); refresh(); }
   }
   async function reviewStage(taskId: string, stageId: string, outcome: "APPROVED" | "REWORK") {
-    const note = outcome === "REWORK" ? prompt("Rework note (what needs fixing)?") ?? "" : "";
-    if (await api(`/api/tasks/${taskId}/stages/${stageId}`, "PATCH", { action: "review", outcome, note }))
-      { toast(outcome === "APPROVED" ? "Approved ✓" : "Sent back for rework"); refresh(); }
+    // Rework needs a written reason (and often a screenshot), so it goes through
+    // the composer; approving is a one-click decision.
+    if (outcome === "REWORK") { setReworkFor({ taskId, stageId }); return; }
+    if (await api(`/api/tasks/${taskId}/stages/${stageId}`, "PATCH", { action: "review", outcome, note: "" }))
+      { toast("Approved ✓"); refresh(); }
+  }
+  async function sendRework(taskId: string, stageId: string, note: string) {
+    setReworkFor(null);
+    if (await api(`/api/tasks/${taskId}/stages/${stageId}`, "PATCH", { action: "review", outcome: "REWORK", note }))
+      { toast("Sent back for rework"); refresh(); }
   }
   // Publish the whole task (its files go live together). The server decides
   // on-time vs delayed from the scheduled date.
@@ -269,12 +285,11 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
   const [person, setPerson] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
-  // Every week stays on the page; only this week is open to begin with, the
-  // rest are collapsed behind their header so the list starts short.
+  // Pick any date and the table narrows to the week that day falls in; clear it
+  // to see every week. Parsed as a local date so the label can't slip a day.
   const thisWeek = weekLabelForDate(new Date().toISOString());
-  const [week, setWeek] = useState("");
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
-  const toggleWeek = (w: string) => setCollapsed((c) => ({ ...c, [w]: !(c[w] ?? w !== thisWeek) }));
+  const [weekDate, setWeekDate] = useState("");
+  const week = weekDate ? weekLabelForDate(new Date(`${weekDate}T12:00:00`).toISOString()) : "";
 
   // Anyone involved in a task: a stage owner, its publisher or its analyst.
   const involves = (t: TaskRow, userId: string) =>
@@ -283,7 +298,6 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
   const types = [...new Set(tasks.map((t) => t.contentTypeLabel))].sort();
   const platforms = [...new Map(tasks.filter((t) => t.channel).map((t) => [t.channel!.id, t.channel!.name])).entries()];
   const accounts = [...new Map(tasks.filter((t) => t.account).map((t) => [t.account!.id, t.account!.name])).entries()];
-  const allWeeks = [...new Set(tasks.map((t) => t.weekLabel || "Unscheduled"))];
   const query = q.trim().toLowerCase();
   const filtered = tasks.filter((t) => {
     if (query && !`${t.title} ${t.brief} ${t.contentTypeLabel}`.toLowerCase().includes(query)) return false;
@@ -301,7 +315,7 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
     return true;
   });
 
-  const filtering = Boolean(q || typeFilter || platform || account || person || from || to || week);
+  const filtering = Boolean(q || typeFilter || platform || account || person || from || to || weekDate);
 
   const fsel = "rounded-[9px] border border-line bg-card px-2.5 py-2 text-[12.5px] text-ink outline-none focus:border-teal";
 
@@ -314,14 +328,9 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
         <label className="text-[11.5px] font-semibold text-slate">Search
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Theme, brief, type…" className={fsel + " mt-1 block w-56 font-normal"} />
         </label>
-        <label className="text-[11.5px] font-semibold text-slate">Week
-          <select value={week} onChange={(e) => setWeek(e.target.value)} className={fsel + " mt-1 block font-normal"}>
-            <option value="">All weeks</option>
-            {!allWeeks.includes(thisWeek) && <option value={thisWeek}>{thisWeek} (this week)</option>}
-            {allWeeks.map((w) => (
-              <option key={w} value={w}>{w}{w === thisWeek ? " (this week)" : ""}</option>
-            ))}
-          </select>
+        <label className="text-[11.5px] font-semibold text-slate">Week of
+          <input type="date" value={weekDate} onChange={(e) => setWeekDate(e.target.value)} className={fsel + " mt-1 block font-normal"} />
+          {week && <span className="mt-0.5 block text-[10.5px] font-normal text-teal-dark">{week}</span>}
         </label>
         <label className="text-[11.5px] font-semibold text-slate">Post type
           <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className={fsel + " mt-1 block font-normal"}>
@@ -354,7 +363,7 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
           <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={fsel + " mt-1 block font-normal"} />
         </label>
         {filtering && (
-          <button onClick={() => { setQ(""); setTypeFilter(""); setPlatform(""); setAccount(""); setPerson(""); setFrom(""); setTo(""); setWeek(""); }} className="rounded-[9px] border border-line px-3 py-2 text-[12px] font-semibold text-slate hover:border-teal">Clear</button>
+          <button onClick={() => { setQ(""); setTypeFilter(""); setPlatform(""); setAccount(""); setPerson(""); setFrom(""); setTo(""); setWeekDate(""); }} className="rounded-[9px] border border-line px-3 py-2 text-[12px] font-semibold text-slate hover:border-teal">Clear</button>
         )}
       </div>
 
@@ -364,7 +373,7 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
             !tasks.length
               ? "No tasks yet, plan your first piece."
               : week
-                ? `Nothing planned for ${week}. Pick another week, or “All weeks”.`
+                ? `Nothing planned for ${week}. Pick another date, or clear the filter.`
                 : "No tasks match these filters."
           }
         />
@@ -378,13 +387,10 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
               </tr>
             </thead>
             <tbody>
-              {[...weeks.entries()].map(([w, arr]) => {
-                const open = filtering || !(collapsed[w] ?? w !== thisWeek);
-                return (
+              {[...weeks.entries()].map(([w, arr]) => (
                 <Fragment key={w}>
-                  <tr onClick={() => toggleWeek(w)} className="cursor-pointer bg-teal-soft/50 hover:bg-teal-soft/70">
+                  <tr className="bg-teal-soft/50">
                     <td colSpan={7} className="border-l-[3px] border-teal px-3 py-2">
-                      <span className="mr-1.5 inline-block w-3 text-[10px] text-slate">{open ? "▾" : "▸"}</span>
                       <span className="font-display text-[13px] font-bold tracking-[0.01em] text-ink">{w}</span>
                       <span className="ml-2 text-[11.5px] font-semibold text-slate">
                         {arr.length} {arr.length === 1 ? "task" : "tasks"}
@@ -394,7 +400,7 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
                       )}
                     </td>
                   </tr>
-                  {open && arr.map((t) => {
+                  {arr.map((t) => {
                     const att = publishAttention(t);
                     return (
                       <tr key={t.id} onClick={() => onOpen(t.id)} className={`cursor-pointer border-b border-line hover:bg-wash/[0.03] ${att ? (att.tone === "red" ? "bg-[#f5442e]/[0.05]" : "bg-[#f5920b]/[0.05]") : ""}`}>
@@ -417,8 +423,7 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
                     );
                   })}
                 </Fragment>
-                );
-              })}
+              ))}
             </tbody>
           </table>
         </div>
@@ -659,7 +664,7 @@ function ReworkList({ tasks, onOpen }: { tasks: TaskRow[]; onOpen: (id: string) 
                       {s.targetDate ? ` · due ${fmt(s.targetDate)}` : ""}
                     </span>
                   </div>
-                  {s.reviewNote && <div className="mb-1.5 text-[11.5px] text-[#c23b2a]">↩ {s.reviewNote}</div>}
+                  {s.reviewNote && <ReviewNote note={s.reviewNote} className="mb-1.5 text-[11.5px] text-[#c23b2a]" />}
                   {files.length > 0 && (
                     <div className="flex flex-wrap gap-2">
                       {files.map((a) => <SubmittedFile key={a.id} a={a} />)}
@@ -1048,6 +1053,7 @@ function Analytics({ tasks: allTasks }: { tasks: TaskRow[] }) {
 // ── Task drawer ──────────────────────────────────────────────────────────────
 function TaskDrawer({ task, members, isAdmin, canEdit, meId, meCanSelfApprove, onClose, onEdit, api, refresh, toast }: Props & { task: TaskRow; onClose: () => void; onEdit: () => void; api: (u: string, m: string, b?: unknown) => Promise<boolean>; refresh: () => void; toast: (m: string) => void }) {
   const [assignStage, setAssignStage] = useState<string | null>(null);
+  const [reworkStage, setReworkStage] = useState<string | null>(null);
   const upload = useUploadDialog();
   const t = task;
   const otherFiles = t.assets.filter((a) => !a.stageId);
@@ -1107,8 +1113,12 @@ function TaskDrawer({ task, members, isAdmin, canEdit, meId, meCanSelfApprove, o
     }, defaults);
   }
   async function review(stageId: string, outcome: "APPROVED" | "REWORK") {
-    const note = outcome === "REWORK" ? prompt("Rework note?") ?? "" : "";
-    if (await api(`/api/tasks/${t.id}/stages/${stageId}`, "PATCH", { action: "review", outcome, note })) { toast(outcome === "APPROVED" ? "Approved ✓" : "Rework sent"); refresh(); }
+    if (outcome === "REWORK") { setReworkStage(stageId); return; }
+    if (await api(`/api/tasks/${t.id}/stages/${stageId}`, "PATCH", { action: "review", outcome, note: "" })) { toast("Approved ✓"); refresh(); }
+  }
+  async function sendRework(stageId: string, note: string) {
+    setReworkStage(null);
+    if (await api(`/api/tasks/${t.id}/stages/${stageId}`, "PATCH", { action: "review", outcome: "REWORK", note })) { toast("Rework sent"); refresh(); }
   }
   async function publish() {
     // Leave publishedDate unset so the server falls back to the scheduled
@@ -1155,7 +1165,7 @@ function TaskDrawer({ task, members, isAdmin, canEdit, meId, meCanSelfApprove, o
               {s.submittedAt && <span>Submitted <b className="text-ink">{fmt(s.submittedAt)}</b></span>}
             </div>
             {s.remarks && <div className="mb-2 text-[12px] text-slate">📝 {s.remarks}</div>}
-            {s.reviewNote && <div className="mb-2 text-[12px] text-[#c23b2a]">↩ {s.reviewNote}</div>}
+            {s.reviewNote && <ReviewNote note={s.reviewNote} className="mb-2 text-[12px] text-[#c23b2a]" />}
 
             {/* Files this department submitted for the stage. */}
             {t.assets.filter((a) => a.stageId === s.id).length > 0 && (
@@ -1219,6 +1229,13 @@ function TaskDrawer({ task, members, isAdmin, canEdit, meId, meCanSelfApprove, o
 
         {isAdmin && <div className="mt-6 border-t border-line pt-4"><button onClick={() => { if (confirm("Delete this task? Moves to Trash.")) api(`/api/tasks/${t.id}`, "DELETE").then((ok) => ok && (toast("Deleted → Trash"), onClose(), refresh())); }} className="rounded-[9px] border border-line px-3.5 py-1.5 text-[12px] font-semibold text-[#c23b2a] hover:border-[#c23b2a]">🗑 Delete task</button></div>}
       </div>
+
+      {reworkStage && (
+        <ReworkDialog
+          onCancel={() => setReworkStage(null)}
+          onSend={(note) => sendRework(reworkStage, note)}
+        />
+      )}
     </div>
   );
 }
