@@ -103,6 +103,7 @@ export function Sidebar({
             ...(isAdmin ? [it("/tasks/rework", "In rework", "rework", isActive("/tasks/rework"), taskReworkCount || undefined)] : []),
             // Tasks with every stage approved, ready to go live (published once).
             it("/tasks/ready", "Ready to publish", "approved", isActive("/tasks/ready"), readyCount || undefined),
+            it("/tasks/published", "Published", "published", isActive("/tasks/published")),
             it("/analytics", "Analytics", "analytics", isActive("/analytics")),
           ],
         },

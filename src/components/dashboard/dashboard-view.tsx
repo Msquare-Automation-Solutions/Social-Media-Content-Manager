@@ -110,7 +110,7 @@ export function DashboardView({
           value={data.taskCounts.published}
           sublabel={`of ${data.totalTasks} tasks`}
           accent="#2e9e6b"
-          href="/analytics"
+          href="/tasks/published"
         />
       </div>
 

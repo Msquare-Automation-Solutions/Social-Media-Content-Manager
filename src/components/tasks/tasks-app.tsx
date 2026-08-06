@@ -65,7 +65,7 @@ type Member = { id: string; name: string; avatarColor: string; role?: string };
 const memberLabel = (m: Member) => (m.role ? `${m.name} — ${m.role}` : m.name);
 type Opt = { id: string; name: string; icon: string };
 type TaskType = { id: string; name: string };
-export type TasksMode = "overview" | "board" | "mywork" | "review" | "rework" | "ready" | "analytics";
+export type TasksMode = "overview" | "board" | "mywork" | "review" | "rework" | "ready" | "published" | "analytics";
 
 type Props = {
   mode: TasksMode;
@@ -140,6 +140,7 @@ export function TasksApp(props: Props) {
     : mode === "review" ? "To review"
     : mode === "rework" ? "In rework"
     : mode === "ready" ? "Ready to publish"
+    : mode === "published" ? "Published"
     : "Analytics";
 
   return (
@@ -164,6 +165,7 @@ export function TasksApp(props: Props) {
       {mode === "review" && <ReviewInbox tasks={tasks} meId={props.meId} meCanSelfApprove={props.meCanSelfApprove} onOpen={setOpenId} onReview={reviewStage} />}
       {mode === "rework" && <ReworkList tasks={tasks} onOpen={setOpenId} />}
       {mode === "ready" && <ReadyList tasks={tasks} members={props.members} onOpen={setOpenId} onPublish={publishTask} />}
+      {mode === "published" && <PublishedList tasks={tasks} onOpen={setOpenId} />}
       {mode === "analytics" && <Analytics tasks={tasks} />}
 
       {openTask && (
@@ -219,6 +221,7 @@ function subtitle(mode: TasksMode, isAdmin: boolean) {
     case "review": return "Work submitted for review. Approve to advance it, or send it back for rework.";
     case "rework": return "Stages you sent back. They stay here until the owner re-submits the fixed work.";
     case "ready": return "Tasks with every stage approved, with all their files together. Publish the task once, from here.";
+    case "published": return "Everything that has gone live, newest first — with its post link, files and whether analytics have been recorded.";
     case "analytics": return "How the month is tracking, planned vs published, and metrics by platform.";
   }
 }
@@ -768,6 +771,121 @@ function ReadyList({ tasks, members, onOpen, onPublish }: { tasks: TaskRow[]; me
           </div>
         );
       })}
+      </div>
+    </div>
+  );
+}
+
+// ── Published ────────────────────────────────────────────────────────────────
+// Everything that has gone live: newest first, with the post link, the files
+// that went out, and whether its analytics have been filled in yet.
+function PublishedList({ tasks, onOpen }: { tasks: TaskRow[]; onOpen: (id: string) => void }) {
+  const [q, setQ] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
+  const [platform, setPlatform] = useState("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+
+  const all = tasks
+    .filter((t) => t.publishStatus.startsWith("PUBLISHED"))
+    .sort((a, b) => (b.publishedDate ?? "").localeCompare(a.publishedDate ?? ""));
+  const types = [...new Set(all.map((t) => t.contentTypeLabel))].sort();
+  const platforms = [...new Map(all.filter((t) => t.channel).map((t) => [t.channel!.id, t.channel!.name])).entries()];
+  const hasMetrics = (t: TaskRow) =>
+    [t.metricImpressions, t.metricReach, t.metricClicks, t.metricLeads, t.metricEng, t.metricSaves, t.metricShares].some((v) => v != null);
+
+  const query = q.trim().toLowerCase();
+  const rows = all.filter((t) => {
+    if (query && !taskMatches(t, query)) return false;
+    if (typeFilter && t.contentTypeLabel !== typeFilter) return false;
+    if (platform && t.channel?.id !== platform) return false;
+    if (from || to) {
+      const d = t.publishedDate ? t.publishedDate.slice(0, 10) : "";
+      if (!d) return false;
+      if (from && d < from) return false;
+      if (to && d > to) return false;
+    }
+    return true;
+  });
+
+  const fsel = "rounded-[9px] border border-line bg-card px-2.5 py-2 text-[12.5px] text-ink outline-none focus:border-teal";
+  return (
+    <div>
+      <div className="mb-4 flex flex-wrap items-end gap-2.5">
+        <label className="text-[11.5px] font-semibold text-slate">Search
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Theme, brief, type…" className={fsel + " mt-1 block w-56 font-normal"} />
+        </label>
+        <label className="text-[11.5px] font-semibold text-slate">Post type
+          <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className={fsel + " mt-1 block font-normal"}>
+            <option value="">All types</option>
+            {types.map((t) => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </label>
+        <label className="text-[11.5px] font-semibold text-slate">Platform
+          <select value={platform} onChange={(e) => setPlatform(e.target.value)} className={fsel + " mt-1 block font-normal"}>
+            <option value="">All platforms</option>
+            {platforms.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+          </select>
+        </label>
+        <label className="text-[11.5px] font-semibold text-slate">Published from
+          <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={fsel + " mt-1 block font-normal"} />
+        </label>
+        <label className="text-[11.5px] font-semibold text-slate">Published to
+          <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={fsel + " mt-1 block font-normal"} />
+        </label>
+        {(q || typeFilter || platform || from || to) && (
+          <button onClick={() => { setQ(""); setTypeFilter(""); setPlatform(""); setFrom(""); setTo(""); }} className="rounded-[9px] border border-line px-3 py-2 text-[12px] font-semibold text-slate hover:border-teal">Clear</button>
+        )}
+      </div>
+
+      {rows.length === 0 && (
+        <Empty text={all.length ? "No published tasks match these filters." : "Nothing published yet."} />
+      )}
+      <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+        {rows.map((t) => {
+          const files = t.assets.filter((a) => a.stageId);
+          return (
+            <div key={t.id} className="flex h-full flex-col rounded-card border border-line bg-card p-4 shadow-soft">
+              <div className="flex flex-wrap items-center gap-2">
+                <button onClick={() => onOpen(t.id)} className="min-w-0 flex-1 text-left">
+                  <b className="text-[14px]">{t.title}</b>
+                  <span className="block text-[11.5px] text-slate">
+                    {t.contentTypeLabel}
+                    {t.channel ? ` · ${t.channel.name}` : ""}
+                    {t.account ? ` · ${t.account.name}` : ""}
+                    {t.publishedDate ? ` · published ${fmt(t.publishedDate)}` : ""}
+                  </span>
+                </button>
+                <span className={`${badge} ${pubCls(t.publishStatus)}`}>
+                  {TASK_PUBLISH_LABELS[t.publishStatus as keyof typeof TASK_PUBLISH_LABELS] ?? t.publishStatus}
+                </span>
+                {t.contentLink && (
+                  <a href={t.contentLink} target="_blank" rel="noreferrer" className="rounded-[9px] border border-line px-3 py-1.5 text-[12px] font-semibold text-teal-dark hover:border-teal">
+                    View post ↗
+                  </a>
+                )}
+              </div>
+
+              {files.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {files.map((a) => <SubmittedFile key={a.id} a={a} />)}
+                </div>
+              )}
+
+              <div className="mt-auto pt-3 text-[11.5px]">
+                {hasMetrics(t) ? (
+                  <span className="text-slate">
+                    Analytics:{" "}
+                    <b className="text-ink">{(t.metricImpressions ?? 0).toLocaleString()}</b> impressions ·{" "}
+                    <b className="text-ink">{(t.metricEng ?? 0).toLocaleString()}</b> engagements
+                  </span>
+                ) : (
+                  <span className={`${badge} bg-[#fbeecb] text-[#c98a12]`}>Analytics not recorded</span>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
