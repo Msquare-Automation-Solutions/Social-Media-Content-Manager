@@ -338,13 +338,13 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
             <thead>
               <tr className="border-b border-line text-left text-[11px] uppercase tracking-[0.04em] text-slate">
                 <th className="px-3 py-2.5">Theme</th><th className="px-3 py-2.5">Type</th><th className="px-3 py-2.5">Platform / Account</th>
-                <th className="px-3 py-2.5">Brief</th><th className="px-3 py-2.5">Publish date</th><th className="px-3 py-2.5">Publish</th><th className="px-3 py-2.5">Stage · Owner</th><th></th>
+                <th className="px-3 py-2.5">Publish date</th><th className="px-3 py-2.5">Publish</th><th className="px-3 py-2.5">Stage · Owner</th><th></th>
               </tr>
             </thead>
             <tbody>
               {[...weeks.entries()].map(([w, arr]) => (
                 <Fragment key={w}>
-                  <tr className="bg-wash/[0.04]"><td colSpan={8} className="px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.04em] text-slate">{w}</td></tr>
+                  <tr className="bg-wash/[0.04]"><td colSpan={7} className="px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.04em] text-slate">{w}</td></tr>
                   {arr.map((t) => {
                     const att = publishAttention(t);
                     return (
@@ -352,7 +352,6 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
                         <td className={`px-3 py-2.5 font-semibold ${att ? (att.tone === "red" ? "border-l-[3px] border-[#f5442e]" : "border-l-[3px] border-[#f5920b]") : ""}`}>{t.title}</td>
                         <td className="px-3 py-2.5">{t.contentTypeLabel}</td>
                         <td className="px-3 py-2.5">{t.channel?.name ?? "—"} · {t.account?.name ?? "—"}</td>
-                        <td className="max-w-[160px] truncate px-3 py-2.5 text-slate">{t.brief || "—"}</td>
                         <td className="whitespace-nowrap px-3 py-2.5">
                           {t.scheduledPublishDate ? fmt(t.scheduledPublishDate) : <span className="text-slate">—</span>}
                           {att && <span className={`${badge} ml-1.5 ${att.tone === "red" ? "bg-[#ffe0dc] text-[#f5442e]" : "bg-[#ffedcc] text-[#f5920b]"}`}>{att.label}</span>}
