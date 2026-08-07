@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/session";
 import { listContentBin, type BinFilters } from "@/lib/data";
-import { isAdminRole } from "@/lib/roles";
+import { isAdminRole, isContributor } from "@/lib/roles";
 import { ContentBinView } from "@/components/content-bin/content-bin-view";
 
 export const dynamic = "force-dynamic";
@@ -48,6 +48,8 @@ export default async function ContentBinPage({
       items={items}
       canEdit={user.role !== "VIEWER"}
       isAdmin={isAdminRole(user.role)}
+      meId={user.id}
+      contributor={isContributor(user.role)}
       filters={{
         status: sp.status ?? "",
         person: personValue,

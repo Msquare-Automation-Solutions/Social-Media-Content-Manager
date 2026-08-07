@@ -52,6 +52,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (!parsed.success) return new Response("Bad request", { status: 400 });
   const d = parsed.data;
 
+  // "Used" is a marketing-team judgement about whether an idea became content —
+  // not something the person who captured it decides.
+  if (contributor && d.status === "USED") {
+    return new Response("Forbidden", { status: 403 });
+  }
+
   const updated = await prisma.contentBinItem.update({
     where: { id },
     data: {

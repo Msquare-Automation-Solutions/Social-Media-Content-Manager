@@ -15,7 +15,7 @@ const schema = z.object({
 // so large files never pass through the serverless function (which caps request
 // bodies at ~4.5 MB). Returns where to PUT and the resulting public URL.
 export async function POST(req: Request) {
-  const g = await guard("CONTRIBUTOR");
+  const g = await guard("EDITOR");
   if (!g.ok) return g.response;
 
   const parsed = schema.safeParse(await req.json());

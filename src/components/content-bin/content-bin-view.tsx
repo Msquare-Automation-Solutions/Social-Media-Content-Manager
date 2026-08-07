@@ -19,6 +19,7 @@ type Options = {
   mePersonId: string | null;
   isAdmin: boolean;
   canChooseCreator: boolean;
+  canUploadFiles: boolean;
 };
 
 type Filters = {
@@ -45,11 +46,17 @@ export function ContentBinView({
   items,
   canEdit,
   isAdmin,
+  meId,
+  contributor,
   filters,
 }: {
   items: ContentBinRow[];
   canEdit: boolean;
   isAdmin: boolean;
+  /** Signed-in user, so a contributor's own ideas can be told apart. */
+  meId: string;
+  /** Content-Bin-only role: acts on their own ideas and nothing else. */
+  contributor: boolean;
   filters: Filters;
 }) {
   const router = useRouter();
@@ -257,6 +264,8 @@ export function ContentBinView({
               options={options}
               canEdit={canEdit}
               isAdmin={isAdmin}
+              meId={meId}
+              contributor={contributor}
               onChanged={() => router.refresh()}
             />
           ))}
@@ -301,12 +310,16 @@ function BinItemRow({
   options,
   canEdit,
   isAdmin,
+  meId,
+  contributor,
   onChanged,
 }: {
   item: ContentBinRow;
   options?: Options;
   canEdit: boolean;
   isAdmin: boolean;
+  meId: string;
+  contributor: boolean;
   onChanged: () => void;
 }) {
   const { toast } = useToast();
@@ -317,6 +330,13 @@ function BinItemRow({
   const accounts = (options?.accounts ?? []).filter((a) => item.accountIds.includes(a.id));
   const person = options?.people.find((p) => p.id === item.personId);
   const cover = item.screenshots[0];
+
+  // A contributor acts on their own ideas only: discard, put back, delete. Marking
+  // an idea "used" is the marketing team's call, so they never see it.
+  const mine = item.createdBy?.id === meId;
+  const mayAct = contributor ? mine : canEdit;
+  const mayMarkUsed = !contributor && canEdit;
+  const mayDelete = contributor ? mine : isAdmin;
 
   async function patch(body: Record<string, unknown>, msg: string) {
     setBusy(true);
@@ -431,12 +451,12 @@ function BinItemRow({
         </div>
       </div>
 
-      {canEdit && (
+      {mayAct && (
         <div
           className="flex flex-shrink-0 flex-col gap-2"
           onClick={(e) => e.stopPropagation()}
         >
-          {item.status === "NEW" && (
+          {item.status === "NEW" && mayMarkUsed && (
             <button
               onClick={() => patch({ status: "USED" }, "Marked as used")}
               disabled={busy}
@@ -445,7 +465,7 @@ function BinItemRow({
               ✓ Mark used
             </button>
           )}
-          {item.status === "USED" && (
+          {item.status === "USED" && mayMarkUsed && (
             <button
               onClick={() => patch({ status: "NEW" }, "Marked as unused")}
               disabled={busy}
@@ -472,7 +492,7 @@ function BinItemRow({
               Restore
             </button>
           )}
-          {isAdmin && (
+          {mayDelete && (
             <button
               onClick={remove}
               disabled={busy}
@@ -491,8 +511,9 @@ function BinItemRow({
           channels={channels}
           accounts={accounts}
           personName={person?.name ?? item.createdBy?.name ?? "—"}
-          canEdit={canEdit}
-          isAdmin={isAdmin}
+          canEdit={mayAct}
+          isAdmin={mayDelete}
+          mayMarkUsed={mayMarkUsed}
           busy={busy}
           onClose={() => setOpen(false)}
           onChanged={onChanged}
@@ -518,6 +539,7 @@ function BinItemDrawer({
   personName,
   canEdit,
   isAdmin,
+  mayMarkUsed = true,
   busy,
   onClose,
   onChanged,
@@ -531,6 +553,8 @@ function BinItemDrawer({
   personName: string;
   canEdit: boolean;
   isAdmin: boolean;
+  /** False for contributors — whether an idea became content isn't their call. */
+  mayMarkUsed?: boolean;
   busy: boolean;
   onClose: () => void;
   onChanged: () => void;
@@ -580,6 +604,7 @@ function BinItemDrawer({
             personName={personName}
             canEdit={canEdit}
             isAdmin={isAdmin}
+            mayMarkUsed={mayMarkUsed}
             busy={busy}
             onClose={onClose}
             onEdit={() => setEditing(true)}
@@ -599,6 +624,7 @@ function BinDetail({
   personName,
   canEdit,
   isAdmin,
+  mayMarkUsed = true,
   busy,
   onClose,
   onEdit,
@@ -611,6 +637,8 @@ function BinDetail({
   personName: string;
   canEdit: boolean;
   isAdmin: boolean;
+  /** False for contributors — whether an idea became content isn't their call. */
+  mayMarkUsed?: boolean;
   busy: boolean;
   onClose: () => void;
   onEdit: () => void;
@@ -791,7 +819,7 @@ function BinDetail({
               >
                 Edit
               </button>
-              {item.status === "NEW" && (
+              {item.status === "NEW" && mayMarkUsed && (
                 <button
                   onClick={() => onStatus("USED", "Marked as used")}
                   disabled={busy}
@@ -800,7 +828,7 @@ function BinDetail({
                   ✓ Mark used
                 </button>
               )}
-              {item.status === "USED" && (
+              {item.status === "USED" && mayMarkUsed && (
                 <button
                   onClick={() => onStatus("NEW", "Marked as unused")}
                   disabled={busy}
@@ -1050,7 +1078,11 @@ function BinForm({
   useEffect(() => {
     addFilesRef.current = addFiles;
   });
+  const canUploadFiles = options.canUploadFiles !== false;
   useEffect(() => {
+    // No point catching a pasted image for someone whose uploads the server
+    // rejects — it would only produce a confusing error.
+    if (!canUploadFiles) return;
     function onPaste(e: ClipboardEvent) {
       const img = Array.from(e.clipboardData?.items ?? []).find((it) =>
         it.type.startsWith("image/"),
@@ -1063,7 +1095,7 @@ function BinForm({
     }
     window.addEventListener("paste", onPaste);
     return () => window.removeEventListener("paste", onPaste);
-  }, []);
+  }, [canUploadFiles]);
 
   function toggle(set: React.Dispatch<React.SetStateAction<Set<string>>>, id: string) {
     set((s) => {
@@ -1212,7 +1244,8 @@ function BinForm({
         </div>
       </div>
 
-      {/* Screenshots */}
+      {/* Screenshots — hidden for contributors, whose endpoints reject uploads. */}
+      {canUploadFiles && (
       <div className={`col-span-2 ${labelCls}`}>
         Screenshots{" "}
         <span className="font-normal text-slate">(optional, add several; the first is the cover)</span>
@@ -1251,6 +1284,7 @@ function BinForm({
           />
         </div>
       </div>
+      )}
 
       <label className={`col-span-2 ${labelCls}`}>
         Note

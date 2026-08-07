@@ -1,7 +1,7 @@
 import { guard } from "@/lib/api-guard";
 import { prisma } from "@/lib/db";
 import { ensureSelfPerson, listCreatorPeople } from "@/lib/people";
-import { isAdminRole, isContributor } from "@/lib/roles";
+import { hasRole, isAdminRole, isContributor } from "@/lib/roles";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,6 +19,9 @@ export async function GET() {
   // Contributors capture ideas under their own name only — the server forces it
   // too, this just stops the UI offering a choice that doesn't exist.
   const canChooseCreator = !isContributor(g.user.role);
+  // Contributors capture ideas as text and links; uploading files is the content
+  // team's job, and the upload endpoints require EDITOR to match.
+  const canUploadFiles = hasRole(g.user.role, "EDITOR");
 
   const [people, channels, accounts] = await Promise.all([
     // Creators = login members (one Person per member, auto-ensured).
@@ -42,6 +45,7 @@ export async function GET() {
     canEdit: g.user.role !== "VIEWER",
     mePersonId,
     canChooseCreator,
+    canUploadFiles,
     // Admins may attribute content to any creator; everyone else is locked to
     // themselves (reassignable later via Edit).
     isAdmin: isAdminRole(g.user.role),
