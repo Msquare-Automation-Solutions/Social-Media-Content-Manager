@@ -9,6 +9,7 @@ import { PlatformIcon } from "@/components/ui/platform-icon";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { FilePreview } from "@/components/tasks/file-preview";
 import { ReworkDialog, ReviewNote } from "@/components/tasks/rework-dialog";
+import { DelayReasonDialog } from "@/components/tasks/delay-reason-dialog";
 import { useUploadDialog, type SaveDefaults } from "@/components/save/dialog-context";
 import type { TaskRow } from "@/lib/data";
 import {
@@ -118,6 +119,7 @@ export function TasksApp(props: Props) {
   const [formOpen, setFormOpen] = useState(Boolean(props.openNew && props.isAdmin));
   const [editId, setEditId] = useState<string | null>(null);
   const [reworkFor, setReworkFor] = useState<{ taskId: string; stageId: string } | null>(null);
+  const [publishLate, setPublishLate] = useState<TaskRow | null>(null);
 
   const openTask = tasks.find((t) => t.id === openId) || null;
 
@@ -169,6 +171,16 @@ export function TasksApp(props: Props) {
       {mode === "ready" && <ReadyList tasks={tasks} members={props.members} onOpen={setOpenId} onPublish={publishTask} />}
       {mode === "published" && <PublishedList tasks={tasks} onOpen={setOpenId} />}
       {mode === "analytics" && <Analytics tasks={tasks} />}
+
+      {publishLate && (
+        <DelayReasonDialog
+          title={publishLate.title}
+          scheduledFor={fmt(publishLate.scheduledPublishDate!)}
+          daysLate={daysLate(publishLate)}
+          onCancel={() => setPublishLate(null)}
+          onPublish={(reason) => sendPublish(publishLate.id, reason)}
+        />
+      )}
 
       {reworkFor && (
         <ReworkDialog
@@ -224,8 +236,17 @@ export function TasksApp(props: Props) {
   // Publish the whole task (its files go live together). The server decides
   // on-time vs delayed from the scheduled date.
   async function publishTask(taskId: string) {
-    if (await api(`/api/tasks/${taskId}`, "PATCH", { publishStatus: "PUBLISHED_ON_TIME" }))
-      { toast("Published 🚀"); refresh(); }
+    // Late? Ask why first — the server refuses a late publish without a reason.
+    const t = tasks.find((x) => x.id === taskId);
+    if (t && daysLate(t) > 0) { setPublishLate(t); return; }
+    await sendPublish(taskId);
+  }
+  async function sendPublish(taskId: string, delayReason?: string) {
+    setPublishLate(null);
+    const body = delayReason
+      ? { publishStatus: "PUBLISHED_ON_TIME", delayReason }
+      : { publishStatus: "PUBLISHED_ON_TIME" };
+    if (await api(`/api/tasks/${taskId}`, "PATCH", body)) { toast("Published 🚀"); refresh(); }
   }
 }
 
@@ -281,6 +302,20 @@ function stageStatus(s: { workStatus: string; reviewStatus: string }): { label: 
   if (w === "WIP_ON_TRACK") return { label: "in progress", dot: "#2a6fb8", text: "text-[#2a6fb8]" };
   if (w === "WIP_DELAY") return { label: "in progress, delayed", dot: "#f5442e", text: "text-[#c23b2a]" };
   return { label: TASK_WORK_LABELS[w]?.toLowerCase() ?? w, dot: "#0e9f8f", text: "text-teal-dark" };
+}
+
+/**
+ * Whole days past the scheduled publish date, or 0 if on time / undated. Mirrors
+ * the server's comparison (calendar days, not hours) so the dialog appears exactly
+ * when the server is going to record a delay.
+ */
+function daysLate(t: TaskRow): number {
+  if (!t.scheduledPublishDate) return 0;
+  const d = new Date(t.scheduledPublishDate);
+  const due = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  return Math.max(0, Math.round((today - due) / 86400000));
 }
 
 // Which week a task belongs to: the week it was planned in. A piece can be
@@ -1052,6 +1087,11 @@ function PublishedList({ tasks, onOpen }: { tasks: TaskRow[]; onOpen: (id: strin
                 <span className={`${badge} ${pubCls(t.publishStatus)}`}>
                   {TASK_PUBLISH_LABELS[t.publishStatus as keyof typeof TASK_PUBLISH_LABELS] ?? t.publishStatus}
                 </span>
+                {t.delayReason && (
+                  <div className="basis-full text-[11.5px] leading-[1.5] text-slate">
+                    <span className="font-semibold text-[#c23b2a]">Late:</span> {t.delayReason}
+                  </div>
+                )}
                 {t.contentLink && (
                   <a href={t.contentLink} target="_blank" rel="noreferrer" className="rounded-[9px] border border-line px-3 py-1.5 text-[12px] font-semibold text-teal-dark hover:border-teal">
                     View post ↗
@@ -1130,6 +1170,7 @@ function Analytics({ tasks: allTasks }: { tasks: TaskRow[] }) {
 function TaskDrawer({ task, members, isAdmin, canEdit, meId, meCanSelfApprove, onClose, onEdit, api, refresh, toast }: Props & { task: TaskRow; onClose: () => void; onEdit: () => void; api: (u: string, m: string, b?: unknown) => Promise<boolean>; refresh: () => void; toast: (m: string) => void }) {
   const [assignStage, setAssignStage] = useState<string | null>(null);
   const [reworkStage, setReworkStage] = useState<string | null>(null);
+  const [publishLate, setPublishLate] = useState(false);
   const upload = useUploadDialog();
   const t = task;
   const otherFiles = t.assets.filter((a) => !a.stageId);
@@ -1197,9 +1238,17 @@ function TaskDrawer({ task, members, isAdmin, canEdit, meId, meCanSelfApprove, o
     if (await api(`/api/tasks/${t.id}/stages/${stageId}`, "PATCH", { action: "review", outcome: "REWORK", note })) { toast("Rework sent"); refresh(); }
   }
   async function publish() {
+    if (daysLate(t) > 0) { setPublishLate(true); return; }
+    await sendPublish();
+  }
+  async function sendPublish(delayReason?: string) {
+    setPublishLate(false);
     // Leave publishedDate unset so the server falls back to the scheduled
     // publish date chosen at creation (or now if none was set).
-    if (await api(`/api/tasks/${t.id}`, "PATCH", { publishStatus: "PUBLISHED_ON_TIME" })) { toast("Published 🚀"); refresh(); }
+    const body = delayReason
+      ? { publishStatus: "PUBLISHED_ON_TIME", delayReason }
+      : { publishStatus: "PUBLISHED_ON_TIME" };
+    if (await api(`/api/tasks/${t.id}`, "PATCH", body)) { toast("Published 🚀"); refresh(); }
   }
 
   return (
@@ -1280,6 +1329,11 @@ function TaskDrawer({ task, members, isAdmin, canEdit, meId, meCanSelfApprove, o
 
         <div className="mb-2 mt-4 text-[11px] font-extrabold uppercase tracking-[0.06em] text-ink">Publishing</div>
         <div className="text-[12px] text-slate">Status <b className="text-ink">{TASK_PUBLISH_LABELS[t.publishStatus as keyof typeof TASK_PUBLISH_LABELS] ?? t.publishStatus}</b>{t.contentLink ? <> · <a href={t.contentLink} target="_blank" rel="noreferrer" className="text-teal-dark underline">link</a></> : ""}</div>
+        {t.delayReason && (
+          <div className="mt-1.5 rounded-[9px] border border-line bg-bg px-3 py-2 text-[12px] leading-[1.55] text-slate">
+            <span className="font-semibold text-[#c23b2a]">Why it was late:</span> {t.delayReason}
+          </div>
+        )}
         {t.scheduledPublishDate && <div className="text-[12px] text-slate">Scheduled for <b className="text-ink">{fmt(t.scheduledPublishDate)}</b></div>}
         {t.publishStatus.startsWith("PUBLISHED") && t.publishedDate && <div className="text-[12px] text-slate">Published on <b className="text-ink">{fmt(t.publishedDate)}</b></div>}
         {t.publisherId && <div className="text-[12px] text-slate">Publisher <b className="text-ink">{members.find((m) => m.id === t.publisherId)?.name ?? "—"}</b></div>}
@@ -1305,6 +1359,16 @@ function TaskDrawer({ task, members, isAdmin, canEdit, meId, meCanSelfApprove, o
 
         {isAdmin && <div className="mt-6 border-t border-line pt-4"><button onClick={() => { if (confirm("Delete this task? Moves to Trash.")) api(`/api/tasks/${t.id}`, "DELETE").then((ok) => ok && (toast("Deleted → Trash"), onClose(), refresh())); }} className="rounded-[9px] border border-line px-3.5 py-1.5 text-[12px] font-semibold text-[#c23b2a] hover:border-[#c23b2a]">🗑 Delete task</button></div>}
       </div>
+
+      {publishLate && (
+        <DelayReasonDialog
+          title={t.title}
+          scheduledFor={fmt(t.scheduledPublishDate!)}
+          daysLate={daysLate(t)}
+          onCancel={() => setPublishLate(false)}
+          onPublish={(reason) => sendPublish(reason)}
+        />
+      )}
 
       {reworkStage && (
         <ReworkDialog

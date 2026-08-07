@@ -372,6 +372,7 @@ model Task {
   publishStatus String    @default("NOT_PUBLISHED")
   scheduledPublishDate DateTime? // planned go-live date, set at task creation
   publishedDate DateTime?
+  delayReason   String? // why it missed its date, captured at publish time
   publisherId   String? // user who publishes (may mark published)
   analystId     String? // user who records metrics (may edit analytics)
   contentLink   String?

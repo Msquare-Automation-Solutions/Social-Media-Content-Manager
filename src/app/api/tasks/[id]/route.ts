@@ -42,6 +42,9 @@ const patchSchema = z.object({
   assetIds: z.array(z.string()).max(50).optional(),
   // Publish.
   publishStatus: z.enum(TASK_PUBLISH_STATUSES).optional(),
+  // Why it missed its date. Only meaningful when publishing late; the server
+  // decides whether it applies, not the caller.
+  delayReason: z.string().trim().max(1000).optional(),
   contentLink: z.string().trim().max(2000).nullable().optional(),
   scheduledPublishDate: z.string().datetime().nullable().optional(),
   publishedDate: z.string().datetime().nullable().optional(),
@@ -88,6 +91,13 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       ? "PUBLISHED_DELAY"
       : "PUBLISHED_ON_TIME"
     : undefined;
+  // A late publish must say why. Publishing on time never records a reason, even
+  // if one was sent — the lateness is the server's determination, so the reason
+  // follows it rather than the caller's opinion.
+  if (publishing && isDelayed && !d.delayReason?.trim()) {
+    return new Response("A delay reason is required when publishing late", { status: 400 });
+  }
+  const delayReason = publishing ? (isDelayed ? d.delayReason!.trim() : null) : undefined;
   const recordingMetrics =
     d.metricClicks !== undefined ||
     d.metricLeads !== undefined ||
@@ -130,6 +140,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
           : d.publishStatus !== undefined
             ? { publishStatus: d.publishStatus }
             : {}),
+        ...(delayReason !== undefined ? { delayReason } : {}),
         ...(d.contentLink !== undefined ? { contentLink: d.contentLink } : {}),
         ...(d.scheduledPublishDate !== undefined
           ? { scheduledPublishDate: d.scheduledPublishDate ? new Date(d.scheduledPublishDate) : null }
