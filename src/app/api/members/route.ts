@@ -5,6 +5,7 @@ import { hashPassword, passwordSchema } from "@/lib/password";
 import { colorFor } from "@/lib/colors";
 import { logActivity } from "@/lib/activity";
 import { roleLabel } from "@/lib/roles";
+import { ROLES } from "@/lib/enums";
 import { ensureSelfPerson } from "@/lib/people";
 
 export const runtime = "nodejs";
@@ -15,7 +16,9 @@ export const dynamic = "force-dynamic";
 const schema = z.object({
   name: z.string().trim().min(1).max(80),
   email: z.string().trim().email(),
-  role: z.enum(["ADMIN", "EDITOR"]),
+  // Any assignable role — same rule as the edit and invite routes. OWNER is not
+  // handed out; it belongs to whoever created the workspace.
+  role: z.enum(ROLES).refine((r) => r !== "OWNER", "Cannot assign OWNER"),
   password: passwordSchema,
 });
 
