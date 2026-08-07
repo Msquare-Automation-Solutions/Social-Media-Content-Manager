@@ -165,7 +165,11 @@ export function ContentBinView({
           onChange={(v) => setParam("status", v)}
           options={[
             { value: "", label: "All statuses" },
-            ...BIN_STATUSES.map((s) => ({ value: s, label: BIN_STATUS_LABELS[s] })),
+            // Discard was removed — Delete (→ Trash, 30-day restore) covers it.
+            ...BIN_STATUSES.filter((s) => s !== "DISCARDED").map((s) => ({
+              value: s,
+              label: BIN_STATUS_LABELS[s],
+            })),
           ]}
         />
         <FilterSelect
@@ -472,15 +476,6 @@ function BinItemRow({
               className="rounded-[9px] border border-line px-3 py-1.5 text-[12px] font-semibold text-teal-dark hover:border-teal disabled:opacity-50"
             >
               Mark unused
-            </button>
-          )}
-          {item.status === "NEW" && (
-            <button
-              onClick={() => patch({ status: "DISCARDED" }, "Moved to discarded")}
-              disabled={busy}
-              className="rounded-[9px] border border-line px-3 py-1.5 text-[12px] font-semibold text-slate hover:border-teal disabled:opacity-50"
-            >
-              Discard
             </button>
           )}
           {item.status === "DISCARDED" && (
@@ -835,15 +830,6 @@ function BinDetail({
                   className="rounded-[9px] border border-line px-3.5 py-1.5 text-[12.5px] font-semibold text-teal-dark hover:border-teal disabled:opacity-50"
                 >
                   Mark unused
-                </button>
-              )}
-              {item.status === "NEW" && (
-                <button
-                  onClick={() => onStatus("DISCARDED", "Moved to discarded")}
-                  disabled={busy}
-                  className="rounded-[9px] border border-line px-3.5 py-1.5 text-[12.5px] font-semibold text-slate hover:border-teal disabled:opacity-50"
-                >
-                  Discard
                 </button>
               )}
               {item.status === "DISCARDED" && (
