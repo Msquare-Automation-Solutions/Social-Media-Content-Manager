@@ -377,10 +377,10 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
     g.rows.push(t);
     groups.set(label, g);
   }
-  // Newest week first, unscheduled last; inside a week, latest publish date first.
+  // Newest week first, unscheduled last; inside a week, most recently added first,
+  // so a piece you just planned is at the top rather than buried by publish date.
   const weeks = [...groups.values()].sort((a, b) => b.sort.localeCompare(a.sort));
-  for (const g of weeks)
-    g.rows.sort((a, b) => (b.scheduledPublishDate ?? "").localeCompare(a.scheduledPublishDate ?? ""));
+  for (const g of weeks) g.rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
   return (
     <div>
