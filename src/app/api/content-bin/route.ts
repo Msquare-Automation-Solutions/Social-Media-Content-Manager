@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { guard } from "@/lib/api-guard";
 import { prisma } from "@/lib/db";
+import { isOwnedStorageUrl } from "@/lib/storage";
 import { serializeTags } from "@/lib/json";
 import { listContentBin } from "@/lib/data";
 import { createNotifications } from "@/lib/notifications";
@@ -24,7 +25,13 @@ const schema = z.object({
   category: z.enum(ASSET_TYPES).nullable().optional(),
   channelIds: ids,
   accountIds: ids,
-  screenshots: urls,
+  // Screenshots must be files this app stored. They're later used to derive
+  // storage keys for deletion, so an arbitrary URL here becomes an arbitrary
+  // delete later.
+  screenshots: z
+    .array(z.string().trim().max(2000).refine(isOwnedStorageUrl, "Unrecognised file URL"))
+    .max(30)
+    .optional(),
 });
 
 // GET — all live bin items for the caller's workspace (any authenticated user).

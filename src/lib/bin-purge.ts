@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { storage, keyFromUrl } from "@/lib/storage";
+import { storage, keyFromUrl, isOwnedStorageUrl } from "@/lib/storage";
 import { parseTags } from "@/lib/json";
 
 type Purgeable = { id: string; screenshots: string; promotedAssetId: string | null };
@@ -16,6 +16,10 @@ export async function purgeBinItem(item: Purgeable): Promise<void> {
 
   if (item.promotedAssetId) return;
   for (const url of parseTags(item.screenshots)) {
+    // The URL came from a request body. If it isn't one of ours, deleting the key
+    // it maps to would remove somebody else's file — or, with the right string,
+    // an arbitrary object in the bucket.
+    if (!isOwnedStorageUrl(url)) continue;
     try {
       await storage.delete(keyFromUrl(url));
     } catch {

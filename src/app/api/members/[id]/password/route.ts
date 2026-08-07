@@ -29,6 +29,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (membership.userId === g.user.id) {
     return new Response("Change your own password in Account settings", { status: 400 });
   }
+  // An owner's password is not an admin's to reset — that would be taking over the
+  // account above them. Matches the owner guards on the sibling member routes.
+  if (membership.role === "OWNER" && g.user.role !== "OWNER") {
+    return new Response("Cannot reset an owner's password", { status: 403 });
+  }
 
   const passwordHash = await hashPassword(parsed.data.password);
   await prisma.user.update({

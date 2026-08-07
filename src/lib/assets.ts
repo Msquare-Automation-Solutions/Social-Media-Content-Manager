@@ -1,5 +1,6 @@
 import type { MediaAsset } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { sanitizeHtml } from "@/lib/sanitize";
 import { serializeTags, serializeJson } from "@/lib/json";
 import type { SaveAssetInput } from "@/lib/validation/save-asset";
 import { hasRole } from "@/lib/roles";
@@ -184,7 +185,7 @@ export async function createAsset(
       source: args.source,
       tags: serializeTags(args.tags),
       note: args.note ?? null,
-      html: args.html ?? null,
+      html: args.html ? sanitizeHtml(args.html) : null,
       url: args.url ?? null,
       thumbnailUrl: args.thumbnailUrl,
       filename: args.filename ?? null,

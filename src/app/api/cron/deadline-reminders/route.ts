@@ -9,10 +9,10 @@ export const dynamic = "force-dynamic";
 // assignee when their work is due today or tomorrow and still isn't submitted.
 // Protected by CRON_SECRET when set (Vercel sends it as a Bearer token).
 export async function GET(req: Request) {
+  // Fail closed: an unset secret means nobody can call this, rather than everybody.
   const secret = process.env.CRON_SECRET;
-  if (secret) {
-    const auth = req.headers.get("authorization");
-    if (auth !== `Bearer ${secret}`) return new Response("Unauthorized", { status: 401 });
+  if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) {
+    return new Response("Unauthorized", { status: 401 });
   }
 
   const now = new Date();

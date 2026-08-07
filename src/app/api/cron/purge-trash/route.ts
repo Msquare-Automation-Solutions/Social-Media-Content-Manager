@@ -19,11 +19,12 @@ const RETENTION_DAYS = 30;
  * Protected by CRON_SECRET when set, like the reminders job.
  */
 export async function GET(req: Request) {
+  // Fail closed: an unset secret means nobody can call this, rather than everybody.
+  // This one permanently deletes data, so "no configuration" must not read as
+  // "no authentication".
   const secret = process.env.CRON_SECRET;
-  if (secret) {
-    if (req.headers.get("authorization") !== `Bearer ${secret}`) {
-      return new Response("Unauthorized", { status: 401 });
-    }
+  if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) {
+    return new Response("Unauthorized", { status: 401 });
   }
 
   const cutoff = new Date(Date.now() - RETENTION_DAYS * 86400000);

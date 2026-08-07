@@ -1,4 +1,5 @@
 import type Anthropic from "@anthropic-ai/sdk";
+import { sanitizeHtml } from "@/lib/sanitize";
 
 // App-defined tools on the Anthropic Messages API (v1 Route A).
 //
@@ -149,7 +150,10 @@ export function toolCallToArtifact(
       return {
         kind: "BLOGPOST",
         title: String(input.title ?? "Untitled post"),
-        html: String(input.html ?? ""),
+        // The model writes this HTML and it ends up in dangerouslySetInnerHTML on
+        // the artifact card. A prompt can talk a model into emitting a <script>,
+        // so it gets the same cleaning as anything a person authors.
+        html: sanitizeHtml(String(input.html ?? "")),
         tags: Array.isArray(input.tags) ? input.tags.map(String) : [],
       };
     case "create_thumbnail_concept":

@@ -5,6 +5,7 @@ import { createAsset } from "@/lib/assets";
 import { storage, keyFromUrl } from "@/lib/storage";
 import { makeImageThumbnail, generateCover, thumbKey } from "@/lib/thumbnails";
 import { isDocx, htmlFromDocx } from "@/lib/docx";
+import { sanitizeHtml } from "@/lib/sanitize";
 import { TYPE_LABELS } from "@/lib/library";
 import { slugify } from "@/lib/artifact-view";
 import { parseTags } from "@/lib/json";
@@ -94,7 +95,7 @@ export async function POST(req: Request) {
 
   try {
     const asset = await createAsset(
-      { ...data, thumbnailUrl, url: finalUrl, ...(docHtml ? { html: docHtml } : {}) },
+      { ...data, thumbnailUrl, url: finalUrl, ...(docHtml ? { html: sanitizeHtml(docHtml) } : {}) },
       { workspaceId: g.user.workspaceId, userId: g.user.id },
     );
     // Link the originating chat message (generated artifacts).

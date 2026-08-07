@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { getCurrentUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
+import { guard } from "@/lib/api-guard";
 import { getSkill, buildLibraryContext } from "@/lib/data";
 import { streamChat, type ChatTurn } from "@/lib/ai/generate";
 import { toolCallToArtifact } from "@/lib/ai/tools";
@@ -22,8 +22,12 @@ function titleFrom(message: string): string {
 }
 
 export async function POST(req: NextRequest) {
-  const user = await getCurrentUser();
-  if (!user) return new Response("Unauthorized", { status: 401 });
+  // Generating content is EDITOR work, the same tier as saving and uploading.
+  // Checking only "is anyone logged in" let the Content-Bin-only role reach the
+  // assistant and, through its tools, a summary of the library they can't open.
+  const g = await guard("EDITOR");
+  if (!g.ok) return g.response;
+  const user = g.user;
 
   const parsed = bodySchema.safeParse(await req.json());
   if (!parsed.success) return new Response("Bad request", { status: 400 });

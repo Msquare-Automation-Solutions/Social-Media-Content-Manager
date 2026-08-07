@@ -139,3 +139,20 @@ export function keyFromUrl(url: string): string {
   // Fallback: strip scheme + host, leaving the path.
   return url.replace(/^https?:\/\/[^/]+\//, "");
 }
+
+/**
+ * True when `url` points at a file this app stored, rather than anywhere on the
+ * internet. Anything user-supplied that will later be fetched or deleted has to
+ * pass through here first — a stored URL is caller-controlled data, and treating
+ * it as a storage key means "delete this idea" can be aimed at any object in the
+ * bucket, while "download this asset" can be aimed at any host the server reaches.
+ */
+export function isOwnedStorageUrl(url: string): boolean {
+  if (url.startsWith("/uploads/")) return !url.includes("..");
+  const base = process.env.S3_PUBLIC_BASE_URL?.replace(/\/$/, "");
+  if (!base) return false;
+  if (!url.startsWith(base + "/")) return false;
+  const key = url.slice(base.length + 1);
+  // Only the prefixes this app writes under, and nothing that climbs out of them.
+  return /^(files|thumbs|avatars|review)\//.test(key) && !key.includes("..");
+}

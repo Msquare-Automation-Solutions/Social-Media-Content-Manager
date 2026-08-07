@@ -41,7 +41,14 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async jwt({ token, user }) {
-      if (user) token.uid = user.id;
+      if (user) {
+        token.uid = user.id;
+        // Stamp our own issue time and never refresh it. NextAuth rewrites the
+        // standard `iat` claim whenever it rotates the cookie, so comparing that
+        // against passwordChangedAt silently stopped revoking anything: a stolen
+        // session just kept renewing itself past every password change.
+        token.issued = Date.now();
+      }
       return token;
     },
     async session({ session, token }) {
@@ -51,8 +58,15 @@ export const authOptions: NextAuthOptions = {
           where: { id: token.uid as string },
           select: { passwordChangedAt: true },
         });
-        const iatMs = typeof token.iat === "number" ? token.iat * 1000 : 0;
-        if (!user || (iatMs && user.passwordChangedAt.getTime() > iatMs)) {
+        // Sessions minted before this fix have no `issued`; fall back to `iat` so
+        // they still work, and they'll gain the stamp on their next sign-in.
+        const issued =
+          typeof token.issued === "number"
+            ? token.issued
+            : typeof token.iat === "number"
+              ? token.iat * 1000
+              : 0;
+        if (!user || (issued && user.passwordChangedAt.getTime() > issued)) {
           session.user.id = "";
         } else {
           session.user.id = token.uid as string;

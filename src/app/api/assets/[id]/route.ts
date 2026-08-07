@@ -8,6 +8,7 @@ import { serializeTags, parseTags } from "@/lib/json";
 import { storage, keyFromUrl } from "@/lib/storage";
 import { makeImageThumbnail, thumbKey } from "@/lib/thumbnails";
 import { isDocx, htmlFromDocx } from "@/lib/docx";
+import { sanitizeHtml } from "@/lib/sanitize";
 import { ASSET_TYPES } from "@/lib/enums";
 import { TYPE_LABELS } from "@/lib/library";
 import { logActivity } from "@/lib/activity";
@@ -161,7 +162,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   if (parsedBody.title !== undefined) data.title = parsedBody.title;
   if (parsedBody.type !== undefined) data.type = parsedBody.type;
-  if (parsedBody.html !== undefined) data.html = parsedBody.html;
+  // Stored HTML is rendered with dangerouslySetInnerHTML; clean it on the way in.
+  if (parsedBody.html !== undefined) data.html = sanitizeHtml(parsedBody.html);
   if (parsedBody.tags !== undefined) data.tags = serializeTags(parsedBody.tags);
   if (parsedBody.note !== undefined) data.note = parsedBody.note || null;
 
@@ -193,7 +195,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     // Replaced with a Word doc → re-render its HTML for the reader.
     if (isDocx(fileReplace.type, fileReplace.name)) {
       const html = await htmlFromDocx(buf);
-      if (html) data.html = html;
+      if (html) data.html = sanitizeHtml(html);
     }
   } else if (parsedBody.fileUrl) {
     // File was uploaded directly to storage; we only got its URL + metadata.
@@ -212,7 +214,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
           );
         } else {
           const html = await htmlFromDocx(buf);
-          if (html) data.html = html;
+          if (html) data.html = sanitizeHtml(html);
         }
       } catch (err) {
         console.error("post-upload processing failed", err);

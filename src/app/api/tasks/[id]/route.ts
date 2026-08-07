@@ -118,6 +118,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (publishing && !admin && task.publisherId !== g.user.id) {
     return new Response("Only the assigned publisher can publish", { status: 403 });
   }
+  // Restructuring a task's stages is planning, and planning is an admin job: the
+  // reconciliation below deletes any stage left out of the list, taking its
+  // assignments and submissions with it.
+  if (d.stages !== undefined && !admin) {
+    return new Response("Only admins can change a task's stages", { status: 403 });
+  }
 
   await prisma.$transaction(async (tx) => {
     await tx.task.update({
@@ -175,12 +181,19 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         await tx.taskStage.deleteMany({ where: { id: { in: remove.map((s) => s.id) } } });
       for (let i = 0; i < want.length; i++) {
         const w = want[i];
-        const assignData = {
-          ...(w.assigneeId !== undefined ? { assigneeId: w.assigneeId } : {}),
-          ...(w.reviewerId !== undefined ? { reviewerId: w.reviewerId } : {}),
-          ...(w.targetDate !== undefined ? { targetDate: w.targetDate ? new Date(w.targetDate) : null } : {}),
-          ...(w.publishable !== undefined ? { publishable: w.publishable } : {}),
-        };
+        // Who owns and who reviews a stage is an admin decision. The dedicated
+        // route for it (action:"assign") is admin-only, and letting it through
+        // here would undo the rule that nobody reviews their own work: the review
+        // check asks "is the caller the assignee?", so a caller who can rewrite
+        // assigneeId/reviewerId can simply make the answer no.
+        const assignData = admin
+          ? {
+              ...(w.assigneeId !== undefined ? { assigneeId: w.assigneeId } : {}),
+              ...(w.reviewerId !== undefined ? { reviewerId: w.reviewerId } : {}),
+              ...(w.targetDate !== undefined ? { targetDate: w.targetDate ? new Date(w.targetDate) : null } : {}),
+              ...(w.publishable !== undefined ? { publishable: w.publishable } : {}),
+            }
+          : {};
         if (have.has(w.stage))
           await tx.taskStage.update({ where: { id: have.get(w.stage)!.id }, data: { order: i, ...assignData } });
         else await tx.taskStage.create({ data: { taskId: id, stage: w.stage, order: i, publishable: w.publishable ?? true, ...assignData } });

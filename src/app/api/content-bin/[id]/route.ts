@@ -2,6 +2,7 @@ import { z } from "zod";
 import { guard } from "@/lib/api-guard";
 import { hasRole, isContributor } from "@/lib/roles";
 import { prisma } from "@/lib/db";
+import { isOwnedStorageUrl } from "@/lib/storage";
 import { logActivity } from "@/lib/activity";
 import { serializeTags } from "@/lib/json";
 import { ASSET_TYPES, BIN_STATUSES } from "@/lib/enums";
@@ -22,7 +23,13 @@ const patchSchema = z.object({
   category: z.enum(ASSET_TYPES).nullable().optional(),
   channelIds: ids,
   accountIds: ids,
-  screenshots: urls,
+  // Screenshots must be files this app stored. They're later used to derive
+  // storage keys for deletion, so an arbitrary URL here becomes an arbitrary
+  // delete later.
+  screenshots: z
+    .array(z.string().trim().max(2000).refine(isOwnedStorageUrl, "Unrecognised file URL"))
+    .max(30)
+    .optional(),
   // Set alongside status="USED" when the item is promoted into a MediaAsset.
   promotedAssetId: z.string().nullable().optional(),
 });
