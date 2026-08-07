@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export async function PUT(req: Request) {
   if (process.env.STORAGE_DRIVER === "s3") return new Response("Not found", { status: 404 });
 
-  const g = await guard("EDITOR");
+  const g = await guard("CONTRIBUTOR");
   if (!g.ok) return g.response;
 
   const key = new URL(req.url).searchParams.get("key");

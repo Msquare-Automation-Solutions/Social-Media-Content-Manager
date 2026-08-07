@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 // The signed-in user's own notifications (bell dropdown + unread badge).
 export async function GET(req: Request) {
-  const g = await guard();
+  const g = await guard("CONTRIBUTOR");
   if (!g.ok) return g.response;
 
   const url = new URL(req.url);
@@ -20,7 +20,7 @@ export async function GET(req: Request) {
 
 // Clear all of the signed-in user's notifications.
 export async function DELETE() {
-  const g = await guard();
+  const g = await guard("CONTRIBUTOR");
   if (!g.ok) return g.response;
   await prisma.notification.deleteMany({ where: { recipientId: g.user.id } });
   return new Response(null, { status: 204 });

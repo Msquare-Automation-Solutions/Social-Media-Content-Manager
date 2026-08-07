@@ -14,7 +14,7 @@ const schema = z.object({
 
 // Change password while logged in. Invalidates other sessions.
 export async function POST(req: Request) {
-  const g = await guard();
+  const g = await guard("CONTRIBUTOR");
   if (!g.ok) return g.response;
 
   const parsed = schema.safeParse(await req.json().catch(() => null));

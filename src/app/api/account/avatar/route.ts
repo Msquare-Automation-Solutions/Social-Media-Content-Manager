@@ -10,7 +10,7 @@ const MAX = 5 * 1024 * 1024; // 5 MB
 
 // POST: upload/replace the current user's profile picture (multipart 'file').
 export async function POST(req: Request) {
-  const g = await guard();
+  const g = await guard("CONTRIBUTOR");
   if (!g.ok) return g.response;
 
   const form = await req.formData().catch(() => null);
@@ -31,7 +31,7 @@ export async function POST(req: Request) {
 
 // DELETE: remove the current user's profile picture (back to initials).
 export async function DELETE() {
-  const g = await guard();
+  const g = await guard("CONTRIBUTOR");
   if (!g.ok) return g.response;
   const prev = await prisma.user.findUnique({ where: { id: g.user.id }, select: { avatarUrl: true } });
   await prisma.user.update({ where: { id: g.user.id }, data: { avatarUrl: null } });

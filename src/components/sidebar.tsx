@@ -33,6 +33,13 @@ type Props = {
   unreadCount: number;
   storage: { total: number; active: number; trashed: number };
   storageLimitBytes: number;
+  /**
+   * Content-Bin-only shell for the CONTRIBUTOR role: just the bin and the
+   * leaderboard, no storage gauge, no counts from areas they can't open. The
+   * (app) layout redirects them away from everything else — this only stops the
+   * nav advertising it.
+   */
+  restricted?: boolean;
 };
 
 export function Sidebar({
@@ -48,6 +55,7 @@ export function Sidebar({
   unreadCount,
   storage,
   storageLimitBytes,
+  restricted = false,
 }: Props) {
   const pathname = usePathname();
   const upload = useUploadDialog();
@@ -62,7 +70,25 @@ export function Sidebar({
   type Area = { key: string; label: string; icon: IconName; hot: boolean; groups: Group[] };
   const it = (href: string, label: string, icon: IconName, active: boolean, count?: number, hot?: boolean): Item => ({ href, label, icon, active, count, hot });
 
-  const AREAS: Area[] = [
+  const AREAS: Area[] = restricted
+    ? [
+        {
+          key: "content",
+          label: "Content",
+          icon: "images",
+          hot: false,
+          groups: [
+            {
+              key: "bin",
+              items: [
+                it("/content-bin", "Content Bin", "bin", isActive("/content-bin"), binCount || undefined),
+                it("/leaderboard", "Leaderboard", "members", isActive("/leaderboard")),
+              ],
+            },
+          ],
+        },
+      ]
+    : [
     {
       key: "home",
       label: "Home",
@@ -112,6 +138,7 @@ export function Sidebar({
           label: "Create",
           items: [
             it("/content-bin", "Content Bin", "bin", isActive("/content-bin"), binCount || undefined),
+            it("/leaderboard", "Leaderboard", "members", isActive("/leaderboard")),
           ],
         },
         {
@@ -147,8 +174,12 @@ export function Sidebar({
         }]
       : []),
   ];
-  const activeArea = AREAS.find((a) => a.groups.some((g) => g.items.some((i) => i.active)))?.key ?? "home";
-  const current = AREAS.find((a) => a.key === activeArea)!;
+  // Fall back to the first area, not a hard-coded "home" — the restricted shell
+  // has no home area, and a page that isn't in the nav at all (e.g. /account)
+  // would otherwise leave `current` undefined.
+  const activeArea =
+    AREAS.find((a) => a.groups.some((g) => g.items.some((i) => i.active)))?.key ?? AREAS[0].key;
+  const current = AREAS.find((a) => a.key === activeArea) ?? AREAS[0];
   const areaHref = (a: Area) => a.groups[0].items[0].href;
   // Collapsible groups (e.g. the rarely-used Review & publish) — collapsed by
   // default, open if you toggle them or you're on one of their pages.
@@ -300,7 +331,7 @@ export function Sidebar({
           })}
         </nav>
 
-        <StorageMeter storage={storage} limit={storageLimitBytes} />
+        {!restricted && <StorageMeter storage={storage} limit={storageLimitBytes} />}
 
         <div className="pt-3">
           {/* Compact account row — full profile + name live on the rail avatar

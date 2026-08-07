@@ -385,6 +385,95 @@ export type ContentBinRow = {
   updatedAt: string;
 };
 
+// ── Content Bin leaderboard ──────────────────────────────────────────────────
+// Who has captured the most ideas. Counting `createdById` — set server-side from
+// the session, never accepted from the browser — so the score can't be gamed by
+// tagging someone else as the creator.
+
+export type LeaderboardRow = {
+  rank: number;
+  userId: string;
+  name: string;
+  avatarColor: string;
+  avatarUrl: string | null;
+  count: number;
+};
+
+type Capturer = { id: string; name: string; avatarColor: string; avatarUrl: string | null };
+
+/**
+ * Pure: turn per-user tallies into a ranked table. Equal counts share a rank
+ * (1, 2, 2, 4) — a tie is a tie, and nobody should be arbitrarily ahead of
+ * someone who did the same amount. Ties break by name so the order is stable.
+ */
+export function rankContributors(
+  tallies: { userId: string; count: number }[],
+  people: Capturer[],
+): LeaderboardRow[] {
+  const byId = new Map(people.map((p) => [p.id, p]));
+  const sorted = [...tallies]
+    .filter((t) => t.count > 0)
+    .sort((a, b) => {
+      if (b.count !== a.count) return b.count - a.count;
+      return (byId.get(a.userId)?.name ?? "").localeCompare(byId.get(b.userId)?.name ?? "");
+    });
+
+  let rank = 0;
+  let previousCount: number | null = null;
+  return sorted.map((t, i) => {
+    if (t.count !== previousCount) {
+      rank = i + 1;
+      previousCount = t.count;
+    }
+    const p = byId.get(t.userId);
+    return {
+      rank,
+      userId: t.userId,
+      name: p?.name ?? "Unknown",
+      avatarColor: p?.avatarColor ?? "#0e9f8f",
+      avatarUrl: p?.avatarUrl ?? null,
+      count: t.count,
+    };
+  });
+}
+
+/** `month` is "YYYY-MM"; omit it for all time. */
+export async function getBinLeaderboard(
+  workspaceId: string,
+  month?: string,
+): Promise<LeaderboardRow[]> {
+  let range: { gte: Date; lt: Date } | undefined;
+  if (month) {
+    const [y, m] = month.split("-").map(Number);
+    if (y && m) range = { gte: new Date(y, m - 1, 1), lt: new Date(y, m, 1) };
+  }
+
+  const tallies = await prisma.contentBinItem.groupBy({
+    by: ["createdById"],
+    where: {
+      workspaceId,
+      deletedAt: null,
+      // Ideas that were thrown out don't score — the same rule the sidebar's bin
+      // badge uses, so the two numbers never disagree.
+      status: { not: "DISCARDED" },
+      ...(range ? { createdAt: range } : {}),
+    },
+    _count: { _all: true },
+  });
+  if (!tallies.length) return [];
+
+  // createdById isn't a hard relation, so names come from a second query.
+  const people = await prisma.user.findMany({
+    where: { id: { in: tallies.map((t) => t.createdById) } },
+    select: { id: true, name: true, avatarColor: true, avatarUrl: true },
+  });
+
+  return rankContributors(
+    tallies.map((t) => ({ userId: t.createdById, count: t._count._all })),
+    people,
+  );
+}
+
 /** Captured Content Bin items (workspace-scoped, newest first). Discarded items
  * stay in the bin (only hard-delete sets deletedAt). Search/sort in memory. */
 export async function listContentBin(

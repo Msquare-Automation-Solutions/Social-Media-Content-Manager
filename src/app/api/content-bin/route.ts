@@ -5,6 +5,8 @@ import { serializeTags } from "@/lib/json";
 import { listContentBin } from "@/lib/data";
 import { createNotifications } from "@/lib/notifications";
 import { ASSET_TYPES, BIN_STATUSES } from "@/lib/enums";
+import { isContributor } from "@/lib/roles";
+import { ensureSelfPerson } from "@/lib/people";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,19 +29,26 @@ const schema = z.object({
 
 // GET — all live bin items for the caller's workspace (any authenticated user).
 export async function GET() {
-  const g = await guard();
+  const g = await guard("CONTRIBUTOR");
   if (!g.ok) return g.response;
   return Response.json(await listContentBin(g.user.workspaceId));
 }
 
 // POST — capture a new idea. EDITOR and above (matches the "save/upload" tier).
 export async function POST(req: Request) {
-  const g = await guard("EDITOR");
+  // Contributors exist to add ideas — this is their one write.
+  const g = await guard("CONTRIBUTOR");
   if (!g.ok) return g.response;
 
   const parsed = schema.safeParse(await req.json());
   if (!parsed.success) return new Response("Bad request", { status: 400 });
   const d = parsed.data;
+
+  // Contributors capture under their own name — the creator field is not theirs
+  // to choose, so whatever arrived from the browser is discarded.
+  const personId = isContributor(g.user.role)
+    ? await ensureSelfPerson(g.user)
+    : d.personId ?? null;
 
   const item = await prisma.contentBinItem.create({
     data: {
@@ -50,7 +59,7 @@ export async function POST(req: Request) {
       links: serializeTags(d.links ?? []),
       tags: serializeTags(d.tags ?? []),
       status: d.status ?? "NEW",
-      personId: d.personId ?? null,
+      personId,
       category: d.category ?? null,
       channelIds: serializeTags(d.channelIds ?? []),
       accountIds: serializeTags(d.accountIds ?? []),

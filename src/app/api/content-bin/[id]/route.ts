@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { guard } from "@/lib/api-guard";
+import { isContributor } from "@/lib/roles";
 import { prisma } from "@/lib/db";
 import { serializeTags } from "@/lib/json";
 import { ASSET_TYPES, BIN_STATUSES } from "@/lib/enums";
@@ -30,14 +31,21 @@ async function ownItem(id: string, workspaceId: string) {
 }
 
 // Edit an idea, change its status (New/Used/Discarded), or link the asset it was
-// promoted into. EDITOR and above.
+// promoted into. EDITOR and above, plus contributors on their own ideas.
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const g = await guard("EDITOR");
+  const g = await guard("CONTRIBUTOR");
   if (!g.ok) return g.response;
 
   const { id } = await params;
   const item = await ownItem(id, g.user.workspaceId);
   if (!item || item.deletedAt) return new Response("Not found", { status: 404 });
+
+  // A contributor may only touch what they captured. 404 rather than 403 so the
+  // response says nothing about other people's ideas.
+  const contributor = isContributor(g.user.role);
+  if (contributor && item.createdById !== g.user.id) {
+    return new Response("Not found", { status: 404 });
+  }
 
   const parsed = patchSchema.safeParse(await req.json());
   if (!parsed.success) return new Response("Bad request", { status: 400 });
@@ -51,7 +59,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       ...(d.links !== undefined ? { links: serializeTags(d.links) } : {}),
       ...(d.tags !== undefined ? { tags: serializeTags(d.tags) } : {}),
       ...(d.status !== undefined ? { status: d.status } : {}),
-      ...(d.personId !== undefined ? { personId: d.personId } : {}),
+      // Contributors can never reassign the creator, not even on their own item.
+      ...(d.personId !== undefined && !contributor ? { personId: d.personId } : {}),
       ...(d.category !== undefined ? { category: d.category } : {}),
       ...(d.channelIds !== undefined ? { channelIds: serializeTags(d.channelIds) } : {}),
       ...(d.accountIds !== undefined ? { accountIds: serializeTags(d.accountIds) } : {}),

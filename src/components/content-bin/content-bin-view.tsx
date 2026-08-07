@@ -18,6 +18,7 @@ type Options = {
   canEdit: boolean;
   mePersonId: string | null;
   isAdmin: boolean;
+  canChooseCreator: boolean;
 };
 
 type Filters = {
@@ -1154,13 +1155,20 @@ function BinForm({
 
       <label className={labelCls}>
         Creator
-        <select value={personId} onChange={(e) => setPersonId(e.target.value)} className={inputCls}>
-          {options.people.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
+        {options.canChooseCreator === false ? (
+          // Locked to themselves; the server enforces this regardless.
+          <div className={`${inputCls} mt-1 flex items-center bg-wash/[0.04] text-slate`}>
+            {options.people.find((p) => p.id === options.mePersonId)?.name ?? "You"}
+          </div>
+        ) : (
+          <select value={personId} onChange={(e) => setPersonId(e.target.value)} className={inputCls}>
+            {options.people.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        )}
       </label>
       <div className={`col-span-2 ${labelCls}`}>
         Category <span className="font-normal text-slate">(pick one)</span>

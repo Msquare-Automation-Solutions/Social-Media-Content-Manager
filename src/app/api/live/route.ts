@@ -20,7 +20,7 @@ type Row = {
  * so a poll is one database round trip.
  */
 export async function GET() {
-  const g = await guard();
+  const g = await guard("CONTRIBUTOR");
   if (!g.ok) return g.response;
 
   const [row] = await prisma.$queryRaw<Row[]>`

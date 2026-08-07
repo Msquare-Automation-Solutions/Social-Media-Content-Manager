@@ -7,10 +7,16 @@ export type GuardResult =
   | { ok: false; response: Response };
 
 /**
- * Resolve the current user and (optionally) enforce a minimum role — server
- * side. Role checks live here, not just in hidden UI.
+ * Resolve the current user and enforce a minimum role — server side. Role checks
+ * live here, not just in hidden UI.
+ *
+ * The default is VIEWER, not "any authenticated user", so a route that forgets to
+ * say what it needs still keeps out the CONTRIBUTOR role (Content Bin only). The
+ * handful of endpoints contributors genuinely need pass "CONTRIBUTOR" explicitly.
+ * Failing closed matters here: the cost of getting it wrong is a contributor being
+ * denied something — obvious and harmless — rather than quiet over-exposure.
  */
-export async function guard(minRole?: Role): Promise<GuardResult> {
+export async function guard(minRole: Role = "VIEWER"): Promise<GuardResult> {
   const user = await getCurrentUser();
   if (!user) {
     return { ok: false, response: new Response("Unauthorized", { status: 401 }) };

@@ -75,7 +75,13 @@ export function MembersTable({
               <span className="truncate text-slate">{m.email}</span>
               <span className="truncate text-[12.5px] text-slate">{m.designation || <span className="text-slate/50">—</span>}</span>
               <span className={`w-fit rounded-full px-2.5 py-1 text-[11px] font-bold ${isAdmin(m.role) ? "bg-[#e7defb] text-[#6b46c1]" : "bg-teal-soft text-teal-dark"}`}>
-                {m.role === "OWNER" ? "Owner" : isAdmin(m.role) ? "Admin" : "User"}
+                {m.role === "OWNER"
+                  ? "Owner"
+                  : isAdmin(m.role)
+                    ? "Admin"
+                    : m.role === "CONTRIBUTOR"
+                      ? "Contributor"
+                      : "User"}
               </span>
               <span className="text-right text-[12.5px] text-slate tabular-nums">{m.assetCount}</span>
             </div>
@@ -197,6 +203,7 @@ function MemberEditModal({ member, isSelf, others, onClose, onDone }: { member: 
           <select value={role} onChange={(e) => setRole(e.target.value)} className={inputCls}>
             <option value="EDITOR">User, create &amp; manage content</option>
             <option value="ADMIN">Admin, manage accounts &amp; content</option>
+            <option value="CONTRIBUTOR">Contributor, Content Bin only</option>
           </select>
         )}
       </Field>
@@ -290,6 +297,7 @@ function CreateAccountModal({ onClose, onCreated }: { onClose: () => void; onCre
         <select value={role} onChange={(e) => setRole(e.target.value)} className={inputCls}>
           <option value="EDITOR">User, create &amp; manage content</option>
           <option value="ADMIN">Admin, manage accounts &amp; content</option>
+          <option value="CONTRIBUTOR">Contributor, Content Bin only</option>
         </select>
       </Field>
       <Field label="Password (min 8 characters)">

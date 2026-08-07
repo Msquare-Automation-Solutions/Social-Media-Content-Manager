@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 const schema = z.object({ id: z.string().min(1).optional() });
 
 export async function PATCH(req: Request) {
-  const g = await guard();
+  const g = await guard("CONTRIBUTOR");
   if (!g.ok) return g.response;
 
   const parsed = schema.safeParse(await req.json().catch(() => ({})));

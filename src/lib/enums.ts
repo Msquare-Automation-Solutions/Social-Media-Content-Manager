@@ -1,15 +1,22 @@
 // Enum-like constants. Stored as String in SQLite (see schema.prisma header)
 // and validated here so the app has a single source of truth.
 
-export const ROLES = ["OWNER", "ADMIN", "EDITOR", "VIEWER"] as const;
+export const ROLES = ["OWNER", "ADMIN", "EDITOR", "VIEWER", "CONTRIBUTOR"] as const;
 export type Role = (typeof ROLES)[number];
 
-// Higher index = more privilege. Used by requireRole (src/lib/roles.ts).
+// Higher rank = more privilege. Used by requireRole (src/lib/roles.ts).
+//
+// CONTRIBUTOR sits at the bottom deliberately. It's the "Content Bin only" role:
+// staff outside the marketing team who capture ideas and see the leaderboard, and
+// nothing else. Because bin access is the least privilege in the product, putting
+// it at the floor means every existing guard("EDITOR") / guard("ADMIN") excludes
+// contributors automatically, while everyone above still gets bin access.
 export const ROLE_RANK: Record<Role, number> = {
-  VIEWER: 0,
-  EDITOR: 1,
-  ADMIN: 2,
-  OWNER: 3,
+  CONTRIBUTOR: 0,
+  VIEWER: 1,
+  EDITOR: 2,
+  ADMIN: 3,
+  OWNER: 4,
 };
 
 export const ASSET_TYPES = [
