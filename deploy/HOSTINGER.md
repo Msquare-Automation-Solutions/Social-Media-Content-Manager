@@ -94,14 +94,20 @@ so whoever opened the app first wore that delay. Second cron job, hPanel →
 Advanced → Cron Jobs, type **Custom**:
 
 ```
-*/5 9-20 * * *   curl -fsS https://marketing.msquare.pro/api/warm
+*/4 * * * *   curl -fsS https://marketing.msquare.pro/api/warm
 ```
 
-Every 5 minutes from 09:00 to 20:00 server time (`TZ=Asia/Kolkata`), so the compute
-stays warm through the working day and still sleeps overnight and at weekends —
-important, because Neon's free plan has a monthly compute-hour allowance and keeping
-it awake 24/7 would eat most of it. `/api/warm` runs a single `SELECT 1` and returns
-`{ ok, ms }`; nothing to abuse, so it needs no token.
+The schedule can run around the clock: `/api/warm` checks the hour in Asia/Kolkata
+itself and only touches the database between 09:00 and 19:00 IST, returning
+`{ ok, skipped }` otherwise. That deliberately keeps the working-hours rule in code
+rather than in the cron's schedule, because cron runs on the *server's* clock, not
+IST — getting that wrong either burns the allowance overnight or leaves the database
+asleep through the team's morning.
+
+Why it matters: Neon's Free plan gives roughly **400 hours of active compute per
+month** and autosuspend (5 min) **cannot be disabled**. Ten hours a day is ~300,
+leaving headroom for real use outside those hours; awake 24/7 would need ~730 and
+the database would stop accepting connections partway through the month.
 
 ## R2 CORS
 
