@@ -83,7 +83,6 @@ export function Sidebar({
               items: [
                 it("/content-bin", "Content Bin", "bin", isActive("/content-bin"), binCount || undefined),
                 it("/leaderboard", "Leaderboard", "members", isActive("/leaderboard")),
-                it("/trash", "Trash", "trash", isActive("/trash")),
               ],
             },
           ],

@@ -1,4 +1,5 @@
 import { getSidebarCounts, getBinCount } from "@/lib/data";
+import { unreadNotificationCount } from "@/lib/notifications";
 import { LIBRARY_VIEWS, type LibraryViewKey } from "@/lib/library";
 import { hasRole, isContributor } from "@/lib/roles";
 import type { CurrentUser } from "@/lib/session";
@@ -32,7 +33,11 @@ export async function AppShell({
   // A contributor can't open anything the other badges describe, so don't spend
   // the query on them — and don't leak task or review counts into their nav.
   const counts = restricted ? null : await getSidebarCounts(user.workspaceId, user.id);
-  const binCount = restricted ? await getBinCount(user.workspaceId) : counts!.bin;
+  // Contributors still get notified when anyone adds an idea, so they need the
+  // unread count even though the rest of the badges mean nothing to them.
+  const [binCount, unreadCount] = counts
+    ? [counts.bin, counts.unread]
+    : await Promise.all([getBinCount(user.workspaceId), unreadNotificationCount(user.id)]);
 
   // R2 free tier is 10 GB; override with STORAGE_LIMIT_GB if you scale the plan.
   const storageLimitBytes = Number(process.env.STORAGE_LIMIT_GB ?? 10) * 1e9;
@@ -57,7 +62,7 @@ export async function AppShell({
           taskReworkCount={counts?.taskRework ?? 0}
           membersCount={counts?.members ?? 0}
           readyCount={counts?.ready ?? 0}
-          unreadCount={counts?.unread ?? 0}
+          unreadCount={unreadCount}
           storage={counts?.storage ?? { total: 0, active: 0, trashed: 0 }}
           storageLimitBytes={storageLimitBytes}
         />
