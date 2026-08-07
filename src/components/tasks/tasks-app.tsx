@@ -136,8 +136,8 @@ export function TasksApp(props: Props) {
   const refresh = () => router.refresh();
 
   const title =
-    mode === "overview" ? "Content Overview"
-    : mode === "board" ? "Tasks board"
+    mode === "overview" ? "Tasks board"
+    : mode === "board" ? "Content Overview"
     : mode === "mywork" ? "My Work"
     : mode === "review" ? "To review"
     : mode === "rework" ? "In rework"
@@ -337,12 +337,9 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
   const [person, setPerson] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
-  // The page opens on the current week — that's the work in hand. Earlier and
-  // later weeks stay out of the way until you pick a date in the filter (or ask
-  // for all weeks). Dates are parsed locally so the label can't slip a day.
+  // Every week is listed, grouped under its own header, newest first. The current
+  // week carries a badge so it's easy to find.
   const thisWeek = weekLabelForDate(new Date().toISOString());
-  const [weekDate, setWeekDate] = useState(todayStr());
-  const week = weekDate ? weekLabelForDate(new Date(`${weekDate}T12:00:00`).toISOString()) : "";
 
   // Anyone involved in a task: a stage owner, its publisher or its analyst.
   const involves = (t: TaskRow, userId: string) =>
@@ -357,7 +354,6 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
     if (typeFilter && t.contentTypeLabel !== typeFilter) return false;
     if (platform && t.channel?.id !== platform) return false;
     if (account && t.account?.id !== account) return false;
-    if (week && taskWeek(t) !== week) return false;
     if (person && !involves(t, person)) return false;
     if (from || to) {
       const d = t.scheduledPublishDate ? t.scheduledPublishDate.slice(0, 10) : "";
@@ -368,7 +364,7 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
     return true;
   });
 
-  const filtering = Boolean(q || typeFilter || platform || account || person || from || to || weekDate);
+  const filtering = Boolean(q || typeFilter || platform || account || person || from || to);
 
   const fsel = "rounded-[9px] border border-line bg-card px-2.5 py-2 text-[12.5px] text-ink outline-none focus:border-teal";
 
@@ -389,9 +385,6 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
       <div className="mb-4 flex flex-wrap items-end gap-2.5">
         <label className="text-[11.5px] font-semibold text-slate">Search
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Theme, brief, type…" className={fsel + " mt-1 block w-56 font-normal"} />
-        </label>
-        <label className="text-[11.5px] font-semibold text-slate">Week of
-          <input type="date" value={weekDate} onChange={(e) => setWeekDate(e.target.value)} className={fsel + " mt-1 block font-normal"} />
         </label>
         <label className="text-[11.5px] font-semibold text-slate">Post type
           <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className={fsel + " mt-1 block font-normal"}>
@@ -424,19 +417,13 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
           <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={fsel + " mt-1 block font-normal"} />
         </label>
         {filtering && (
-          <button onClick={() => { setQ(""); setTypeFilter(""); setPlatform(""); setAccount(""); setPerson(""); setFrom(""); setTo(""); setWeekDate(""); }} className="rounded-[9px] border border-line px-3 py-2 text-[12px] font-semibold text-slate hover:border-teal">Clear</button>
+          <button onClick={() => { setQ(""); setTypeFilter(""); setPlatform(""); setAccount(""); setPerson(""); setFrom(""); setTo(""); }} className="rounded-[9px] border border-line px-3 py-2 text-[12px] font-semibold text-slate hover:border-teal">Clear</button>
         )}
       </div>
 
       {filtered.length === 0 ? (
         <Empty
-          text={
-            !tasks.length
-              ? "No tasks yet, plan your first piece."
-              : week
-                ? `Nothing planned for ${week}. Pick another date, or clear the filters to see every week.`
-                : "No tasks match these filters."
-          }
+          text={!tasks.length ? "No tasks yet, plan your first piece." : "No tasks match these filters."}
         />
       ) : (
         <div className="overflow-x-auto rounded-card border border-line bg-card shadow-soft">

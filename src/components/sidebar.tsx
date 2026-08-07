@@ -88,8 +88,8 @@ export function Sidebar({
         {
           key: "tasks",
           items: [
-            it("/content-overview", "Content Overview", "overview", isActive("/content-overview")),
-            it("/tasks", "Tasks board", "tasks", pathname === "/tasks"),
+            it("/content-overview", "Tasks board", "overview", isActive("/content-overview")),
+            it("/tasks", "Content Overview", "tasks", pathname === "/tasks"),
             it("/my-work", "My Work", "mywork", isActive("/my-work"), myTaskCount || undefined, myTaskCount > 0),
             ...(isAdmin ? [it("/tasks/review", "To review", "review", isActive("/tasks/review"), taskReviewCount || undefined, taskReviewCount > 0)] : []),
             ...(isAdmin ? [it("/tasks/rework", "In rework", "rework", isActive("/tasks/rework"), taskReworkCount || undefined)] : []),
