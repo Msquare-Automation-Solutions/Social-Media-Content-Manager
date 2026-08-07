@@ -48,6 +48,7 @@ export function ContentBinView({
   isAdmin,
   meId,
   contributor,
+  initialOptions,
   filters,
 }: {
   items: ContentBinRow[];
@@ -57,6 +58,8 @@ export function ContentBinView({
   meId: string;
   /** Content-Bin-only role: acts on their own ideas and nothing else. */
   contributor: boolean;
+  /** Rendered in by the server so the page doesn't fetch it after loading. */
+  initialOptions: Options;
   filters: Filters;
 }) {
   const router = useRouter();
@@ -71,6 +74,11 @@ export function ContentBinView({
       if (!r.ok) throw new Error("Failed to load options");
       return r.json();
     },
+    // Came with the page, so there's nothing to wait for and no reason to ask
+    // again straight away — creators and platforms change rarely, and the origin
+    // is far enough away that a needless round trip is felt.
+    initialData: initialOptions,
+    staleTime: 5 * 60_000,
   });
 
   function setParam(key: string, value: string) {

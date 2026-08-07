@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/session";
 import { listContentBin, type BinFilters } from "@/lib/data";
+import { getWorkspaceOptions } from "@/lib/options";
 import { isAdminRole, isContributor } from "@/lib/roles";
 import { ContentBinView } from "@/components/content-bin/content-bin-view";
 
@@ -41,7 +42,12 @@ export default async function ContentBinPage({
     from: sp.from || undefined,
     to: sp.to || undefined,
   };
-  const items = await listContentBin(user.workspaceId, filters);
+  // Both in the render, so the browser doesn't have to ask for the dropdown data
+  // afterwards — that round trip is most of the wait on a page open.
+  const [items, options] = await Promise.all([
+    listContentBin(user.workspaceId, filters),
+    getWorkspaceOptions(user),
+  ]);
 
   return (
     <ContentBinView
@@ -50,6 +56,7 @@ export default async function ContentBinPage({
       isAdmin={isAdminRole(user.role)}
       meId={user.id}
       contributor={isContributor(user.role)}
+      initialOptions={options}
       filters={{
         status: sp.status ?? "",
         person: personValue,

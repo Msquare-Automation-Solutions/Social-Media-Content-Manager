@@ -51,7 +51,9 @@ function start() {
   const onVisible = () => { if (document.visibilityState === "visible") void poll(); };
   document.addEventListener("visibilitychange", onVisible);
   window.addEventListener("focus", onVisible);
-  void poll();
+  // Deliberately no immediate poll: the page was just server-rendered, so there is
+  // nothing to catch up on, and firing a request while the page is still loading
+  // its assets only competes with them. The first tick sets the baseline.
 }
 
 /** Run `onChange` whenever the workspace revision or the caller's inbox changes. */
