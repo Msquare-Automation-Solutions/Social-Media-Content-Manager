@@ -21,6 +21,8 @@ export const ACTIONS = {
   "asset.approved": { category: "content", verb: "approved" },
   "asset.reworked": { category: "content", verb: "requested rework on" },
   "asset.published": { category: "content", verb: "published" },
+  "bin.deleted": { category: "content", verb: "moved to Trash" },
+  "bin.restored": { category: "content", verb: "restored" },
   "creator.created": { category: "creator", verb: "added creator" },
   "creator.updated": { category: "creator", verb: "edited creator" },
   "creator.deleted": { category: "creator", verb: "removed creator" },

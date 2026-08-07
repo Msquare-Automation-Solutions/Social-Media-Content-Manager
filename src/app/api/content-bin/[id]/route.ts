@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { guard } from "@/lib/api-guard";
-import { isContributor } from "@/lib/roles";
+import { hasRole, isContributor } from "@/lib/roles";
 import { prisma } from "@/lib/db";
+import { logActivity } from "@/lib/activity";
 import { serializeTags } from "@/lib/json";
 import { ASSET_TYPES, BIN_STATUSES } from "@/lib/enums";
 
@@ -75,13 +76,25 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 // Hard-delete (soft) — removes the item from the bin into the normal 30-day
 // Trash flow. Discarding (status) is separate and keeps the item in the bin.
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const g = await guard("ADMIN");
+  // Admins can bin anything; contributors only what they captured themselves.
+  const g = await guard("CONTRIBUTOR");
   if (!g.ok) return g.response;
 
   const { id } = await params;
   const item = await ownItem(id, g.user.workspaceId);
   if (!item || item.deletedAt) return new Response("Not found", { status: 404 });
 
+  const mine = item.createdById === g.user.id;
+  if (!hasRole(g.user.role, "ADMIN") && !(isContributor(g.user.role) && mine)) {
+    return new Response("Forbidden", { status: 403 });
+  }
+
   await prisma.contentBinItem.update({ where: { id }, data: { deletedAt: new Date() } });
+  await logActivity(g.user, {
+    action: "bin.deleted",
+    targetType: "bin",
+    targetId: id,
+    targetLabel: item.title,
+  });
   return new Response(null, { status: 204 });
 }

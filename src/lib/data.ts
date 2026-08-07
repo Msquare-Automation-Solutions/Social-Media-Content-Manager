@@ -385,6 +385,31 @@ export type ContentBinRow = {
   updatedAt: string;
 };
 
+/**
+ * Binned (soft-deleted) Content Bin ideas, newest first.
+ *
+ * `createdById` scopes it to one person — contributors only ever see their own
+ * deletions in Trash, since the rest of the bin isn't theirs to restore.
+ */
+export async function getTrashedBinItems(
+  workspaceId: string,
+  createdById?: string,
+): Promise<ContentBinRow[]> {
+  const rows = await prisma.contentBinItem.findMany({
+    where: { workspaceId, deletedAt: { not: null }, ...(createdById ? { createdById } : {}) },
+    orderBy: { deletedAt: "desc" },
+  });
+  if (!rows.length) return [];
+
+  const users = await prisma.user.findMany({
+    where: { id: { in: [...new Set(rows.map((r) => r.createdById))] } },
+    select: { id: true, name: true, avatarColor: true },
+  });
+  const userById = new Map(users.map((u) => [u.id, u]));
+
+  return rows.map((r) => toBinRow(r, userById.get(r.createdById)));
+}
+
 // ── Content Bin leaderboard ──────────────────────────────────────────────────
 // Who has captured the most ideas. Counting `createdById` — set server-side from
 // the session, never accepted from the browser — so the score can't be gamed by
@@ -474,6 +499,30 @@ export async function getBinLeaderboard(
   );
 }
 
+type BinRecord = Awaited<ReturnType<typeof prisma.contentBinItem.findFirst>>;
+type Capturer2 = { id: string; name: string; avatarColor: string } | undefined;
+
+/** One database row → the shape the bin and trash views render. */
+function toBinRow(r: NonNullable<BinRecord>, capturer: Capturer2): ContentBinRow {
+  return {
+    id: r.id,
+    title: r.title,
+    note: r.note,
+    links: parseTags(r.links),
+    tags: parseTags(r.tags),
+    status: r.status,
+    personId: r.personId,
+    category: r.category,
+    channelIds: parseTags(r.channelIds),
+    accountIds: parseTags(r.accountIds),
+    screenshots: parseTags(r.screenshots),
+    promotedAssetId: r.promotedAssetId,
+    createdBy: capturer ?? null,
+    createdAt: r.createdAt.toISOString(),
+    updatedAt: r.updatedAt.toISOString(),
+  };
+}
+
 /** Captured Content Bin items (workspace-scoped, newest first). Discarded items
  * stay in the bin (only hard-delete sets deletedAt). Search/sort in memory. */
 export async function listContentBin(
@@ -502,23 +551,7 @@ export async function listContentBin(
     : [];
   const userById = new Map(users.map((u) => [u.id, u]));
 
-  const items: ContentBinRow[] = rows.map((r) => ({
-    id: r.id,
-    title: r.title,
-    note: r.note,
-    links: parseTags(r.links),
-    tags: parseTags(r.tags),
-    status: r.status,
-    personId: r.personId,
-    category: r.category,
-    channelIds: parseTags(r.channelIds),
-    accountIds: parseTags(r.accountIds),
-    screenshots: parseTags(r.screenshots),
-    promotedAssetId: r.promotedAssetId,
-    createdBy: userById.get(r.createdById) ?? null,
-    createdAt: r.createdAt.toISOString(),
-    updatedAt: r.updatedAt.toISOString(),
-  }));
+  const items: ContentBinRow[] = rows.map((r) => toBinRow(r, userById.get(r.createdById)));
 
   // Taxonomy filters (channelIds/accountIds are JSON arrays → match in memory).
   const filtered = items.filter(
