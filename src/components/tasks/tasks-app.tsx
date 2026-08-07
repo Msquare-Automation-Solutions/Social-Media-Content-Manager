@@ -337,9 +337,11 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
   const [person, setPerson] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
-  // Every week is listed, grouped under its own header, newest first. The current
-  // week carries a badge so it's easy to find.
+  // Every week is listed, newest first, but only the current one starts open —
+  // the rest fold away behind their header so the page doesn't open as a scroll.
   const thisWeek = weekLabelForDate(new Date().toISOString());
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const toggleWeek = (w: string) => setCollapsed((c) => ({ ...c, [w]: !(c[w] ?? w !== thisWeek) }));
 
   // Anyone involved in a task: a stage owner, its publisher or its analyst.
   const involves = (t: TaskRow, userId: string) =>
@@ -435,20 +437,27 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
               </tr>
             </thead>
             <tbody>
-              {weeks.map(({ label: w, rows: arr }) => (
+              {weeks.map(({ label: w, rows: arr }) => {
+                // A search shouldn't hide its own matches inside a folded week.
+                const open = filtering || !(collapsed[w] ?? w !== thisWeek);
+                return (
                 <Fragment key={w}>
-                  <tr className="bg-teal-soft/50">
-                    <td colSpan={7} className="border-l-[3px] border-teal px-3 py-2">
-                      <span className="font-display text-[13px] font-bold tracking-[0.01em] text-ink">{w}</span>
-                      <span className="ml-2 text-[11.5px] font-semibold text-slate">
+                  <tr
+                    onClick={() => toggleWeek(w)}
+                    className="cursor-pointer bg-teal transition-[filter] hover:brightness-105"
+                  >
+                    <td colSpan={7} className="px-3 py-2.5">
+                      <span className="mr-2 inline-block w-3 text-[11px] text-white/80">{open ? "▾" : "▸"}</span>
+                      <span className="font-display text-[13px] font-bold tracking-[0.01em] text-white">{w}</span>
+                      <span className="ml-2 text-[11.5px] font-semibold text-white/75">
                         {arr.length} {arr.length === 1 ? "task" : "tasks"}
                       </span>
                       {w === thisWeek && (
-                        <span className={`${badge} ml-2 bg-teal text-white`}>this week</span>
+                        <span className={`${badge} ml-2 bg-white text-[#0b7d71]`}>this week</span>
                       )}
                     </td>
                   </tr>
-                  {arr.map((t) => {
+                  {open && arr.map((t) => {
                     const att = publishAttention(t);
                     return (
                       <tr key={t.id} onClick={() => onOpen(t.id)} className={`cursor-pointer border-b border-line hover:bg-wash/[0.03] ${att ? (att.tone === "red" ? "bg-[#f5442e]/[0.05]" : "bg-[#f5920b]/[0.05]") : ""}`}>
@@ -489,7 +498,8 @@ function Overview({ tasks, canEdit, isAdmin, members, onOpen, onEdit, onDelete }
                     );
                   })}
                 </Fragment>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
