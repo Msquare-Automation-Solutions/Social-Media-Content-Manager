@@ -27,7 +27,8 @@ export default async function TrashPage() {
         <h2 className="font-display text-[19px]">Trash</h2>
       </div>
       <p className="mb-4 text-[12.5px] text-slate">
-        Deleted items are kept for 30 days, then permanently removed.
+        Deleted items are kept for 30 days, then permanently removed. Delete removes
+        one for good straight away.
       </p>
 
       {contributor ? (

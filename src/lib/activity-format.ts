@@ -23,6 +23,7 @@ export const ACTIONS = {
   "asset.published": { category: "content", verb: "published" },
   "bin.deleted": { category: "content", verb: "moved to Trash" },
   "bin.restored": { category: "content", verb: "restored" },
+  "bin.purged": { category: "content", verb: "permanently deleted" },
   "creator.created": { category: "creator", verb: "added creator" },
   "creator.updated": { category: "creator", verb: "edited creator" },
   "creator.deleted": { category: "creator", verb: "removed creator" },

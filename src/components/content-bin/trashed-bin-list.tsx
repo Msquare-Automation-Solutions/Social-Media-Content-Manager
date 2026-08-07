@@ -6,14 +6,32 @@ import { useToast } from "@/components/ui/toast";
 import type { ContentBinRow } from "@/lib/data";
 
 /**
- * Binned ideas in Trash, with restore. Contributors are only ever handed their
- * own (the page scopes the query), so there's no ownership logic to do here —
- * the restore endpoint enforces it again regardless.
+ * Binned ideas in Trash, with restore and permanent delete. Contributors are only
+ * ever handed their own (the page scopes the query), so there's no ownership logic
+ * to do here — both endpoints enforce it again regardless.
  */
 export function TrashedBinList({ items }: { items: ContentBinRow[] }) {
   const router = useRouter();
   const { toast } = useToast();
   const [busy, setBusy] = useState<string | null>(null);
+
+  async function purge(item: ContentBinRow) {
+    if (
+      !confirm(
+        `Permanently delete “${item.title}”?\n\nThis can't be undone — it won't be recoverable afterwards.`,
+      )
+    )
+      return;
+    setBusy(item.id);
+    const r = await fetch(`/api/content-bin/${item.id}/purge`, { method: "DELETE" });
+    setBusy(null);
+    if (r.ok) {
+      toast(`“${item.title}” deleted for good`);
+      router.refresh();
+    } else {
+      toast("Couldn't delete that idea.");
+    }
+  }
 
   async function restore(item: ContentBinRow) {
     setBusy(item.id);
@@ -54,7 +72,15 @@ export function TrashedBinList({ items }: { items: ContentBinRow[] }) {
             disabled={busy === item.id}
             className="shrink-0 rounded-[9px] border border-line px-3 py-1.5 text-[12px] font-semibold text-slate hover:border-teal hover:text-teal-dark disabled:opacity-50"
           >
-            {busy === item.id ? "Restoring…" : "Restore"}
+            {busy === item.id ? "Working…" : "Restore"}
+          </button>
+          <button
+            onClick={() => purge(item)}
+            disabled={busy === item.id}
+            title="Delete permanently"
+            className="shrink-0 rounded-[9px] border border-line px-3 py-1.5 text-[12px] font-semibold text-[#c23b2a] hover:border-[#c23b2a] disabled:opacity-50"
+          >
+            Delete
           </button>
         </div>
       ))}

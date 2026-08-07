@@ -86,6 +86,21 @@ command in a `.sh` file if you need them.
 **This job fails silently.** If it's missing or the token is wrong, deadline
 reminders simply stop and nobody is told. Check hPanel's *View Output* occasionally.
 
+## The 30-day Trash clear-out
+
+The Trash page promises deleted items are removed after 30 days; `/api/cron/purge-trash`
+is what actually does it for Content Bin ideas. Third cron job, daily:
+
+```
+0 3 * * *   curl -fsS -H "Authorization: Bearer <CRON_SECRET>" https://marketing.msquare.pro/api/cron/purge-trash
+```
+
+It permanently deletes ideas binned more than 30 days ago and their screenshots —
+except where the idea was promoted into an asset, since that asset may point at the
+same files. Returns `{ purged, cutoff, titles }` so hPanel's *View Output* shows what
+went. Media assets are deliberately **not** swept: removing real files, versions and
+thumbnails is a bigger decision, so they wait for a deliberate purge.
+
 ## Keeping the database awake (the "2 second lag")
 
 Measured: the first query after Neon's compute has been idle takes **~3.6 s**;
